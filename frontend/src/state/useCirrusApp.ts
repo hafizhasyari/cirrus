@@ -38,6 +38,7 @@ interface UserFormValues {
   name: string;
   email: string;
   role: Role;
+  accountConnectionIds: string[];
 }
 
 interface EditFormValues {
@@ -118,7 +119,7 @@ export function useCirrusApp() {
   // User drawer
   const [userDrawerMode, setUserDrawerMode] = useState<'edit' | 'invite' | null>(null);
   const [editingUserId, setEditingUserId] = useState<string | null>(null);
-  const [userForm, setUserForm] = useState<UserFormValues>({ name: '', email: '', role: 'viewer' });
+  const [userForm, setUserForm] = useState<UserFormValues>({ name: '', email: '', role: 'viewer', accountConnectionIds: [] });
   const userDrawerModeRef = useLatestRef(userDrawerMode);
   const editingUserIdRef = useLatestRef(editingUserId);
   const userFormRef = useLatestRef(userForm);
@@ -409,13 +410,13 @@ export function useCirrusApp() {
   const openEditUser = useCallback((u: User) => {
     setUserDrawerMode('edit');
     setEditingUserId(u.id);
-    setUserForm({ name: u.name, email: u.email, role: u.role });
+    setUserForm({ name: u.name, email: u.email, role: u.role, accountConnectionIds: u.connectionIds });
   }, []);
 
   const openInviteUser = useCallback(() => {
     setUserDrawerMode('invite');
     setEditingUserId(null);
-    setUserForm({ name: '', email: '', role: 'viewer' });
+    setUserForm({ name: '', email: '', role: 'viewer', accountConnectionIds: [] });
   }, []);
 
   const closeUserDrawer = useCallback(() => setUserDrawerMode(null), []);
@@ -428,20 +429,30 @@ export function useCirrusApp() {
     setUserForm((prev) => ({ ...prev, role }));
   }, []);
 
+  const toggleUserFormConnection = useCallback((connectionId: string) => {
+    setUserForm((prev) => ({
+      ...prev,
+      accountConnectionIds: prev.accountConnectionIds.includes(connectionId)
+        ? prev.accountConnectionIds.filter((id) => id !== connectionId)
+        : [...prev.accountConnectionIds, connectionId],
+    }));
+  }, []);
+
   const saveUser = useCallback(async () => {
     const wasInvite = userDrawerModeRef.current === 'invite';
     const f = userFormRef.current;
+    // Only send accountConnectionIds for viewers — omitting it for admins
+    // leaves any pre-existing assignment untouched (PATCH/POST semantics),
+    // and an admin's DTO ignores assignments anyway.
+    const accountConnectionIds = f.role === 'viewer' ? f.accountConnectionIds : undefined;
     try {
       if (userDrawerModeRef.current === 'edit') {
         const id = editingUserIdRef.current;
         if (!id) return;
-        const updated = await updateUser(id, { name: f.name, email: f.email, role: f.role });
+        const updated = await updateUser(id, { name: f.name, email: f.email, role: f.role, accountConnectionIds });
         setUsers((prev) => prev.map((u) => (u.id === id ? updated : u)));
       } else {
-        // NOTE: no UI yet to pick which connections a new Viewer can see
-        // (accountConnectionIds) — invited Viewers get zero accounts until
-        // an Admin assigns some another way. Known gap, not built here.
-        const created = await createUser({ name: f.name, email: f.email, role: f.role });
+        const created = await createUser({ name: f.name, email: f.email, role: f.role, accountConnectionIds });
         setUsers((prev) => [...prev, created]);
       }
       setUserDrawerMode(null);
@@ -486,7 +497,7 @@ export function useCirrusApp() {
     selectWizardProvider, wizardBackToStep1, updateWizardAccount, updateWizardField, setWizardSimulate, runTest, editRetry, saveConnection,
     // users
     userDrawerMode, editingUserId, userForm, openEditUser, openInviteUser, closeUserDrawer,
-    updateUserField, setUserFormRole, saveUser, removeUser,
+    updateUserField, setUserFormRole, toggleUserFormConnection, saveUser, removeUser,
     // toast
     toast, showToast,
   };

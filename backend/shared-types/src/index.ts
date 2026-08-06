@@ -58,6 +58,8 @@ export interface User {
   email: string;
   role: Role;
   accounts: string[];
+  /** Connection ids backing `accounts` ([] for admin, meaning "all"). */
+  connectionIds: string[];
   lastLogin: string; // ISO timestamp or "Never"
   status?: 'pending';
 }

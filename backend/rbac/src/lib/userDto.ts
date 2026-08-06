@@ -12,12 +12,14 @@ function accountLabel(conn: ConnectionRow): string {
 
 export function toUserDto(user: UserRow, assignedConnections: ConnectionRow[]): User {
   const accounts = user.role === 'admin' ? ['All accounts'] : assignedConnections.map(accountLabel);
+  const connectionIds = user.role === 'admin' ? [] : assignedConnections.map((c) => c.id);
   return {
     id: user.id,
     name: user.name,
     email: user.email,
     role: user.role,
     accounts,
+    connectionIds,
     lastLogin: user.lastLoginAt ? user.lastLoginAt.toISOString() : 'Never',
     ...(user.status === 'pending' ? { status: 'pending' as const } : {}),
   };

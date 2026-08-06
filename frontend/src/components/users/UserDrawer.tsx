@@ -44,6 +44,52 @@ export function UserDrawer({ app }: { app: CirrusApp }) {
           </div>
         </div>
 
+        {!isAdminRole && (
+          <div>
+            <div className="section-label" style={{ marginBottom: 8 }}>Assigned accounts</div>
+            <div
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 2,
+                maxHeight: 200,
+                overflowY: 'auto',
+                border: '1px solid var(--border)',
+                borderRadius: 10,
+                padding: 6,
+                boxSizing: 'border-box',
+              }}
+            >
+              {app.connections.length === 0 && (
+                <div style={{ fontSize: 12, color: 'var(--text-muted)', padding: 6 }}>
+                  No cloud connections registered yet.
+                </div>
+              )}
+              {app.connections.map((conn) => {
+                const providerName = app.providers.find((p) => p.id === conn.provider)?.name ?? conn.provider;
+                const checked = app.userForm.accountConnectionIds.includes(conn.id);
+                return (
+                  <label
+                    key={conn.id}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 8,
+                      fontSize: 12.5,
+                      cursor: 'pointer',
+                      padding: '5px 6px',
+                      borderRadius: 6,
+                    }}
+                  >
+                    <input type="checkbox" checked={checked} onChange={() => app.toggleUserFormConnection(conn.id)} />
+                    {providerName} – {conn.account}
+                  </label>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
         <div style={{ flex: 1 }} />
 
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderTop: '1px solid var(--border)', paddingTop: 16 }}>

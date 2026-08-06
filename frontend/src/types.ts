@@ -52,6 +52,8 @@ export interface User {
   email: string;
   role: Role;
   accounts: string[];
+  /** Connection ids backing `accounts` ([] for admin, meaning "all"). */
+  connectionIds: string[];
   lastLogin: string;
   status?: 'pending';
 }
