@@ -1,0 +1,185 @@
+name: cirrus
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: cirrus
+      POSTGRES_USER: cirrus
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-cirrus_dev}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U cirrus"]
+      interval: 5s
+      retries: 10
+
+  redis:
+    image: redis:8-alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      retries: 10
+
+  rbac:
+    build:
+      context: ./backend
+      dockerfile: rbac/Dockerfile
+    environment:
+      PORT: 4001
+      DATABASE_URL: postgres://cirrus:${POSTGRES_PASSWORD:-cirrus_dev}@postgres:5432/cirrus
+      INTERNAL_SHARED_SECRET: ${INTERNAL_SHARED_SECRET:-dev-internal-secret}
+      SEED_ADMIN_EMAIL: ${SEED_ADMIN_EMAIL:-admin@example.com}
+    ports:
+      - "4001:4001"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://localhost:4001/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 5s
+      retries: 10
+      start_period: 10s
+
+  auth:
+    build:
+      context: ./backend
+      dockerfile: auth/Dockerfile
+    environment:
+      PORT: 4000
+      ENTRA_TENANT_ID: ${ENTRA_TENANT_ID}
+      ENTRA_CLIENT_ID: ${ENTRA_CLIENT_ID}
+      ENTRA_CLIENT_SECRET: ${ENTRA_CLIENT_SECRET}
+      AUTH_REDIRECT_URI: ${AUTH_REDIRECT_URI:-http://localhost:8080/auth/callback}
+      POST_LOGIN_REDIRECT: ${POST_LOGIN_REDIRECT:-http://localhost:5173/}
+      RBAC_URL: http://rbac:4001
+      INTERNAL_SHARED_SECRET: ${INTERNAL_SHARED_SECRET:-dev-internal-secret}
+      JWT_ISSUER: ${JWT_ISSUER:-https://auth.cirrus.internal}
+      JWT_AUDIENCE: ${JWT_AUDIENCE:-cirrus-bff}
+      SESSION_COOKIE_NAME: ${SESSION_COOKIE_NAME:-cirrus_session}
+      COOKIE_SECURE: ${COOKIE_SECURE:-false}
+      COOKIE_SECRET: ${COOKIE_SECRET:-dev-cookie-secret-change-me}
+      SESSION_TTL_SECONDS: ${SESSION_TTL_SECONDS:-43200}
+      AUTH_SIGNING_KEY_JWK: ${AUTH_SIGNING_KEY_JWK:-}
+    ports:
+      - "4000:4000"
+    depends_on:
+      rbac:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://localhost:4000/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 5s
+      retries: 10
+      start_period: 10s
+
+  collector-aws:
+    build:
+      context: ./backend/collectors
+      dockerfile: aws/Dockerfile
+    environment:
+      PORT: 8080
+    ports:
+      - "5001:8080"
+
+  collector-gcp:
+    build:
+      context: ./backend/collectors
+      dockerfile: gcp/Dockerfile
+    environment:
+      PORT: 8080
+    ports:
+      - "5002:8080"
+
+  collector-alibaba:
+    build:
+      context: ./backend/collectors
+      dockerfile: alibaba/Dockerfile
+    environment:
+      PORT: 8080
+    ports:
+      - "5003:8080"
+
+  collector-oci:
+    build:
+      context: ./backend/collectors
+      dockerfile: oci/Dockerfile
+    environment:
+      PORT: 8080
+    ports:
+      - "5004:8080"
+
+  collector-biznet:
+    build:
+      context: ./backend/collectors
+      dockerfile: biznet/Dockerfile
+    environment:
+      PORT: 8080
+    ports:
+      - "5005:8080"
+
+  aggregator:
+    build:
+      context: ./backend
+      dockerfile: aggregator/Dockerfile
+    environment:
+      PORT: 4002
+      REDIS_URL: redis://redis:6379
+      RBAC_URL: http://rbac:4001
+      INTERNAL_SHARED_SECRET: ${INTERNAL_SHARED_SECRET:-dev-internal-secret}
+      AWS_COLLECTOR_URL: http://collector-aws:8080
+      GCP_COLLECTOR_URL: http://collector-gcp:8080
+      ALIBABA_COLLECTOR_URL: http://collector-alibaba:8080
+      OCI_COLLECTOR_URL: http://collector-oci:8080
+      BIZNET_COLLECTOR_URL: http://collector-biznet:8080
+    ports:
+      - "4002:4002"
+    depends_on:
+      redis:
+        condition: service_healthy
+      rbac:
+        condition: service_healthy
+      collector-aws:
+        condition: service_started
+      collector-gcp:
+        condition: service_started
+      collector-alibaba:
+        condition: service_started
+      collector-oci:
+        condition: service_started
+      collector-biznet:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://localhost:4002/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 5s
+      retries: 10
+      start_period: 10s
+
+  bff:
+    build:
+      context: ./backend
+      dockerfile: bff/Dockerfile
+    environment:
+      PORT: 8080
+      AUTH_URL: http://auth:4000
+      RBAC_URL: http://rbac:4001
+      AGGREGATOR_URL: http://aggregator:4002
+      INTERNAL_SHARED_SECRET: ${INTERNAL_SHARED_SECRET:-dev-internal-secret}
+      SESSION_COOKIE_NAME: ${SESSION_COOKIE_NAME:-cirrus_session}
+      JWT_ISSUER: ${JWT_ISSUER:-https://auth.cirrus.internal}
+      JWT_AUDIENCE: ${JWT_AUDIENCE:-cirrus-bff}
+    ports:
+      - "8080:8080"
+    depends_on:
+      auth:
+        condition: service_healthy
+      rbac:
+        condition: service_healthy
+      aggregator:
+        condition: service_healthy
+
+volumes:
+  pgdata:

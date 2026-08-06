@@ -1,0 +1,21 @@
+{
+  "name": "@cirrus/bff",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/server.ts",
+    "start": "tsx src/server.ts",
+    "build": "tsc -b"
+  },
+  "dependencies": {
+    "@cirrus/shared-types": "*",
+    "@fastify/cookie": "^11.1.2",
+    "@fastify/http-proxy": "^11.6.0",
+    "fastify": "^5.11.2",
+    "jose": "^6.2.8"
+  },
+  "devDependencies": {
+    "tsx": "^4.23.8"
+  }
+}

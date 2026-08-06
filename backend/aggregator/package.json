@@ -1,0 +1,19 @@
+{
+  "name": "@cirrus/aggregator",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/server.ts",
+    "start": "tsx src/server.ts",
+    "build": "tsc -b"
+  },
+  "dependencies": {
+    "@cirrus/shared-types": "*",
+    "fastify": "^5.11.2",
+    "redis": "^6.2.0"
+  },
+  "devDependencies": {
+    "tsx": "^4.23.8"
+  }
+}

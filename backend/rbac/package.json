@@ -1,0 +1,28 @@
+{
+  "name": "@cirrus/rbac",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/server.ts",
+    "start": "tsx src/server.ts",
+    "build": "tsc -b",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "tsx src/db/migrate.ts",
+    "db:seed": "tsx src/db/seed.ts",
+    "db:migrate:prod": "node dist/db/migrate.js",
+    "db:seed:prod": "node dist/db/seed.js"
+  },
+  "dependencies": {
+    "@cirrus/shared-types": "*",
+    "drizzle-orm": "^0.45.2",
+    "fastify": "^5.11.2",
+    "pg": "^8.22.0",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@types/pg": "^8.15.6",
+    "drizzle-kit": "^0.31.10",
+    "tsx": "^4.23.8"
+  }
+}

@@ -1,0 +1,10 @@
+go 1.22
+
+use (
+	./internal-kit
+	./aws
+	./gcp
+	./alibaba
+	./oci
+	./biznet
+)

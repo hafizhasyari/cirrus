@@ -1,0 +1,24 @@
+{
+  "name": "cirrus-backend",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "workspaces": [
+    "shared-types",
+    "bff",
+    "auth",
+    "rbac",
+    "aggregator"
+  ],
+  "scripts": {
+    "build": "tsc -b",
+    "dev:bff": "npm run dev -w bff",
+    "dev:auth": "npm run dev -w auth",
+    "dev:rbac": "npm run dev -w rbac",
+    "dev:aggregator": "npm run dev -w aggregator"
+  },
+  "devDependencies": {
+    "@types/node": "^24.13.3",
+    "typescript": "~6.0.2"
+  }
+}

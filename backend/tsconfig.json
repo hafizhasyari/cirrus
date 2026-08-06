@@ -1,0 +1,10 @@
+{
+  "files": [],
+  "references": [
+    { "path": "./shared-types" },
+    { "path": "./bff" },
+    { "path": "./auth" },
+    { "path": "./rbac" },
+    { "path": "./aggregator" }
+  ]
+}
