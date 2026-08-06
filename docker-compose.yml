@@ -152,8 +152,13 @@ services:
       dockerfile: oci/Dockerfile
     environment:
       PORT: 8080
+      RBAC_URL: http://rbac:4001
+      INTERNAL_SHARED_SECRET: ${INTERNAL_SHARED_SECRET:-dev-internal-secret}
     ports:
       - "5004:8080"
+    depends_on:
+      rbac:
+        condition: service_healthy
 
   collector-biznet:
     build:
@@ -161,8 +166,13 @@ services:
       dockerfile: biznet/Dockerfile
     environment:
       PORT: 8080
+      RBAC_URL: http://rbac:4001
+      INTERNAL_SHARED_SECRET: ${INTERNAL_SHARED_SECRET:-dev-internal-secret}
     ports:
       - "5005:8080"
+    depends_on:
+      rbac:
+        condition: service_healthy
 
   aggregator:
     build:
