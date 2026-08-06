@@ -6,7 +6,7 @@ export function WizardHeader({ app }: { app: CirrusApp }) {
   return (
     <>
       <div>
-        <div style={{ fontSize: 12, color: 'var(--text-muted)', cursor: 'pointer', marginBottom: 5 }} onClick={() => app.go('connections')}>
+        <div style={{ fontSize: 12, color: 'var(--text-muted)', cursor: 'pointer', marginBottom: 5 }} onClick={() => app.go('/connections')}>
           ← Cloud Connections
         </div>
         <div className="font-display" style={{ fontSize: 19, fontWeight: 700 }}>Add Cloud Connection</div>

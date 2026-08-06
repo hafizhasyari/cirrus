@@ -310,6 +310,7 @@ body {
   cursor: pointer;
   color: var(--text-secondary);
   background: transparent;
+  text-decoration: none;
 }
 .nav-item[data-active='true'] {
   font-weight: 600;

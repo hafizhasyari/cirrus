@@ -60,8 +60,6 @@ export interface User {
 
 export type Theme = 'light' | 'dark';
 
-export type Screen = 'login' | 'inventory' | 'connections' | 'wizard' | 'users';
-
 export type FieldKind = 'text' | 'textarea' | 'generated';
 
 export interface FieldDef {

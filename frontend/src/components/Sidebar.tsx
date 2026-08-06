@@ -1,7 +1,8 @@
+import { Link } from '@tanstack/react-router';
 import type { CirrusApp } from '../state/useCirrusApp';
 
 export function Sidebar({ app }: { app: CirrusApp }) {
-  const { screen, role, theme, currentUser } = app;
+  const { role, theme, currentUser } = app;
   const isAdmin = role === 'admin';
   const isDark = theme === 'dark';
   const currentUserName = currentUser?.name || currentUser?.email || 'Unknown user';
@@ -53,34 +54,36 @@ export function Sidebar({ app }: { app: CirrusApp }) {
       </div>
 
       <div className="section-label" style={{ padding: '0 10px', marginBottom: 6 }}>Workspace</div>
-      <div className="nav-item" data-active={screen === 'inventory'} onClick={() => app.go('inventory')}>
+      <Link to="/inventory" className="nav-item" activeProps={{ 'data-active': true }} onClick={() => app.closeDetail()}>
         <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
           <rect x="3" y="3" width="8" height="8" rx="1.5" /><rect x="13" y="3" width="8" height="8" rx="1.5" />
           <rect x="3" y="13" width="8" height="8" rx="1.5" /><rect x="13" y="13" width="8" height="8" rx="1.5" />
         </svg>
         Inventory
-      </div>
+      </Link>
 
       {isAdmin && (
         <>
           <div className="section-label" style={{ padding: '0 10px', margin: '16px 0 6px' }}>Administration</div>
-          <div
+          <Link
+            to="/connections"
             className="nav-item"
-            data-active={screen === 'connections' || screen === 'wizard'}
-            onClick={() => app.go('connections')}
+            activeProps={{ 'data-active': true }}
+            activeOptions={{ exact: false }}
+            onClick={() => app.closeDetail()}
           >
             <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
               <path d="M9 15L15 9" /><path d="M10 6l1.5-1.5a4 4 0 015.66 5.66L15.5 11.5" /><path d="M14 18l-1.5 1.5a4 4 0 01-5.66-5.66L8.5 12.5" />
             </svg>
             Cloud Connections
-          </div>
-          <div className="nav-item" data-active={screen === 'users'} onClick={() => app.go('users')}>
+          </Link>
+          <Link to="/users" className="nav-item" activeProps={{ 'data-active': true }} onClick={() => app.closeDetail()}>
             <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
               <circle cx="9" cy="8" r="3.2" /><path d="M3.5 19c0-3 2.5-5 5.5-5s5.5 2 5.5 5" />
               <circle cx="17.5" cy="8.5" r="2.3" /><path d="M15.5 13.2c2.4.4 4 2 4 5.8" />
             </svg>
             Users &amp; Roles
-          </div>
+          </Link>
         </>
       )}
 

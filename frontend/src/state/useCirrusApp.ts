@@ -17,13 +17,13 @@ import {
   updateUser,
 } from '../api/client';
 import { computeIdentifier } from '../lib/connectionIdentifier';
+import { router } from '../router';
 import type {
   AuthenticatedUser,
   Connection,
   ProviderId,
   ProviderWithFieldDefs,
   Role,
-  Screen,
   Theme,
   User,
   Vm,
@@ -60,8 +60,7 @@ function errorMessage(err: unknown, fallback: string): string {
 }
 
 export function useCirrusApp() {
-  // Screen / session
-  const [screen, setScreenState] = useState<Screen>('login');
+  // Session
   const [theme, setTheme] = useState<Theme>('light');
   const [currentUser, setCurrentUser] = useState<AuthenticatedUser | null>(null);
   const [authChecked, setAuthChecked] = useState(false);
@@ -131,14 +130,8 @@ export function useCirrusApp() {
   // --- Session bootstrap: is there already a valid cookie? ---------------
   useEffect(() => {
     getMe()
-      .then((user) => {
-        setCurrentUser(user);
-        setScreenState('inventory');
-      })
-      .catch(() => {
-        setCurrentUser(null);
-        setScreenState('login');
-      })
+      .then((user) => setCurrentUser(user))
+      .catch(() => setCurrentUser(null))
       .finally(() => setAuthChecked(true));
   }, []);
 
@@ -179,8 +172,8 @@ export function useCirrusApp() {
     }
   }, [currentUser, showToast]);
 
-  const go = useCallback((next: Screen) => {
-    setScreenState(next);
+  const go = useCallback((next: '/inventory' | '/connections' | '/users') => {
+    router.navigate({ to: next });
     setDetailVmId(null);
   }, []);
 
@@ -200,7 +193,7 @@ export function useCirrusApp() {
     setVmErrors([]);
     setConnections([]);
     setUsers([]);
-    setScreenState('login');
+    router.navigate({ to: '/' });
   }, []);
 
   const openDetail = useCallback((id: string) => setDetailVmId(id), []);
@@ -243,7 +236,7 @@ export function useCirrusApp() {
   }, [showToast]);
 
   const startWizard = useCallback(() => {
-    setScreenState('wizard');
+    router.navigate({ to: '/connections/new' });
     setWizardStep(1);
     setWizardProvider(null);
     setWizardAccount('');
@@ -315,7 +308,7 @@ export function useCirrusApp() {
   // The connection already exists (created during runTest) — this step is
   // now just navigation, not a second create call.
   const saveConnection = useCallback(() => {
-    setScreenState('connections');
+    router.navigate({ to: '/connections' });
     showToast('Connection added');
   }, [showToast]);
 
@@ -471,7 +464,7 @@ export function useCirrusApp() {
 
   return {
     // identity / navigation
-    screen, role, currentUser, authChecked, theme, setTheme, go, goToInventoryFromLogin, signOut,
+    role, currentUser, authChecked, theme, setTheme, go, goToInventoryFromLogin, signOut,
     // data
     providers, vms, vmErrors, connections, users,
     isLoadingVms, isLoadingProviders, isLoadingConnections, isLoadingUsers,
