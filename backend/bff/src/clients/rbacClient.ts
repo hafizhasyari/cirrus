@@ -3,8 +3,8 @@ import { env } from '../env.js';
 
 async function rbacFetch(path: string, init?: RequestInit & { actorUserId?: string | null }): Promise<Response> {
   const headers: Record<string, string> = {
-    'content-type': 'application/json',
     'x-internal-secret': env.internalSharedSecret,
+    ...(init?.body !== undefined ? { 'content-type': 'application/json' } : {}),
     ...(init?.headers as Record<string, string> | undefined),
   };
   if (init?.actorUserId) headers['x-actor-user-id'] = init.actorUserId;
