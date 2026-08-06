@@ -15,7 +15,7 @@ async function main() {
     (
       await db
         .insert(users)
-        .values({ email: adminEmail, name: 'Bootstrap Admin', role: 'admin', status: 'pending' })
+        .values({ email: adminEmail, name: 'Administrator', role: 'admin', status: 'pending' })
         .returning()
     )[0]?.id;
 

@@ -5,12 +5,6 @@ import { EmptyState, LinkOffIcon } from '../shared/EmptyState';
 import { StatCard } from '../shared/StatCard';
 import { CONN_STATUS_META, statusBgForTheme, useTheme } from '../../theme/ThemeContext';
 import type { CirrusApp } from '../../state/useCirrusApp';
-import type { ConnectionsView } from '../../types';
-
-const CONNECTIONS_VIEWS: { id: ConnectionsView; label: string }[] = [
-  { id: 'default', label: 'Default' },
-  { id: 'empty', label: 'Empty' },
-];
 
 export function ConnectionsHeader({ app }: { app: CirrusApp }) {
   return (
@@ -52,7 +46,7 @@ export function ConnectionsScreen({ app }: { app: CirrusApp }) {
     [app.connections, providerMap, theme],
   );
 
-  const showEmpty = app.connectionsView === 'empty';
+  const showEmpty = connectionsRows.length === 0;
   const connectionsDisplay = showEmpty ? [] : connectionsRows;
 
   const connStats = useMemo(
@@ -72,17 +66,6 @@ export function ConnectionsScreen({ app }: { app: CirrusApp }) {
         <StatCard label="Active" value={connStats.active} color="#10b981" />
         <StatCard label="Pending" value={connStats.pending} color="#f59e0b" />
         <StatCard label="Issues" value={connStats.issues} color="#f43f5e" />
-      </div>
-
-      <div style={{ display: 'flex', justifyContent: 'flex-end', flexShrink: 0 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          <div className="section-label">Preview</div>
-          {CONNECTIONS_VIEWS.map((v) => (
-            <div key={v.id} className="pill" data-active={app.connectionsView === v.id} onClick={() => app.setConnectionsView(v.id)}>
-              {v.label}
-            </div>
-          ))}
-        </div>
       </div>
 
       {showEmpty && (

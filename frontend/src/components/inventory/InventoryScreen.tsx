@@ -51,7 +51,7 @@ export function InventoryHeader({ app }: { app: CirrusApp }) {
 }
 
 export function InventoryScreen({ app }: { app: CirrusApp }) {
-  const { providers, vms, vmErrors, search, filterProviders, filterStatuses, filterOpen, isLoadingVms, detailVmId } = app;
+  const { providers, vms, vmErrors, connections, search, filterProviders, filterStatuses, filterOpen, isLoadingVms, detailVmId } = app;
 
   const [outageDismissed, setOutageDismissed] = useState(false);
   useEffect(() => setOutageDismissed(false), [vmErrors]);
@@ -67,9 +67,9 @@ export function InventoryScreen({ app }: { app: CirrusApp }) {
       total: vms.length,
       running: vms.filter((v) => v.status === 'running').length,
       attention: vms.filter((v) => v.status === 'stopped').length,
-      providers: providers.length,
+      providers: connections.filter((c) => c.status === 'active').length,
     }),
-    [vms, providers],
+    [vms, connections],
   );
 
   const providerFilterList = useMemo(

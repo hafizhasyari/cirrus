@@ -20,7 +20,6 @@ import { computeIdentifier } from '../lib/connectionIdentifier';
 import type {
   AuthenticatedUser,
   Connection,
-  ConnectionsView,
   ProviderId,
   ProviderWithFieldDefs,
   Role,
@@ -87,9 +86,6 @@ export function useCirrusApp() {
   const [filterProviders, setFilterProviders] = useState<ProviderId[]>([]);
   const [filterStatuses, setFilterStatuses] = useState<VmStatus[]>(['running', 'stopped']);
   const [filterOpen, setFilterOpen] = useState<'provider' | 'status' | null>(null);
-
-  // Connections screen
-  const [connectionsView, setConnectionsView] = useState<ConnectionsView>('default');
 
   // Add-connection wizard
   const [wizardStep, setWizardStep] = useState<1 | 2>(1);
@@ -486,7 +482,6 @@ export function useCirrusApp() {
     selectAllProviders, selectAllStatuses, refreshInventory,
     filterOpen, toggleFilterOpen, closeFilterOpen,
     // connections
-    connectionsView, setConnectionsView,
     openEditConnection, closeEditConnection,
     editingConnectionId, editForm, editFieldValues, editTesting, editTested,
     updateEditAccount, updateEditFieldValue, runEditTest, saveEditConnection, removeEditConnection,

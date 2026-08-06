@@ -62,8 +62,6 @@ export type Theme = 'light' | 'dark';
 
 export type Screen = 'login' | 'inventory' | 'connections' | 'wizard' | 'users';
 
-export type ConnectionsView = 'default' | 'empty';
-
 export type FieldKind = 'text' | 'textarea' | 'generated';
 
 export interface FieldDef {
