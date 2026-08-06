@@ -3,6 +3,7 @@ package internal
 import (
 	"context"
 	"fmt"
+	"strings"
 	"sync"
 
 	"golang.org/x/oauth2"
@@ -32,8 +33,22 @@ var (
 // Aggregator cache-refill cycles don't re-run the whole chain every time —
 // oauth2.ReuseTokenSource handles refresh-on-expiry transparently.
 func buildTokenSource(ctx context.Context, connectionID string, gcfg gcpConfig) (oauth2.TokenSource, error) {
+	return cachedTokenSource(ctx, connectionID, gcfg, []string{"https://www.googleapis.com/auth/compute.readonly"})
+}
+
+// buildTestTokenSource is the connection-test equivalent of buildTokenSource
+// — same WIF exchange, but scoped broadly enough
+// ("cloud-platform.read-only") to also call Cloud Resource Manager's
+// testIamPermissions, which compute.readonly's narrower scope doesn't cover.
+// Cached under a distinct key so it never collides with the full-fetch
+// token source above.
+func buildTestTokenSource(ctx context.Context, connectionID string, gcfg gcpConfig) (oauth2.TokenSource, error) {
+	return cachedTokenSource(ctx, connectionID+":test", gcfg, []string{"https://www.googleapis.com/auth/cloud-platform.read-only"})
+}
+
+func cachedTokenSource(ctx context.Context, cacheKey string, gcfg gcpConfig, scopes []string) (oauth2.TokenSource, error) {
 	tokenSourceCacheMu.Lock()
-	if ts, ok := tokenSourceCache[connectionID]; ok {
+	if ts, ok := tokenSourceCache[cacheKey]; ok {
 		tokenSourceCacheMu.Unlock()
 		return ts, nil
 	}
@@ -44,13 +59,18 @@ func buildTokenSource(ctx context.Context, connectionID string, gcfg gcpConfig) 
 		gcfg.ProjectNumber, gcfg.PoolID, gcfg.ProviderID,
 	)
 
+	// The subjectTokenSupplier mints a fresh Cirrus WIF JWT per exchange —
+	// it only needs the real connectionID (not the ":test"-suffixed cache
+	// key) to look up the connection's config on the Auth Service side.
+	connectionID := strings.TrimSuffix(cacheKey, ":test")
+
 	cfg := externalaccount.Config{
 		Audience:                       audience,
 		SubjectTokenType:               "urn:ietf:params:oauth:token-type:jwt",
 		TokenURL:                       "https://sts.googleapis.com/v1/token",
 		ServiceAccountImpersonationURL: fmt.Sprintf("https://iamcredentials.googleapis.com/v1/projects/-/serviceAccounts/%s:generateAccessToken", gcfg.SAEmail),
 		SubjectTokenSupplier:           &subjectTokenSupplier{connectionID: connectionID},
-		Scopes:                         []string{"https://www.googleapis.com/auth/compute.readonly"},
+		Scopes:                         scopes,
 	}
 
 	base, err := externalaccount.NewTokenSource(ctx, cfg)
@@ -61,7 +81,7 @@ func buildTokenSource(ctx context.Context, connectionID string, gcfg gcpConfig) 
 	ts := oauth2.ReuseTokenSource(nil, base)
 
 	tokenSourceCacheMu.Lock()
-	tokenSourceCache[connectionID] = ts
+	tokenSourceCache[cacheKey] = ts
 	tokenSourceCacheMu.Unlock()
 
 	return ts, nil

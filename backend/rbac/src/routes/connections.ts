@@ -6,6 +6,7 @@ import { db } from '../db/client.js';
 import { cloudConnections, users } from '../db/schema.js';
 import { writeAudit } from '../lib/audit.js';
 import { deleteSecret, writeSecret } from '../lib/vault.js';
+import { testConnectionViaCollector } from '../lib/collectorClient.js';
 import { FAILURE_MSG, FIELD_DEFS } from '../data/providers.js';
 
 const createSchema = z.object({
@@ -19,10 +20,6 @@ const updateSchema = z.object({
   account: z.string().min(1).optional(),
   identifier: z.string().min(1).optional(),
   config: z.record(z.string(), z.unknown()).optional(),
-});
-
-const testSchema = z.object({
-  simulate: z.enum(['success', 'failure']).optional(),
 });
 
 type ConnectionRow = typeof cloudConnections.$inferSelect;
@@ -151,19 +148,20 @@ export async function registerConnectionRoutes(app: FastifyInstance) {
     reply.code(204);
   });
 
-  // Stubbed validation per PRD §7.3 — real per-provider SDK calls are deferred;
-  // this simulates success/failure (matching the wizard's demo `simulate` toggle)
-  // and persists the resulting status + message, exactly as the real flow will.
+  // Real validation per PRD §7.3: calls the provider's own collector, which
+  // performs the cheapest authenticated call for that provider (AssumeRole+
+  // GetCallerIdentity, WIF exchange+testIamPermissions, signing-key
+  // validation, x-token GET, etc. — see CHECKLIST in data/providers.ts).
   app.post<{ Params: { id: string } }>('/connections/:id/test', async (req, reply) => {
-    const body = testSchema.parse(req.body ?? {});
     const [conn] = await db.select().from(cloudConnections).where(eq(cloudConnections.id, req.params.id));
     if (!conn) {
       reply.code(404);
       return { error: { code: 'NOT_FOUND', message: 'connection not found' } };
     }
 
-    const success = body.simulate !== 'failure';
-    const message = success ? 'ok' : FAILURE_MSG[conn.provider];
+    const outcome = await testConnectionViaCollector(conn.provider, conn.id);
+    const success = outcome.ok;
+    const message = outcome.message || FAILURE_MSG[conn.provider];
 
     await db
       .update(cloudConnections)
@@ -176,7 +174,13 @@ export async function registerConnectionRoutes(app: FastifyInstance) {
       .where(eq(cloudConnections.id, conn.id));
 
     const actorUserId = (req.headers['x-actor-user-id'] as string) ?? null;
-    await writeAudit({ actorUserId, action: 'connection_test', targetType: 'connection', targetId: conn.id, metadata: { result: success ? 'success' : 'failure' } });
+    await writeAudit({
+      actorUserId,
+      action: 'connection_test',
+      targetType: 'connection',
+      targetId: conn.id,
+      metadata: success ? { result: 'success' } : { result: 'failure', code: outcome.code },
+    });
 
     return success ? { result: 'success' as const } : { result: 'failure' as const, message };
   });

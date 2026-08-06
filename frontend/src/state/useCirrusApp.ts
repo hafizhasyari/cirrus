@@ -97,10 +97,8 @@ export function useCirrusApp() {
   const [wizardAccount, setWizardAccount] = useState('');
   const [wizardForm, setWizardForm] = useState<WizardFormValues>({});
   const [wizardConnectionId, setWizardConnectionId] = useState<string | null>(null);
-  const [wizardSimulate, setWizardSimulate] = useState<'success' | 'failure'>('success');
   const [wizardTesting, setWizardTesting] = useState(false);
   const [wizardResult, setWizardResult] = useState<WizardResult>(null);
-  const wizardSimulateRef = useLatestRef(wizardSimulate);
   const wizardFormRef = useLatestRef(wizardForm);
   const wizardAccountRef = useLatestRef(wizardAccount);
   const wizardProviderRef = useLatestRef(wizardProvider);
@@ -304,7 +302,7 @@ export function useCirrusApp() {
         setConnections((prev) => prev.map((c) => (c.id === id ? updated : c)));
       }
 
-      const result = await testConnection(id, wizardSimulateRef.current);
+      const result = await testConnection(id);
       setWizardResult(result.result);
       setConnections((prev) =>
         prev.map((c) => (c.id === id ? { ...c, status: result.result === 'success' ? 'active' : 'error' } : c)),
@@ -314,7 +312,7 @@ export function useCirrusApp() {
     } finally {
       setWizardTesting(false);
     }
-  }, [wizardProviderRef, wizardFormRef, wizardAccountRef, wizardConnectionIdRef, wizardSimulateRef, showToast]);
+  }, [wizardProviderRef, wizardFormRef, wizardAccountRef, wizardConnectionIdRef, showToast]);
 
   const editRetry = useCallback(() => setWizardResult(null), []);
 
@@ -493,8 +491,8 @@ export function useCirrusApp() {
     editingConnectionId, editForm, editFieldValues, editTesting, editTested,
     updateEditAccount, updateEditFieldValue, runEditTest, saveEditConnection, removeEditConnection,
     // wizard
-    startWizard, wizardStep, wizardProvider, wizardAccount, wizardForm, wizardSimulate, wizardTesting, wizardResult,
-    selectWizardProvider, wizardBackToStep1, updateWizardAccount, updateWizardField, setWizardSimulate, runTest, editRetry, saveConnection,
+    startWizard, wizardStep, wizardProvider, wizardAccount, wizardForm, wizardTesting, wizardResult,
+    selectWizardProvider, wizardBackToStep1, updateWizardAccount, updateWizardField, runTest, editRetry, saveConnection,
     // users
     userDrawerMode, editingUserId, userForm, openEditUser, openInviteUser, closeUserDrawer,
     updateUserField, setUserFormRole, toggleUserFormConnection, saveUser, removeUser,

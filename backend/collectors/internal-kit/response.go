@@ -39,6 +39,15 @@ type InstancesResponse struct {
 	Instances    []Instance `json:"instances"`
 }
 
+// TestResult is the lightweight GET /test success envelope — no instances
+// array, since this only proves auth/scope, never fetches real inventory.
+type TestResult struct {
+	ConnectionID string `json:"connectionId"`
+	Provider     string `json:"provider"`
+	CheckedAt    string `json:"checkedAt"` // RFC3339
+	Message      string `json:"message"`
+}
+
 // ErrorBody/ErrorResponse is the GET /instances failure envelope.
 type ErrorBody struct {
 	Code    string `json:"code"` // "TIMEOUT" | "UPSTREAM_ERROR" | "AUTH_FAILED"

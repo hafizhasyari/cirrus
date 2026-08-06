@@ -23,19 +23,14 @@ type connectionConfig struct {
 	ExternalID string `json:"externalId"`
 }
 
-// FetchInstances resolves a connection's roleArn/externalId, assumes the
-// role via Cirrus's own hub credential, and returns a real EC2 inventory
-// across every enabled region (or a classified error — ErrAuthFailed /
-// ErrUpstream, see errors.go).
-func FetchInstances(ctx context.Context, raw json.RawMessage) ([]collectorkit.Instance, error) {
-	var cc connectionConfig
-	if err := json.Unmarshal(raw, &cc); err != nil || cc.RoleArn == "" {
-		return nil, fmt.Errorf("%w: missing/invalid roleArn in connection config", ErrAuthFailed)
-	}
-
+// assumeConnectionRole assumes the connection's roleArn via Cirrus's own hub
+// credential, returning an aws.Config whose Credentials resolve to that
+// assumed role — shared by the full inventory fetch and the lightweight
+// connection-test path so the AssumeRole logic itself lives in one place.
+func assumeConnectionRole(ctx context.Context, cc connectionConfig) (aws.Config, error) {
 	base, err := hubAWSConfig(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("%w: hub credentials: %v", ErrUpstream, err)
+		return aws.Config{}, fmt.Errorf("%w: hub credentials: %v", ErrUpstream, err)
 	}
 
 	stsClient := sts.NewFromConfig(base)
@@ -48,6 +43,23 @@ func FetchInstances(ctx context.Context, raw json.RawMessage) ([]collectorkit.In
 
 	assumed := base.Copy()
 	assumed.Credentials = aws.NewCredentialsCache(provider)
+	return assumed, nil
+}
+
+// FetchInstances resolves a connection's roleArn/externalId, assumes the
+// role via Cirrus's own hub credential, and returns a real EC2 inventory
+// across every enabled region (or a classified error — ErrAuthFailed /
+// ErrUpstream, see errors.go).
+func FetchInstances(ctx context.Context, raw json.RawMessage) ([]collectorkit.Instance, error) {
+	var cc connectionConfig
+	if err := json.Unmarshal(raw, &cc); err != nil || cc.RoleArn == "" {
+		return nil, fmt.Errorf("%w: missing/invalid roleArn in connection config", ErrAuthFailed)
+	}
+
+	assumed, err := assumeConnectionRole(ctx, cc)
+	if err != nil {
+		return nil, err
+	}
 	ec2Base := ec2.NewFromConfig(assumed)
 
 	// DescribeRegions doubles as the earliest possible AssumeRole failure

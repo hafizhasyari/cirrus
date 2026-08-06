@@ -20,6 +20,23 @@ type connectionConfig struct {
 	RegionID string `json:"regionId"`
 }
 
+// buildAssumedCredential assumes the connection's RAM role via Cirrus's own
+// hub credential (AccessKey/Secret from env) — shared by the full inventory
+// fetch and the lightweight connection-test path.
+func buildAssumedCredential(cc connectionConfig) (credentials.Credential, error) {
+	credCfg := new(credentials.Config).
+		SetType("ram_role_arn").
+		SetAccessKeyId(os.Getenv("ALIBABA_CLOUD_ACCESS_KEY_ID")).
+		SetAccessKeySecret(os.Getenv("ALIBABA_CLOUD_ACCESS_KEY_SECRET")).
+		SetRoleArn(cc.RoleArn).
+		SetRoleSessionName("cirrus-collector")
+	cred, err := credentials.NewCredential(credCfg)
+	if err != nil {
+		return nil, fmt.Errorf("%w: building credential: %v", ErrAuthFailed, err)
+	}
+	return cred, nil
+}
+
 // FetchInstances resolves a connection's roleArn/regionId, assumes the RAM
 // role via Cirrus's own hub credential (AccessKey/Secret from env), and
 // returns a real ECS inventory for that region (or a classified error —
@@ -30,15 +47,9 @@ func FetchInstances(ctx context.Context, raw json.RawMessage) ([]collectorkit.In
 		return nil, fmt.Errorf("%w: missing/invalid roleArn or regionId in connection config", ErrAuthFailed)
 	}
 
-	credCfg := new(credentials.Config).
-		SetType("ram_role_arn").
-		SetAccessKeyId(os.Getenv("ALIBABA_CLOUD_ACCESS_KEY_ID")).
-		SetAccessKeySecret(os.Getenv("ALIBABA_CLOUD_ACCESS_KEY_SECRET")).
-		SetRoleArn(cc.RoleArn).
-		SetRoleSessionName("cirrus-collector")
-	cred, err := credentials.NewCredential(credCfg)
+	cred, err := buildAssumedCredential(cc)
 	if err != nil {
-		return nil, fmt.Errorf("%w: building credential: %v", ErrAuthFailed, err)
+		return nil, err
 	}
 
 	client, err := ecs20140526.NewClient(&openapi.Config{

@@ -98,11 +98,6 @@ export function WizardScreen({ app }: { app: CirrusApp }) {
                   </svg>
                   Test Connection
                 </div>
-                <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <div className="section-label">Simulate</div>
-                  <div className="pill" data-active={app.wizardSimulate === 'success'} onClick={() => app.setWizardSimulate('success')}>Success</div>
-                  <div className="pill" data-active={app.wizardSimulate === 'failure'} onClick={() => app.setWizardSimulate('failure')}>Failure</div>
-                </div>
               </div>
             )}
 

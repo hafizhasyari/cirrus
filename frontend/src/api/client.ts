@@ -70,10 +70,9 @@ export const updateConnection = (
 
 export const deleteConnection = (id: string) => request<void>(`/api/connections/${id}`, { method: 'DELETE' });
 
-export const testConnection = (id: string, simulate?: 'success' | 'failure') =>
+export const testConnection = (id: string) =>
   request<{ result: 'success' } | { result: 'failure'; message: string }>(`/api/connections/${id}/test`, {
     method: 'POST',
-    body: JSON.stringify({ simulate }),
   });
 
 export const getUsers = () => request<User[]>('/api/users');

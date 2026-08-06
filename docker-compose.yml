@@ -51,6 +51,11 @@ services:
       SEED_ADMIN_EMAIL: ${SEED_ADMIN_EMAIL:-admin@example.com}
       VAULT_ADDR: http://vault:8200
       VAULT_TOKEN: ${VAULT_DEV_ROOT_TOKEN_ID:-dev-vault-root-token}
+      AWS_COLLECTOR_URL: http://collector-aws:8080
+      GCP_COLLECTOR_URL: http://collector-gcp:8080
+      ALIBABA_COLLECTOR_URL: http://collector-alibaba:8080
+      OCI_COLLECTOR_URL: http://collector-oci:8080
+      BIZNET_COLLECTOR_URL: http://collector-biznet:8080
     ports:
       - "4001:4001"
     depends_on:
