@@ -6,6 +6,7 @@ import { db } from '../db/client.js';
 import { cloudConnections, userCloudAccounts, users } from '../db/schema.js';
 import { toAuthenticatedUser } from '../lib/userDto.js';
 import { writeAudit } from '../lib/audit.js';
+import { readSecret } from '../lib/vault.js';
 
 const upsertOnLoginSchema = z.object({
   oid: z.string().min(1),
@@ -109,13 +110,22 @@ export async function registerInternalRoutes(app: FastifyInstance) {
       return { error: { code: 'NOT_FOUND', message: 'connection not found' } };
     }
 
+    // Merge the Vault-backed secret fields (if any) back into config,
+    // transparently — the collector never knows or cares whether a field
+    // came from Postgres or Vault.
+    let config = row.config as Record<string, unknown>;
+    if (row.secretRef) {
+      const secret = await readSecret(row.secretRef);
+      if (secret) config = { ...config, ...secret };
+    }
+
     const result: ConnectionConfigResponse = {
       connectionId: row.id,
       provider: row.provider,
       account: row.account,
       identifier: row.identifier,
       status: row.status,
-      config: row.config as Record<string, unknown>,
+      config,
     };
     return result;
   });

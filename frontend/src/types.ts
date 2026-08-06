@@ -73,6 +73,10 @@ export interface FieldDef {
   kind: FieldKind;
   value?: string;
   caption?: string;
+  /** True for fields routed to Vault (not Postgres) on the backend. Purely
+   * informational on the frontend — `kind: 'textarea'` already drives the
+   * masked-input rendering these fields need. */
+  secret?: boolean;
 }
 
 export type WizardResult = 'success' | 'failure' | null;

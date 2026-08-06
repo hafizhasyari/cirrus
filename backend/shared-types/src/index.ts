@@ -73,6 +73,10 @@ export interface FieldDef {
   kind: FieldKind;
   value?: string;
   caption?: string;
+  /** True for fields that must be routed to Vault (not Postgres) on the
+   * backend — e.g. OCI's privateKey/passphrase, Biznet's xToken. Absent or
+   * false for non-secret identifiers (roleArn, projectId, etc.). */
+  secret?: boolean;
 }
 
 // ---------------------------------------------------------------------------

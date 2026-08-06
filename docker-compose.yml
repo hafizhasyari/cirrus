@@ -25,6 +25,21 @@ services:
       interval: 5s
       retries: 10
 
+  vault:
+    image: hashicorp/vault:2.0.4
+    cap_add: [IPC_LOCK]
+    environment:
+      VAULT_DEV_ROOT_TOKEN_ID: ${VAULT_DEV_ROOT_TOKEN_ID:-dev-vault-root-token}
+      VAULT_API_ADDR: http://127.0.0.1:8200
+      VAULT_ADDR: http://127.0.0.1:8200
+    command: server -dev
+    ports:
+      - "8200:8200"
+    healthcheck:
+      test: ["CMD", "vault", "status"]
+      interval: 5s
+      retries: 10
+
   rbac:
     build:
       context: ./backend
@@ -34,10 +49,14 @@ services:
       DATABASE_URL: postgres://cirrus:${POSTGRES_PASSWORD:-cirrus_dev}@postgres:5432/cirrus
       INTERNAL_SHARED_SECRET: ${INTERNAL_SHARED_SECRET:-dev-internal-secret}
       SEED_ADMIN_EMAIL: ${SEED_ADMIN_EMAIL:-admin@example.com}
+      VAULT_ADDR: http://vault:8200
+      VAULT_TOKEN: ${VAULT_DEV_ROOT_TOKEN_ID:-dev-vault-root-token}
     ports:
       - "4001:4001"
     depends_on:
       postgres:
+        condition: service_healthy
+      vault:
         condition: service_healthy
     healthcheck:
       test: ["CMD", "node", "-e", "fetch('http://localhost:4001/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]

@@ -30,12 +30,12 @@ export const FIELD_DEFS: Record<ProviderId, FieldDef[]> = {
     { key: 'tenancyOcid', label: 'Tenancy OCID', kind: 'text' },
     { key: 'userOcid', label: 'User OCID', kind: 'text' },
     { key: 'fingerprint', label: 'Fingerprint', kind: 'text' },
-    { key: 'privateKey', label: 'Private Key', kind: 'textarea' },
+    { key: 'privateKey', label: 'Private Key', kind: 'textarea', secret: true },
     { key: 'region', label: 'Region', kind: 'text' },
-    { key: 'passphrase', label: 'Passphrase (optional)', kind: 'text' },
+    { key: 'passphrase', label: 'Passphrase (optional)', kind: 'text', secret: true },
   ],
   biznet: [
-    { key: 'xToken', label: 'x-token', kind: 'textarea' },
+    { key: 'xToken', label: 'x-token', kind: 'textarea', secret: true },
   ],
 };
 
