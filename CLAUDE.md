@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Repository state
 
-`PRD.md` remains the single source of truth for product scope/architecture. `frontend/` now contains a working implementation — a React+TypeScript+Vite SPA (per §8), ported from a Claude Design mockup (`Cirrus.dc.html`), currently running entirely on local mock data with no backend/API integration. The backend/infra side of §7 (API Gateway/BFF, Auth Service, RBAC Service, Inventory Aggregator, Provider Collectors, PostgreSQL, Redis, Vault) is not built — that part of the repo is still pre-development.
+`PRD.md` remains the single source of truth for product scope/architecture. `frontend/` contains a working implementation — a React+TypeScript+Vite SPA (per §8), ported from a Claude Design mockup (`Cirrus.dc.html`) — but it still runs entirely on local mock data; it has not been wired to the backend yet. `backend/` now contains an MVP implementation of §7's architecture: API Gateway/BFF, Auth Service, RBAC Service, Inventory Aggregator, and all 5 Provider Collectors are built and run via Docker Compose, backed by PostgreSQL + Redis. Within that MVP, Auth Service does real Microsoft Entra ID OIDC login, but the 5 Provider Collectors return deterministic stub inventory data rather than calling real cloud provider APIs. HashiCorp Vault and the Helm/Kubernetes deploy path (§8) are still not built — this pass uses Docker Compose only, with a `secret_ref` placeholder column reserved for Vault later.
 
 ## Frontend (`frontend/`)
 
@@ -15,6 +15,17 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - Mock data: `src/data/mockData.ts` (VMs, connections, users) plus `FIELD_DEFS`/`CHECKLIST`/`FAILURE_MSG` (the per-provider credential-flow content, mirroring PRD §7.3) will need to be swapped for real API calls once the BFF exists — until then, treat this file as the single place sample data lives.
 - Provider icons are bundled locally under `src/assets/providers/` (not hotlinked). Note for future icon updates: brandfetch's CDN blocks hotlinking without browser-like `User-Agent`/`Referer` headers on `curl`.
 - Docker: `frontend/Dockerfile` is a multi-stage build (`node:24-alpine` → `nginx:stable-alpine`) per PRD §7's "Docker for dev" — keep base images current stable/LTS when touched, don't quietly pin to whatever the scaffold generated.
+
+## Backend (`backend/`)
+
+- npm workspaces monorepo: `shared-types` (mirrors `frontend/src/types.ts` — keep these in sync, it's the frontend-facing contract), plus `bff`, `auth`, `rbac`, `aggregator` — all Fastify services in TypeScript, run via `tsx` in dev and compiled (`tsc -b`) in their Docker images.
+- `collectors/` is a *separate* Go workspace (`go.work`, not part of the npm workspace): `internal-kit` (shared HTTP envelope + stub-generation helpers only, zero provider-specific logic) plus one independent module per provider (`aws/`, `gcp/`, `alibaba/`, `oci/`, `biznet/`) — each its own binary/container so a failure or bad release in one never affects the others (PRD §7.1's isolation goal).
+- Service ownership boundaries: `rbac` is the *sole* owner of PostgreSQL (users, cloud connections, audit log — schema in `rbac/src/db/schema.ts`, Drizzle ORM); `aggregator` is the *sole* owner of Redis (per-`(provider, connectionId)` cache with a `SET NX PX` stampede lock, `aggregator/src/cache/lock.ts`); `bff` is the only service meant to be called from outside the Docker network and proxies/aggregates the others.
+- Auth is real, not stubbed: `auth/` performs actual Microsoft Entra ID OIDC (Authorization Code + PKCE via `@azure/msal-node`), single-tenant, identity keyed on `oid`+`tid` per PRD §3. It mints its own ES256 JWT (via `jose`) and exposes a JWKS endpoint (`/.well-known/jwks.json`) that `bff` verifies sessions against. Needs real Entra ID app registration values (`ENTRA_TENANT_ID`/`ENTRA_CLIENT_ID`/`ENTRA_CLIENT_SECRET`) in `.env` — everything else in the stack works without them.
+- Provider Collectors are stubbed, not real: each exposes the uniform `GET /instances?connectionId=...` contract from PRD §7.1 but returns deterministic (seeded per `connectionId`) fake inventory data — no real AWS/GCP/Alibaba/OCI/Biznet SDK calls or credential validation yet. `POST /api/connections/:id/test` (in `rbac`) is likewise a simulated success/failure, not a real per-provider validation call.
+- Deferred: HashiCorp Vault (`cloud_connections.secret_ref` in the Postgres schema is a nullable placeholder reserved for it), Helm charts, Kubernetes. Local dev is Docker Compose only (`docker-compose.yml` at repo root).
+- Running it: copy `.env.example` to `.env`, fill in the Entra ID values, then `docker compose up -d --build`. First run also needs `docker compose exec rbac node dist/db/migrate.js` followed by `... node dist/db/seed.js` (seeds one bootstrap Admin via `SEED_ADMIN_EMAIL` plus one sample connection per provider).
+- The frontend has not been wired to any of this yet — `frontend/src/data/mockData.ts` is still its only data source. `backend/shared-types` defines the contract the frontend should eventually call against.
 
 ## PRD.md
 
