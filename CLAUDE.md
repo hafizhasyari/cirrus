@@ -4,7 +4,16 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Repository state
 
-This repository currently contains only `PRD.md` — there is no implementation yet (no source code, build system, tests, or lint config). Treat this as a pre-development planning stage: work here is about refining the product spec, not writing code, until the user says otherwise.
+`PRD.md` remains the single source of truth for product scope/architecture. `frontend/` now contains a working implementation — a React+TypeScript+Vite SPA (per §8), ported from a Claude Design mockup (`Cirrus.dc.html`), currently running entirely on local mock data with no backend/API integration. The backend/infra side of §7 (API Gateway/BFF, Auth Service, RBAC Service, Inventory Aggregator, Provider Collectors, PostgreSQL, Redis, Vault) is not built — that part of the repo is still pre-development.
+
+## Frontend (`frontend/`)
+
+- Tech stack matches PRD §8: React + TypeScript + Vite; `oxlint` for linting (`npm run lint`); `tsc -b && vite build` for the build.
+- State: a single `useCirrusApp()` hook (`src/state/useCirrusApp.ts`) holds all app state/actions — no external state library (Redux/Zustand etc.). Keep new state co-located there rather than introducing a second state mechanism.
+- Styling: CSS variables per theme + component classes in `src/index.css`, not inline style-string builders (that was the source mockup's approach, deliberately not carried over). Dynamic/data-driven colors (provider brand colors, status colors) stay as inline `style`.
+- Mock data: `src/data/mockData.ts` (VMs, connections, users) plus `FIELD_DEFS`/`CHECKLIST`/`FAILURE_MSG` (the per-provider credential-flow content, mirroring PRD §7.3) will need to be swapped for real API calls once the BFF exists — until then, treat this file as the single place sample data lives.
+- Provider icons are bundled locally under `src/assets/providers/` (not hotlinked). Note for future icon updates: brandfetch's CDN blocks hotlinking without browser-like `User-Agent`/`Referer` headers on `curl`.
+- Docker: `frontend/Dockerfile` is a multi-stage build (`node:24-alpine` → `nginx:stable-alpine`) per PRD §7's "Docker for dev" — keep base images current stable/LTS when touched, don't quietly pin to whatever the scaffold generated.
 
 ## PRD.md
 
