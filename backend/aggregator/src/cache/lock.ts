@@ -8,10 +8,15 @@ import { redis } from './redisClient.js';
 // is the outer safety net a stale entry is served under while a refill is locked.
 const SOFT_TTL_MS = 3 * 60 * 1000;
 const HARD_TTL_MS = 15 * 60 * 1000;
-const LOCK_TTL_MS = 10_000;
+// Real provider API calls (multi-region AssumeRole+DescribeInstances, WIF
+// token exchange + impersonation) don't fit in the old 5s stub-era budget.
+// LOCK_TTL_MS/COLD_START_MAX_WAIT_MS are raised alongside COLLECTOR_TIMEOUT_MS
+// so the lock can't be stolen mid-fetch and cold-start waiters don't give up
+// before a legitimately-slow-but-successful fetch finishes.
+const LOCK_TTL_MS = 30_000;
 const COLD_START_POLL_MS = 150;
-const COLD_START_MAX_WAIT_MS = 8_000;
-const COLLECTOR_TIMEOUT_MS = 5_000;
+const COLD_START_MAX_WAIT_MS = 30_000;
+const COLLECTOR_TIMEOUT_MS = 25_000;
 
 const UNLOCK_SCRIPT = `if redis.call("get", KEYS[1]) == ARGV[1] then return redis.call("del", KEYS[1]) else return 0 end`;
 

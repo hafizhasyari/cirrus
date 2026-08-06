@@ -41,7 +41,7 @@ type InstancesResponse struct {
 
 // ErrorBody/ErrorResponse is the GET /instances failure envelope.
 type ErrorBody struct {
-	Code    string `json:"code"` // "TIMEOUT" | "UPSTREAM_ERROR"
+	Code    string `json:"code"` // "TIMEOUT" | "UPSTREAM_ERROR" | "AUTH_FAILED"
 	Message string `json:"message"`
 }
 

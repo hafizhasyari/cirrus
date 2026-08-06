@@ -1,7 +1,7 @@
 import type { FastifyInstance } from 'fastify';
 import { and, eq, sql } from 'drizzle-orm';
 import { z } from 'zod';
-import type { ActiveConnection } from '@cirrus/shared-types';
+import type { ActiveConnection, ConnectionConfigResponse } from '@cirrus/shared-types';
 import { db } from '../db/client.js';
 import { cloudConnections, userCloudAccounts, users } from '../db/schema.js';
 import { toAuthenticatedUser } from '../lib/userDto.js';
@@ -95,6 +95,28 @@ export async function registerInternalRoutes(app: FastifyInstance) {
       .where(eq(cloudConnections.status, status as 'active' | 'pending' | 'error' | 'expired'));
 
     const result: ActiveConnection[] = rows.map((r) => ({ connectionId: r.id, provider: r.provider, account: r.account }));
+    return result;
+  });
+
+  // Collectors' only path to a connection's provider-specific config
+  // (roleArn/externalId, roleArn/regionId, projectId/poolId/providerId/
+  // saEmail, ...) — the collector resolves this itself, the Aggregator
+  // never sees or forwards credential material.
+  app.get<{ Params: { id: string } }>('/internal/connections/:id', async (req, reply) => {
+    const [row] = await db.select().from(cloudConnections).where(eq(cloudConnections.id, req.params.id));
+    if (!row) {
+      reply.code(404);
+      return { error: { code: 'NOT_FOUND', message: 'connection not found' } };
+    }
+
+    const result: ConnectionConfigResponse = {
+      connectionId: row.id,
+      provider: row.provider,
+      account: row.account,
+      identifier: row.identifier,
+      status: row.status,
+      config: row.config as Record<string, unknown>,
+    };
     return result;
   });
 

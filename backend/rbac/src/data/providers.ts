@@ -17,7 +17,7 @@ export const FIELD_DEFS: Record<ProviderId, FieldDef[]> = {
     { key: 'externalId', label: 'External ID', kind: 'generated', caption: 'Paste this into the trust policy of the role above.' },
   ],
   gcp: [
-    { key: 'projectId', label: 'Project ID', kind: 'text' },
+    { key: 'projectId', label: 'Project Number', caption: 'The numeric project number (not the project ID string) — required for the Workload Identity Federation audience.', kind: 'text' },
     { key: 'poolId', label: 'Workload Identity Pool ID', kind: 'text' },
     { key: 'providerId', label: 'Provider ID', kind: 'text' },
     { key: 'saEmail', label: 'Service Account email', kind: 'text' },

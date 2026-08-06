@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"log"
 	"net/http"
 	"os"
@@ -12,12 +13,19 @@ import (
 
 const providerName = "alibaba"
 
+var rbacClient *collectorkit.RBACClient
+
 func main() {
+	rbacClient = collectorkit.NewRBACClient(requireEnv("RBAC_URL"), requireEnv("INTERNAL_SHARED_SECRET"))
+
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /instances", handleInstances)
 	mux.HandleFunc("GET /healthz", collectorkit.HealthHandler)
 
-	handler := collectorkit.WithTimeout(mux, 5*time.Second)
+	// Real AssumeRole + DescribeInstances doesn't fit in the old 5s
+	// stub-era budget (single region, no extra calls needed, so a smaller
+	// budget than AWS's multi-region fan-out is sufficient).
+	handler := collectorkit.WithTimeout(mux, 10*time.Second)
 
 	port := os.Getenv("PORT")
 	if port == "" {
@@ -30,6 +38,14 @@ func main() {
 	}
 }
 
+func requireEnv(name string) string {
+	v := os.Getenv(name)
+	if v == "" {
+		log.Fatalf("missing required env var: %s", name)
+	}
+	return v
+}
+
 func handleInstances(w http.ResponseWriter, r *http.Request) {
 	connectionID := r.URL.Query().Get("connectionId")
 	if connectionID == "" {
@@ -39,16 +55,43 @@ func handleInstances(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	ctx := r.Context()
 	select {
-	case <-r.Context().Done():
+	case <-ctx.Done():
 		return
 	default:
+	}
+
+	cfg, err := rbacClient.GetConnectionConfig(ctx, connectionID)
+	if err != nil {
+		if errors.Is(err, collectorkit.ErrConnectionNotFound) {
+			collectorkit.WriteJSON(w, http.StatusBadGateway, collectorkit.ErrorResponse{
+				Error: collectorkit.ErrorBody{Code: "AUTH_FAILED", Message: "connection not found in RBAC"},
+			})
+			return
+		}
+		collectorkit.WriteJSON(w, http.StatusBadGateway, collectorkit.ErrorResponse{
+			Error: collectorkit.ErrorBody{Code: "UPSTREAM_ERROR", Message: err.Error()},
+		})
+		return
+	}
+
+	instances, err := internal.FetchInstances(ctx, cfg.Config)
+	if err != nil {
+		code := "UPSTREAM_ERROR"
+		if errors.Is(err, internal.ErrAuthFailed) {
+			code = "AUTH_FAILED"
+		}
+		collectorkit.WriteJSON(w, http.StatusBadGateway, collectorkit.ErrorResponse{
+			Error: collectorkit.ErrorBody{Code: code, Message: err.Error()},
+		})
+		return
 	}
 
 	collectorkit.WriteJSON(w, http.StatusOK, collectorkit.InstancesResponse{
 		ConnectionID: connectionID,
 		Provider:     providerName,
 		FetchedAt:    time.Now().UTC().Format(time.RFC3339),
-		Instances:    internal.GenerateInstances(connectionID),
+		Instances:    instances,
 	})
 }

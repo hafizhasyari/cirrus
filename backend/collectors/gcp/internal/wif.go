@@ -1,0 +1,68 @@
+package internal
+
+import (
+	"context"
+	"fmt"
+	"sync"
+
+	"golang.org/x/oauth2"
+	"golang.org/x/oauth2/google/externalaccount"
+)
+
+// subjectTokenSupplier plugs Cirrus's own Auth Service into the
+// externalaccount package's WIF exchange — externalaccount handles the
+// STS token-exchange and service-account impersonation calls internally
+// once it has a fresh subject token from us.
+type subjectTokenSupplier struct {
+	connectionID string
+}
+
+func (s *subjectTokenSupplier) SubjectToken(ctx context.Context, opts externalaccount.SupplierOptions) (string, error) {
+	return mintWifToken(ctx, s.connectionID, opts.Audience)
+}
+
+var (
+	tokenSourceCacheMu sync.Mutex
+	tokenSourceCache    = map[string]oauth2.TokenSource{}
+)
+
+// buildTokenSource builds (or reuses, per-connection) an oauth2.TokenSource
+// that performs the full WIF exchange: Cirrus JWT -> GCP STS federated token
+// -> service-account impersonation. Cached per connection so repeated
+// Aggregator cache-refill cycles don't re-run the whole chain every time —
+// oauth2.ReuseTokenSource handles refresh-on-expiry transparently.
+func buildTokenSource(ctx context.Context, connectionID string, gcfg gcpConfig) (oauth2.TokenSource, error) {
+	tokenSourceCacheMu.Lock()
+	if ts, ok := tokenSourceCache[connectionID]; ok {
+		tokenSourceCacheMu.Unlock()
+		return ts, nil
+	}
+	tokenSourceCacheMu.Unlock()
+
+	audience := fmt.Sprintf(
+		"//iam.googleapis.com/projects/%s/locations/global/workloadIdentityPools/%s/providers/%s",
+		gcfg.ProjectNumber, gcfg.PoolID, gcfg.ProviderID,
+	)
+
+	cfg := externalaccount.Config{
+		Audience:                       audience,
+		SubjectTokenType:               "urn:ietf:params:oauth:token-type:jwt",
+		TokenURL:                       "https://sts.googleapis.com/v1/token",
+		ServiceAccountImpersonationURL: fmt.Sprintf("https://iamcredentials.googleapis.com/v1/projects/-/serviceAccounts/%s:generateAccessToken", gcfg.SAEmail),
+		SubjectTokenSupplier:           &subjectTokenSupplier{connectionID: connectionID},
+		Scopes:                         []string{"https://www.googleapis.com/auth/compute.readonly"},
+	}
+
+	base, err := externalaccount.NewTokenSource(ctx, cfg)
+	if err != nil {
+		return nil, fmt.Errorf("%w: building WIF token source: %v", ErrAuthFailed, err)
+	}
+
+	ts := oauth2.ReuseTokenSource(nil, base)
+
+	tokenSourceCacheMu.Lock()
+	tokenSourceCache[connectionID] = ts
+	tokenSourceCacheMu.Unlock()
+
+	return ts, nil
+}

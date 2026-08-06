@@ -54,3 +54,28 @@ export async function signSession(input: {
     .setJti(crypto.randomUUID())
     .sign(privateKey);
 }
+
+/**
+ * Mints a short-lived JWT for GCP Workload Identity Federation — a second
+ * token kind alongside signSession, sharing the same signing key/KID (so the
+ * one JWKS endpoint validates both). `sub` is the connectionId (not a fixed
+ * constant) so a GCP-side trust policy can scope down to
+ * `principal://.../subject/{connectionId}` for defense in depth. `audience`
+ * is the per-connection WIF resource name
+ * (`//iam.googleapis.com/projects/{number}/locations/global/workloadIdentityPools/{poolId}/providers/{providerId}`),
+ * built by the caller from that connection's own config.
+ */
+export async function signWifToken(input: { connectionId: string; audience: string; ttlSeconds?: number }): Promise<string> {
+  const now = Math.floor(Date.now() / 1000);
+  const ttl = input.ttlSeconds ?? 300;
+
+  return new SignJWT({})
+    .setProtectedHeader({ alg: 'ES256', kid: KID })
+    .setSubject(input.connectionId)
+    .setIssuedAt(now)
+    .setIssuer(env.jwtIssuer)
+    .setAudience(input.audience)
+    .setExpirationTime(now + ttl)
+    .setJti(crypto.randomUUID())
+    .sign(privateKey);
+}

@@ -4,6 +4,8 @@ import { env } from './env.js';
 import { getJwks, initSigningKey } from './jwt.js';
 import { registerOidcRoutes } from './oidc/callback.js';
 import { registerDevLoginRoutes } from './routes/devLogin.js';
+import { registerInternalAuth } from './plugins/internalAuth.js';
+import { registerWifRoutes } from './routes/wif.js';
 
 const app = Fastify({ logger: true });
 
@@ -12,6 +14,14 @@ app.get('/.well-known/jwks.json', async () => getJwks());
 
 await app.register(cookie, { secret: env.cookieSecret });
 await registerOidcRoutes(app);
+
+await app.register(
+  async (instance) => {
+    registerInternalAuth(instance);
+    registerWifRoutes(instance);
+  },
+  { prefix: '/internal' },
+);
 
 if (env.devLoginEnabled) {
   app.log.warn('DEV_LOGIN_ENABLED=true — /dev-login bypass is active. Never enable this in production.');

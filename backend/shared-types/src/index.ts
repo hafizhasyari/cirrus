@@ -105,7 +105,7 @@ export interface CollectorInstancesResponse {
 
 export interface CollectorErrorResponse {
   error: {
-    code: 'TIMEOUT' | 'UPSTREAM_ERROR';
+    code: 'TIMEOUT' | 'UPSTREAM_ERROR' | 'AUTH_FAILED';
     message: string;
   };
 }
@@ -115,6 +115,19 @@ export interface ActiveConnection {
   connectionId: string;
   provider: ProviderId;
   account: string;
+}
+
+/** RBAC's internal-only single-connection lookup — a collector's only path
+ * to a connection's provider-specific config (roleArn/externalId,
+ * roleArn/regionId, projectId/poolId/providerId/saEmail, ...). Never routed
+ * through the Aggregator. */
+export interface ConnectionConfigResponse {
+  connectionId: string;
+  provider: ProviderId;
+  account: string;
+  identifier: string;
+  status: ConnectionStatus;
+  config: Record<string, unknown>;
 }
 
 /** Identity claims carried by the internal session JWT minted by the Auth Service. */
