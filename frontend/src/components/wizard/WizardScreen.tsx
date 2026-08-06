@@ -1,6 +1,5 @@
 import { ProviderBadge } from '../shared/ProviderBadge';
 import { CredentialFieldRow } from '../shared/CredentialField';
-import { CHECKLIST, FAILURE_MSG, FIELD_DEFS } from '../../data/mockData';
 import type { CirrusApp } from '../../state/useCirrusApp';
 
 export function WizardHeader({ app }: { app: CirrusApp }) {
@@ -21,9 +20,9 @@ export function WizardScreen({ app }: { app: CirrusApp }) {
   const step1 = app.wizardStep === 1;
   const step2 = app.wizardStep === 2;
   const wizardProviderMeta = app.wizardProvider ? app.providers.find((p) => p.id === app.wizardProvider) ?? null : null;
-  const fields = app.wizardProvider ? FIELD_DEFS[app.wizardProvider] : [];
-  const checklist = app.wizardProvider ? CHECKLIST[app.wizardProvider] : [];
-  const failureMessage = app.wizardProvider ? FAILURE_MSG[app.wizardProvider] : '';
+  const fields = wizardProviderMeta?.fieldDefs ?? [];
+  const checklist = wizardProviderMeta?.checklist ?? [];
+  const failureMessage = wizardProviderMeta?.failureMessage ?? '';
   const wizardIdle = !app.wizardTesting && !app.wizardResult;
 
   return (
@@ -70,6 +69,16 @@ export function WizardScreen({ app }: { app: CirrusApp }) {
               <div style={{ marginLeft: 'auto', fontSize: 11.5, color: 'var(--text-muted)', cursor: 'pointer' }} onClick={() => app.wizardBackToStep1()}>
                 Change provider
               </div>
+            </div>
+
+            <div style={{ marginBottom: 16 }}>
+              <div className="section-label" style={{ marginBottom: 8 }}>Account / project name</div>
+              <input
+                className="field-input font-plain"
+                value={app.wizardAccount}
+                onChange={(e) => app.updateWizardAccount(e.target.value)}
+                placeholder="e.g. prod-infra-01"
+              />
             </div>
 
             {fields.map((f) => (

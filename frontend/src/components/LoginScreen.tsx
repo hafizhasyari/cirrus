@@ -123,6 +123,30 @@ export function LoginScreen({
             </span>
             Continue with Microsoft
           </button>
+          {import.meta.env.DEV && (
+            <button
+              type="button"
+              onClick={() => {
+                const email = window.prompt('Dev login as (must already be an invited RBAC user):', 'admin@example.com');
+                if (email) window.location.href = `/auth/dev-login?email=${encodeURIComponent(email)}`;
+              }}
+              style={{
+                width: '100%',
+                background: 'transparent',
+                color: 'var(--text-muted)',
+                border: '1px dashed var(--border-strong)',
+                borderRadius: 10,
+                padding: '10px 16px',
+                fontFamily: "'Plus Jakarta Sans',sans-serif",
+                fontSize: 12.5,
+                fontWeight: 600,
+                cursor: 'pointer',
+                boxSizing: 'border-box',
+              }}
+            >
+              Dev login (bypass Entra ID)
+            </button>
+          )}
           <div style={{ fontSize: 11.5, opacity: 0.55, textAlign: 'center', lineHeight: 1.7 }}>
             Single sign-on via your company Microsoft 365 account.
             <br />

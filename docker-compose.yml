@@ -65,6 +65,7 @@ services:
       COOKIE_SECRET: ${COOKIE_SECRET:-dev-cookie-secret-change-me}
       SESSION_TTL_SECONDS: ${SESSION_TTL_SECONDS:-43200}
       AUTH_SIGNING_KEY_JWK: ${AUTH_SIGNING_KEY_JWK:-}
+      DEV_LOGIN_ENABLED: ${DEV_LOGIN_ENABLED:-false}
     ports:
       - "4000:4000"
     depends_on:

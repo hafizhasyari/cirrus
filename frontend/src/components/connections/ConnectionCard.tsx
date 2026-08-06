@@ -1,4 +1,5 @@
 import { ProviderBadge } from '../shared/ProviderBadge';
+import { formatRelativeTime } from '../../lib/relativeTime';
 import type { Connection, Provider } from '../../types';
 
 export function ConnectionCard({
@@ -68,7 +69,7 @@ export function ConnectionCard({
           paddingTop: 11,
         }}
       >
-        <span>{conn.lastChecked}</span>
+        <span>{formatRelativeTime(conn.lastChecked)}</span>
         <span>Added by {conn.addedBy}</span>
       </div>
     </div>

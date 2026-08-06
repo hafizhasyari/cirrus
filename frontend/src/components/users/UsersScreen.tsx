@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import { UserDrawer } from './UserDrawer';
 import { StatCard } from '../shared/StatCard';
+import { formatRelativeTime } from '../../lib/relativeTime';
 import type { CirrusApp } from '../../state/useCirrusApp';
 
 export function UsersHeader({ app }: { app: CirrusApp }) {
@@ -122,7 +123,7 @@ export function UsersScreen({ app }: { app: CirrusApp }) {
                       Pending invite
                     </div>
                   ) : (
-                    row.user.lastLogin
+                    formatRelativeTime(row.user.lastLogin)
                   )}
                 </td>
               </tr>

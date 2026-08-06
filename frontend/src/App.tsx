@@ -14,11 +14,12 @@ function App() {
 
   return (
     <ThemeProvider theme={app.theme} setTheme={app.setTheme}>
-      {app.screen === 'login' ? (
-        <LoginScreen theme={app.theme} setTheme={app.setTheme} onContinue={app.goToInventoryFromLogin} />
-      ) : (
-        <AppShell app={app} />
-      )}
+      {app.authChecked &&
+        (app.screen === 'login' ? (
+          <LoginScreen theme={app.theme} setTheme={app.setTheme} onContinue={app.goToInventoryFromLogin} />
+        ) : (
+          <AppShell app={app} />
+        ))}
       {app.toast && <Toast message={app.toast.message} />}
     </ThemeProvider>
   );

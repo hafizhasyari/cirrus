@@ -26,6 +26,10 @@ await app.register(httpProxy, {
   rewritePrefix: '/logout',
   httpMethods: ['POST'],
 });
+// TEMPORARY: proxies the dev-login bypass too — harmless to register
+// unconditionally here since the Auth Service 404s unless it has
+// DEV_LOGIN_ENABLED=true itself; the "off by default" guarantee lives there.
+await app.register(httpProxy, { upstream: env.authUrl, prefix: '/auth/dev-login', rewritePrefix: '/dev-login' });
 
 registerSessionMiddleware(app);
 

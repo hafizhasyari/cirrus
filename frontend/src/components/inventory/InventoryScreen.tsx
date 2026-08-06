@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { FilterDropdown } from './FilterDropdown';
 import { OutageBanner } from './OutageBanner';
 import { SkeletonRows } from './SkeletonRows';
@@ -8,14 +8,7 @@ import { EmptyState, SearchOffIcon } from '../shared/EmptyState';
 import { StatCard } from '../shared/StatCard';
 import { STATUS_META } from '../../theme/ThemeContext';
 import type { CirrusApp } from '../../state/useCirrusApp';
-import type { InventoryView, ProviderId, VmStatus } from '../../types';
-
-const INVENTORY_VIEWS: { id: InventoryView; label: string }[] = [
-  { id: 'default', label: 'Default' },
-  { id: 'loading', label: 'Loading' },
-  { id: 'empty', label: 'Empty' },
-  { id: 'outage', label: 'Outage' },
-];
+import type { ProviderId, VmStatus } from '../../types';
 
 export function InventoryHeader({ app }: { app: CirrusApp }) {
   return (
@@ -58,7 +51,10 @@ export function InventoryHeader({ app }: { app: CirrusApp }) {
 }
 
 export function InventoryScreen({ app }: { app: CirrusApp }) {
-  const { providers, vms, search, filterProviders, filterStatuses, filterOpen, inventoryView, detailVmId } = app;
+  const { providers, vms, vmErrors, search, filterProviders, filterStatuses, filterOpen, isLoadingVms, detailVmId } = app;
+
+  const [outageDismissed, setOutageDismissed] = useState(false);
+  useEffect(() => setOutageDismissed(false), [vmErrors]);
 
   const providerMap = useMemo(() => {
     const m: Record<string, (typeof providers)[number]> = {};
@@ -128,11 +124,9 @@ export function InventoryScreen({ app }: { app: CirrusApp }) {
     return chips;
   }, [filterProviders, filterStatuses, providers.length, search, app]);
 
-  const showOutageBanner = inventoryView === 'outage';
-  const showSkeleton = inventoryView === 'loading';
-  let displayVms = filtered;
-  if (showOutageBanner) displayVms = displayVms.filter((v) => v.provider !== 'alibaba');
-  if (inventoryView === 'empty') displayVms = [];
+  const showOutageBanner = vmErrors.length > 0 && !outageDismissed;
+  const showSkeleton = isLoadingVms;
+  const displayVms = filtered;
   const showEmpty = !showSkeleton && displayVms.length === 0;
   const showTable = !showSkeleton && !showEmpty;
 
@@ -156,8 +150,8 @@ export function InventoryScreen({ app }: { app: CirrusApp }) {
   const detailSrc = vms.find((v) => v.id === detailVmId) || null;
   const detailStatusMeta = detailSrc ? STATUS_META[detailSrc.status] : null;
 
-  const emptyActionLabel = inventoryView === 'empty' ? 'Reset preview state' : 'Clear filters';
-  const emptyActionFn = inventoryView === 'empty' ? () => app.setInventoryView('default') : () => app.clearFilters();
+  const emptyActionLabel = 'Clear filters';
+  const emptyActionFn = () => app.clearFilters();
 
   return (
     <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -168,37 +162,27 @@ export function InventoryScreen({ app }: { app: CirrusApp }) {
         <StatCard label="Providers connected" value={stats.providers} />
       </div>
 
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', flexShrink: 0 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-          <FilterDropdown
-            triggerLabel={providerTriggerLabel}
-            open={filterOpen === 'provider'}
-            hasSelection={providerHasSelection}
-            options={providerFilterList}
-            onToggleOpen={() => app.toggleFilterOpen('provider')}
-            onToggleOption={(id) => app.toggleProviderFilter(id as ProviderId)}
-            onSelectAll={() => app.selectAllProviders()}
-            onDone={() => app.closeFilterOpen()}
-          />
-          <FilterDropdown
-            triggerLabel={statusTriggerLabel}
-            open={filterOpen === 'status'}
-            hasSelection={statusHasSelection}
-            options={statusFilterList}
-            onToggleOpen={() => app.toggleFilterOpen('status')}
-            onToggleOption={(id) => app.toggleStatusFilter(id as VmStatus)}
-            onSelectAll={() => app.selectAllStatuses()}
-            onDone={() => app.closeFilterOpen()}
-          />
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          <div className="section-label">Preview</div>
-          {INVENTORY_VIEWS.map((v) => (
-            <div key={v.id} className="pill" data-active={inventoryView === v.id} onClick={() => app.setInventoryView(v.id)}>
-              {v.label}
-            </div>
-          ))}
-        </div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', flexShrink: 0 }}>
+        <FilterDropdown
+          triggerLabel={providerTriggerLabel}
+          open={filterOpen === 'provider'}
+          hasSelection={providerHasSelection}
+          options={providerFilterList}
+          onToggleOpen={() => app.toggleFilterOpen('provider')}
+          onToggleOption={(id) => app.toggleProviderFilter(id as ProviderId)}
+          onSelectAll={() => app.selectAllProviders()}
+          onDone={() => app.closeFilterOpen()}
+        />
+        <FilterDropdown
+          triggerLabel={statusTriggerLabel}
+          open={filterOpen === 'status'}
+          hasSelection={statusHasSelection}
+          options={statusFilterList}
+          onToggleOpen={() => app.toggleFilterOpen('status')}
+          onToggleOption={(id) => app.toggleStatusFilter(id as VmStatus)}
+          onSelectAll={() => app.selectAllStatuses()}
+          onDone={() => app.closeFilterOpen()}
+        />
       </div>
 
       {!!filterOpen && <div className="filter-backdrop" onClick={() => app.closeFilterOpen()} />}
@@ -214,7 +198,7 @@ export function InventoryScreen({ app }: { app: CirrusApp }) {
         </div>
       )}
 
-      {showOutageBanner && <OutageBanner onDismiss={() => app.setInventoryView('default')} />}
+      {showOutageBanner && <OutageBanner errors={vmErrors} onDismiss={() => setOutageDismissed(true)} />}
 
       <div className="card" style={{ overflow: 'hidden', flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
         {showSkeleton && <SkeletonRows />}
@@ -229,7 +213,7 @@ export function InventoryScreen({ app }: { app: CirrusApp }) {
       </div>
 
       <div style={{ fontSize: 11.5, color: 'var(--text-muted)', flexShrink: 0 }}>
-        Showing {rows.length} of {vms.length} VMs · fetched in parallel from 5 providers · cache updated 2 min ago
+        Showing {rows.length} of {vms.length} VMs · fetched in parallel from 5 providers
       </div>
 
       {detailSrc && detailStatusMeta && (

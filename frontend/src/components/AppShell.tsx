@@ -8,15 +8,7 @@ import type { CirrusApp } from '../state/useCirrusApp';
 export function AppShell({ app }: { app: CirrusApp }) {
   return (
     <div style={{ width: '100%', height: '100vh', display: 'flex' }}>
-      <Sidebar
-        screen={app.screen}
-        role={app.role}
-        theme={app.theme}
-        onGo={app.go}
-        onSetRole={app.setRole}
-        onSetTheme={app.setTheme}
-        onSignOut={() => app.go('login')}
-      />
+      <Sidebar app={app} />
 
       <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', height: '100vh', boxSizing: 'border-box' }}>
         <div

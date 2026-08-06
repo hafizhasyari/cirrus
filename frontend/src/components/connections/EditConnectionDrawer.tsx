@@ -1,7 +1,7 @@
 import { ProviderBadge } from '../shared/ProviderBadge';
 import { CredentialFieldRow } from '../shared/CredentialField';
 import { CONN_STATUS_META, statusBgForTheme, useTheme } from '../../theme/ThemeContext';
-import { FIELD_DEFS } from '../../data/mockData';
+import { formatRelativeTime } from '../../lib/relativeTime';
 import type { CirrusApp } from '../../state/useCirrusApp';
 
 export function EditConnectionDrawer({ app }: { app: CirrusApp }) {
@@ -13,7 +13,7 @@ export function EditConnectionDrawer({ app }: { app: CirrusApp }) {
   const statusMeta = CONN_STATUS_META[conn.status];
   const statusColor = statusMeta.color ?? 'var(--text-muted)';
   const statusBg = statusMeta.color ? statusBgForTheme(statusMeta.color, theme) : 'var(--surface-alt)';
-  const fields = FIELD_DEFS[conn.provider] || [];
+  const fields = providerMeta?.fieldDefs ?? [];
 
   return (
     <div className="drawer-overlay" onClick={() => app.closeEditConnection()}>
@@ -69,7 +69,7 @@ export function EditConnectionDrawer({ app }: { app: CirrusApp }) {
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, borderTop: '1px solid var(--border)', paddingTop: 16 }}>
           <div>
             <div style={{ fontSize: 10.5, color: 'var(--text-muted)', marginBottom: 3 }}>Last checked</div>
-            <div style={{ fontSize: 12.5 }}>{conn.lastChecked}</div>
+            <div style={{ fontSize: 12.5 }}>{formatRelativeTime(conn.lastChecked)}</div>
           </div>
           <div>
             <div style={{ fontSize: 10.5, color: 'var(--text-muted)', marginBottom: 3 }}>Added by</div>

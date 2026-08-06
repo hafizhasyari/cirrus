@@ -60,8 +60,6 @@ export type Theme = 'light' | 'dark';
 
 export type Screen = 'login' | 'inventory' | 'connections' | 'wizard' | 'users';
 
-export type InventoryView = 'default' | 'loading' | 'empty' | 'outage';
-
 export type ConnectionsView = 'default' | 'empty';
 
 export type FieldKind = 'text' | 'textarea' | 'generated';
@@ -79,4 +77,29 @@ export type WizardResult = 'success' | 'failure' | null;
 
 export interface WizardFormValues {
   [key: string]: string;
+}
+
+/** `Provider` plus the wizard/edit-drawer content the backend now serves
+ * alongside it (`GET /api/providers?includeFieldDefs=true`). */
+export interface ProviderWithFieldDefs extends Provider {
+  fieldDefs: FieldDef[];
+  checklist: string[];
+  failureMessage: string;
+}
+
+/** One provider/connection's fetch failure, from `GET /api/vms`'s `errors` array. */
+export interface VmFetchError {
+  provider: ProviderId;
+  connectionId: string;
+  message: string;
+}
+
+/** `GET /auth/me` response — the logged-in user's identity + permission scope. */
+export interface AuthenticatedUser {
+  id: string;
+  name: string;
+  email: string;
+  role: Role;
+  accounts: string[];
+  connectionIds: string[];
 }
