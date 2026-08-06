@@ -38,7 +38,7 @@ export function useCirrusApp(vmCount = 100) {
   // Screen / identity
   const [screen, setScreenState] = useState<Screen>('login');
   const [role, setRoleState] = useState<Role>('admin');
-  const [theme, setTheme] = useState<Theme>('dark');
+  const [theme, setTheme] = useState<Theme>('light');
 
   // Data
   const [vms] = useState<Vm[]>(() => generateVMs(vmCount));
