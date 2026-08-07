@@ -49,6 +49,7 @@ services:
       DATABASE_URL: postgres://cirrus:${POSTGRES_PASSWORD:-cirrus_dev}@postgres:5432/cirrus
       INTERNAL_SHARED_SECRET: ${INTERNAL_SHARED_SECRET:-dev-internal-secret}
       SEED_ADMIN_EMAIL: ${SEED_ADMIN_EMAIL:-admin@example.com}
+      SEED_ADMIN_NAME: ${SEED_ADMIN_NAME:-Administrator}
       VAULT_ADDR: http://vault:8200
       VAULT_TOKEN: ${VAULT_DEV_ROOT_TOKEN_ID:-dev-vault-root-token}
       AWS_COLLECTOR_URL: http://collector-aws:8080

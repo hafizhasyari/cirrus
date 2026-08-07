@@ -11,6 +11,7 @@ export const env = {
   databaseUrl: required('DATABASE_URL'),
   internalSharedSecret: required('INTERNAL_SHARED_SECRET'),
   seedAdminEmail: process.env.SEED_ADMIN_EMAIL,
+  seedAdminName: process.env.SEED_ADMIN_NAME,
   vaultAddr: required('VAULT_ADDR'),
   vaultToken: required('VAULT_TOKEN'),
 };

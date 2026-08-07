@@ -5,6 +5,7 @@ import { users } from './schema.js';
 
 async function main() {
   const adminEmail = env.seedAdminEmail ?? 'admin@example.com';
+  const adminName = env.seedAdminName ?? 'Administrator';
 
   // Matches the case-insensitive unique index on lower(email) — a plain
   // ON CONFLICT (email) can't target that expression index, so check first.
@@ -15,7 +16,7 @@ async function main() {
     (
       await db
         .insert(users)
-        .values({ email: adminEmail, name: 'Administrator', role: 'admin', status: 'pending' })
+        .values({ email: adminEmail, name: adminName, role: 'admin', status: 'pending' })
         .returning()
     )[0]?.id;
 
