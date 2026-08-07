@@ -150,7 +150,7 @@ export function LoginScreen({
           <div style={{ fontSize: 11.5, opacity: 0.55, textAlign: 'center', lineHeight: 1.7 }}>
             Single sign-on via your company Microsoft 365 account.
             <br />
-            Need access? Contact your Cirrus admin.
+            Need access? Contact InMotion Support Team.
           </div>
         </div>
       </div>
