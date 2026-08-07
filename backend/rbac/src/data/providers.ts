@@ -4,7 +4,7 @@ import type { FieldDef, Provider, ProviderId } from '@cirrus/shared-types';
 // per PRD §7.3 — server-side now so a future frontend-wiring pass is a swap, not a redesign.
 
 export const PROVIDERS: Provider[] = [
-  { id: 'aws', name: 'AWS', mono: 'AWS', color: '#f0a13c', bg: 'rgba(240,161,60,0.12)', authLabel: 'Cross-account IAM Role' },
+  { id: 'aws', name: 'AWS', mono: 'AWS', color: '#f0a13c', bg: 'rgba(240,161,60,0.12)', authLabel: 'IAM User Access Key' },
   { id: 'gcp', name: 'Google Cloud', mono: 'GCP', color: '#5b9bf7', bg: 'rgba(91,155,247,0.12)', authLabel: 'Workload Identity Federation' },
   { id: 'alibaba', name: 'Alibaba Cloud', mono: 'AL', color: '#ff8b5a', bg: 'rgba(255,139,90,0.12)', authLabel: 'RAM Role (STS AssumeRole)' },
   { id: 'oci', name: 'Oracle Cloud', mono: 'OCI', color: '#ef6b6b', bg: 'rgba(239,107,107,0.12)', authLabel: 'API Signing Key' },
@@ -13,8 +13,8 @@ export const PROVIDERS: Provider[] = [
 
 export const FIELD_DEFS: Record<ProviderId, FieldDef[]> = {
   aws: [
-    { key: 'roleArn', label: 'Role ARN', placeholder: 'arn:aws:iam::123456789012:role/CirrusReadOnly', kind: 'text' },
-    { key: 'externalId', label: 'External ID', kind: 'generated', caption: 'Paste this into the trust policy of the role above.' },
+    { key: 'accessKeyId', label: 'Access Key ID', placeholder: 'AKIAIOSFODNN7EXAMPLE', kind: 'text' },
+    { key: 'secretAccessKey', label: 'Secret Access Key', kind: 'textarea', secret: true },
   ],
   gcp: [
     { key: 'projectId', label: 'Project Number', caption: 'The numeric project number (not the project ID string) — required for the Workload Identity Federation audience.', kind: 'text' },
@@ -41,9 +41,9 @@ export const FIELD_DEFS: Record<ProviderId, FieldDef[]> = {
 
 export const SETUP_GUIDE: Record<ProviderId, string[]> = {
   aws: [
-    'In IAM → Roles, create a role trusting the Cirrus hub AWS account as principal',
-    'Require an external ID on the trust policy — paste in the value generated below',
-    'Attach a read-only policy (e.g. EC2 describe-only) and copy the resulting Role ARN',
+    'In IAM → Users, create a new IAM user for Cirrus (programmatic access only, no console password)',
+    'Attach a read-only policy (e.g. AmazonEC2ReadOnlyAccess)',
+    'Generate an access key for that user and copy the Access Key ID / Secret Access Key below',
   ],
   gcp: [
     'In IAM & Admin → Workload Identity Federation, create a pool and an OIDC provider',
@@ -69,7 +69,7 @@ export const SETUP_GUIDE: Record<ProviderId, string[]> = {
 };
 
 export const FAILURE_MSG: Record<ProviderId, string> = {
-  aws: 'AssumeRole failed — the trust policy on the target role does not include the Cirrus account ID.',
+  aws: 'Authentication failed — the Access Key ID/Secret Access Key is invalid, or the IAM user lacks read permissions on EC2.',
   gcp: 'Token exchange failed — check the Workload Identity Pool/Provider IDs and that the service account grants roles/iam.workloadIdentityUser to Cirrus.',
   alibaba: 'AssumeRole failed — the RAM role trust policy does not include the Cirrus account ID.',
   oci: 'Signing key validation failed — check the tenancy/user OCID and fingerprint match the uploaded private key.',

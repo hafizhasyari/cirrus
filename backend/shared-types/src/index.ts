@@ -72,8 +72,9 @@ export interface FieldDef {
   value?: string;
   caption?: string;
   /** True for fields that must be routed to Vault (not Postgres) on the
-   * backend — e.g. OCI's privateKey/passphrase, Biznet's xToken. Absent or
-   * false for non-secret identifiers (roleArn, projectId, etc.). */
+   * backend — e.g. OCI's privateKey/passphrase, Biznet's xToken, AWS's
+   * secretAccessKey. Absent or false for non-secret identifiers (accessKeyId,
+   * projectId, etc.). */
   secret?: boolean;
 }
 
@@ -113,7 +114,7 @@ export interface ActiveConnection {
 }
 
 /** RBAC's internal-only single-connection lookup — a collector's only path
- * to a connection's provider-specific config (roleArn/externalId,
+ * to a connection's provider-specific config (accessKeyId/secretAccessKey,
  * roleArn/regionId, projectId/poolId/providerId/saEmail, ...). Never routed
  * through the Aggregator. */
 export interface ConnectionConfigResponse {

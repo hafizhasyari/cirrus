@@ -47,7 +47,7 @@ export const cloudConnections = pgTable('cloud_connections', {
   account: text('account').notNull(),
   identifier: text('identifier').notNull(),
   config: jsonb('config').notNull().default({}),
-  secretRef: text('secret_ref'), // path to this connection's Vault KV v2 secret (cirrus/connections/{id}); null when the provider has no secret fields (AWS/GCP/Alibaba)
+  secretRef: text('secret_ref'), // path to this connection's Vault KV v2 secret (cirrus/connections/{id}); null when the provider has no secret fields (GCP/Alibaba)
   status: connectionStatusEnum('status').notNull().default('pending'),
   lastCheckedAt: timestamp('last_checked_at', { withTimezone: true }),
   lastCheckMessage: text('last_check_message'),

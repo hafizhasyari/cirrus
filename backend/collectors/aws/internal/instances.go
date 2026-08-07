@@ -10,59 +10,55 @@ import (
 	"cirrus/collectorkit"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
-	"github.com/aws/aws-sdk-go-v2/credentials/stscreds"
+	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/credentials"
 	"github.com/aws/aws-sdk-go-v2/service/ec2"
 	ec2types "github.com/aws/aws-sdk-go-v2/service/ec2/types"
-	"github.com/aws/aws-sdk-go-v2/service/sts"
 	smithy "github.com/aws/smithy-go"
 	"golang.org/x/sync/errgroup"
 )
 
+// defaultBootstrapRegion is only used to resolve the initial client used for
+// DescribeRegions — IAM/STS calls aren't region-scoped, this just needs to be
+// a valid region to construct an SDK client with.
+const defaultBootstrapRegion = "us-east-1"
+
 type connectionConfig struct {
-	RoleArn    string `json:"roleArn"`
-	ExternalID string `json:"externalId"`
+	AccessKeyID     string `json:"accessKeyId"`
+	SecretAccessKey string `json:"secretAccessKey"`
 }
 
-// assumeConnectionRole assumes the connection's roleArn via Cirrus's own hub
-// credential, returning an aws.Config whose Credentials resolve to that
-// assumed role — shared by the full inventory fetch and the lightweight
-// connection-test path so the AssumeRole logic itself lives in one place.
-func assumeConnectionRole(ctx context.Context, cc connectionConfig) (aws.Config, error) {
-	base, err := hubAWSConfig(ctx)
+// buildAWSConfig builds an aws.Config directly from the connection's own
+// static IAM user credentials — no hub identity, no role assumption. Built
+// fresh per request, mirroring the OCI collector's buildConfigProvider.
+func buildAWSConfig(ctx context.Context, cc connectionConfig) (aws.Config, error) {
+	provider := credentials.NewStaticCredentialsProvider(cc.AccessKeyID, cc.SecretAccessKey, "")
+	cfg, err := config.LoadDefaultConfig(ctx,
+		config.WithCredentialsProvider(provider),
+		config.WithRegion(defaultBootstrapRegion),
+	)
 	if err != nil {
-		return aws.Config{}, fmt.Errorf("%w: hub credentials: %v", ErrUpstream, err)
+		return aws.Config{}, fmt.Errorf("%w: %v", ErrUpstream, err)
 	}
-
-	stsClient := sts.NewFromConfig(base)
-	provider := stscreds.NewAssumeRoleProvider(stsClient, cc.RoleArn, func(o *stscreds.AssumeRoleOptions) {
-		o.RoleSessionName = "cirrus-collector"
-		if cc.ExternalID != "" {
-			o.ExternalID = aws.String(cc.ExternalID)
-		}
-	})
-
-	assumed := base.Copy()
-	assumed.Credentials = aws.NewCredentialsCache(provider)
-	return assumed, nil
+	return cfg, nil
 }
 
-// FetchInstances resolves a connection's roleArn/externalId, assumes the
-// role via Cirrus's own hub credential, and returns a real EC2 inventory
-// across every enabled region (or a classified error — ErrAuthFailed /
-// ErrUpstream, see errors.go).
+// FetchInstances resolves a connection's accessKeyId/secretAccessKey and
+// returns a real EC2 inventory across every enabled region (or a classified
+// error — ErrAuthFailed / ErrUpstream, see errors.go).
 func FetchInstances(ctx context.Context, raw json.RawMessage) ([]collectorkit.Instance, error) {
 	var cc connectionConfig
-	if err := json.Unmarshal(raw, &cc); err != nil || cc.RoleArn == "" {
-		return nil, fmt.Errorf("%w: missing/invalid roleArn in connection config", ErrAuthFailed)
+	if err := json.Unmarshal(raw, &cc); err != nil || cc.AccessKeyID == "" || cc.SecretAccessKey == "" {
+		return nil, fmt.Errorf("%w: missing/invalid accessKeyId/secretAccessKey in connection config", ErrAuthFailed)
 	}
 
-	assumed, err := assumeConnectionRole(ctx, cc)
+	base, err := buildAWSConfig(ctx, cc)
 	if err != nil {
 		return nil, err
 	}
-	ec2Base := ec2.NewFromConfig(assumed)
+	ec2Base := ec2.NewFromConfig(base)
 
-	// DescribeRegions doubles as the earliest possible AssumeRole failure
+	// DescribeRegions doubles as the earliest possible credential-rejection
 	// signal — matches RBAC's own advertised AWS test-connection checklist.
 	regionsOut, err := ec2Base.DescribeRegions(ctx, &ec2.DescribeRegionsInput{})
 	if err != nil {
@@ -85,7 +81,7 @@ func FetchInstances(ctx context.Context, raw json.RawMessage) ([]collectorkit.In
 	for _, region := range regions {
 		region := region
 		g.Go(func() error {
-			regionalCfg := assumed.Copy()
+			regionalCfg := base.Copy()
 			regionalCfg.Region = region
 			client := ec2.NewFromConfig(regionalCfg)
 
@@ -244,13 +240,17 @@ func instanceIDs(instances []ec2types.Instance) []string {
 	return ids
 }
 
-// classifyAWSErr distinguishes access/trust-policy failures (AUTH_FAILED)
-// from everything else (UPSTREAM_ERROR) using the AWS API's own error codes.
+// classifyAWSErr distinguishes credential/permission failures (AUTH_FAILED)
+// from everything else (UPSTREAM_ERROR) using the AWS API's own error codes —
+// InvalidClientTokenId/SignatureDoesNotMatch/UnrecognizedClientException for
+// a rejected access key, AccessDenied/UnauthorizedOperation/AuthFailure for a
+// valid key whose IAM user lacks the required read-only permissions.
 func classifyAWSErr(err error) error {
 	var apiErr smithy.APIError
 	if errors.As(err, &apiErr) {
 		switch apiErr.ErrorCode() {
-		case "AccessDenied", "AccessDeniedException", "UnauthorizedOperation", "AuthFailure":
+		case "InvalidClientTokenId", "SignatureDoesNotMatch", "UnrecognizedClientException",
+			"AccessDenied", "AccessDeniedException", "UnauthorizedOperation", "AuthFailure":
 			return fmt.Errorf("%w: %v", ErrAuthFailed, err)
 		}
 	}

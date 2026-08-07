@@ -150,7 +150,7 @@ export async function registerConnectionRoutes(app: FastifyInstance) {
 
   // Real validation per PRD §7.3: calls the provider's own collector, which
   // performs the cheapest authenticated call for that provider — AWS
-  // sts:AssumeRole + sts:GetCallerIdentity + ec2:DescribeRegions; GCP
+  // sts:GetCallerIdentity + ec2:DescribeRegions; GCP
   // iamcredentials.generateAccessToken + resourcemanager.testIamPermissions;
   // Alibaba sts:AssumeRole + sts:GetCallerIdentity; OCI config.validate_config
   // + identity.list_regions + compute.list_instances; Biznet

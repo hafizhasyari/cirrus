@@ -19,11 +19,11 @@ func main() {
 	rbacClient = collectorkit.NewRBACClient(requireEnv("RBAC_URL"), requireEnv("INTERNAL_SHARED_SECRET"))
 
 	mux := http.NewServeMux()
-	// Real multi-region AssumeRole + DescribeInstances/DescribeVolumes/
-	// DescribeInstanceTypes doesn't fit in the old 5s stub-era budget.
+	// Real multi-region DescribeInstances/DescribeVolumes/DescribeInstanceTypes
+	// doesn't fit in the old 5s stub-era budget.
 	mux.Handle("GET /instances", collectorkit.WithTimeout(http.HandlerFunc(handleInstances), 20*time.Second))
-	// The lightweight connection test is a single AssumeRole + two single-call
-	// APIs, no region fan-out — a much smaller budget than the full fetch.
+	// The lightweight connection test is just two single-call APIs, no region
+	// fan-out — a much smaller budget than the full fetch.
 	mux.Handle("GET /test", collectorkit.WithTimeout(http.HandlerFunc(handleTest), 8*time.Second))
 	mux.HandleFunc("GET /healthz", collectorkit.HealthHandler)
 

@@ -7,6 +7,7 @@ import type { ProviderId, WizardFormValues } from '../types';
 export function computeIdentifier(provider: ProviderId, form: WizardFormValues): string {
   switch (provider) {
     case 'aws':
+      return form.accessKeyId || '—';
     case 'alibaba':
       return form.roleArn || '—';
     case 'gcp':

@@ -13,7 +13,7 @@ import (
 // ConnectionConfig is RBAC's internal-only single-connection lookup response.
 // Config stays opaque (json.RawMessage) — each collector's own package is
 // the only place that knows its own provider-specific field shape
-// ({roleArn, externalId} for AWS, {roleArn, regionId} for Alibaba,
+// ({accessKeyId, secretAccessKey} for AWS, {roleArn, regionId} for Alibaba,
 // {projectId, poolId, providerId, saEmail} for GCP), preserving the
 // isolation goal: this shared client carries zero provider-specific logic.
 type ConnectionConfig struct {
