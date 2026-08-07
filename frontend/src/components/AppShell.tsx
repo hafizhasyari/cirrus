@@ -1,10 +1,10 @@
 import type { ReactNode } from 'react';
 import { Outlet } from '@tanstack/react-router';
 import { Sidebar } from './Sidebar';
-import { protectedRoute } from '../router';
+import { useApp } from '../state/AppContext';
 
 export function ProtectedLayout() {
-  const { app } = protectedRoute.useRouteContext();
+  const app = useApp();
 
   return (
     <div style={{ width: '100%', height: '100vh', display: 'flex' }}>

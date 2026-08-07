@@ -5,6 +5,7 @@ import { InventoryHeader, InventoryScreen } from './components/inventory/Invento
 import { ConnectionsHeader, ConnectionsScreen } from './components/connections/ConnectionsScreen';
 import { WizardHeader, WizardScreen } from './components/wizard/WizardScreen';
 import { UsersHeader, UsersScreen } from './components/users/UsersScreen';
+import { useApp } from './state/AppContext';
 import type { CirrusApp } from './state/useCirrusApp';
 
 export const rootRoute = createRootRouteWithContext<{ app: CirrusApp }>()({
@@ -21,7 +22,7 @@ export const loginRoute = createRoute({
 });
 
 function LoginRouteComponent() {
-  const { app } = loginRoute.useRouteContext();
+  const app = useApp();
   return <LoginScreen theme={app.theme} setTheme={app.setTheme} onContinue={app.goToInventoryFromLogin} />;
 }
 
@@ -45,7 +46,7 @@ export const inventoryRoute = createRoute({
 });
 
 function InventoryPage() {
-  const { app } = inventoryRoute.useRouteContext();
+  const app = useApp();
   return (
     <ScreenLayout header={<InventoryHeader app={app} />}>
       <InventoryScreen app={app} />
@@ -61,7 +62,7 @@ export const connectionsRoute = createRoute({
 });
 
 function ConnectionsPage() {
-  const { app } = connectionsRoute.useRouteContext();
+  const app = useApp();
   return (
     <ScreenLayout header={<ConnectionsHeader app={app} />}>
       <ConnectionsScreen app={app} />
@@ -77,7 +78,7 @@ export const wizardRoute = createRoute({
 });
 
 function WizardPage() {
-  const { app } = wizardRoute.useRouteContext();
+  const app = useApp();
   return (
     <ScreenLayout header={<WizardHeader app={app} />}>
       <WizardScreen app={app} />
@@ -93,7 +94,7 @@ export const usersRoute = createRoute({
 });
 
 function UsersPage() {
-  const { app } = usersRoute.useRouteContext();
+  const app = useApp();
   return (
     <ScreenLayout header={<UsersHeader app={app} />}>
       <UsersScreen app={app} />

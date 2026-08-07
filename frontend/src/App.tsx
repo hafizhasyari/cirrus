@@ -3,6 +3,7 @@ import { RouterProvider } from '@tanstack/react-router';
 import { Toast } from './components/shared/Toast';
 import { ThemeProvider } from './theme/ThemeContext';
 import { useCirrusApp } from './state/useCirrusApp';
+import { AppContext } from './state/AppContext';
 import { router } from './router';
 
 function App() {
@@ -14,7 +15,9 @@ function App() {
 
   return (
     <ThemeProvider theme={app.theme} setTheme={app.setTheme}>
-      {app.authChecked && <RouterProvider router={router} context={{ app }} />}
+      <AppContext.Provider value={app}>
+        {app.authChecked && <RouterProvider router={router} context={{ app }} />}
+      </AppContext.Provider>
       {app.toast && <Toast message={app.toast.message} />}
     </ThemeProvider>
   );
