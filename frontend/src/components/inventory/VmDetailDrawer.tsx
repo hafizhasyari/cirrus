@@ -55,13 +55,13 @@ export function VmDetailDrawer({
 
         <div>
           <div className="section-label" style={{ marginBottom: 10 }}>Storage</div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
             {vm.disks.map((disk, i) => (
-              <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: 12.5 }}>
-                <span style={{ color: 'var(--text-secondary)' }}>{disk.label}</span>
-                <span className="font-mono" style={{ color: 'var(--text-primary)' }}>{disk.sizeGB} GB</span>
-              </div>
+              <Field key={i} label={disk.label} value={`${disk.sizeGB} GB`} mono />
             ))}
+            {vm.disks.length > 1 && (
+              <Field label="Total" value={`${vm.disks.reduce((sum, d) => sum + d.sizeGB, 0)} GB`} mono />
+            )}
           </div>
         </div>
 
