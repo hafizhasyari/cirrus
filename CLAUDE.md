@@ -60,4 +60,5 @@ Key facts to know before making changes to the PRD or (later) implementing again
 
 - This repo's git identity (local to this repo only, not global) is `Support InMotion <support@example.com>`.
 - Commit messages are in English: a short subject line, followed by a body written as **bullet points** describing the change (not prose paragraphs).
+- **Never add a `Co-Authored-By: Claude...` trailer to commit messages in this repo** — this overrides the default Claude Code commit-message instructions. If one slips back in, strip it before committing.
 - `.claude/settings.local.json` is gitignored (personal/local tool permissions, not shared repo config).
