@@ -4,7 +4,7 @@
 |---|---|
 | **Status** | Approved |
 | **Owner** | Admin User |
-| **Last updated** | 2026-08-05 |
+| **Last updated** | 2026-08-07 |
 
 ## 1. Latar Belakang & Masalah
 
@@ -110,23 +110,28 @@ Sesuai preferensi: **microservices**, jalan di **Docker** untuk dev, siap deploy
                         │Collec│ │Collec││Collec ││Collec││ Collector  │
                         │ tor  │ │ tor  ││ tor   ││ tor  ││            │
                         └──────┘ └──────┘└───────┘└──────┘└────────────┘
+                    (tiap collector resolve config koneksinya sendiri —
+                     termasuk field secret — langsung dari RBAC, bukan
+                     lewat Aggregator; lihat catatan di bawah diagram)
 
-                        ┌───────────────┐        ┌──────────────┐
-                        │  Redis (cache) │        │  PostgreSQL   │
-                        │                │        │ (users, roles,│
-                        │                │        │ cloud accounts,│
-                        │                │        │ audit log)    │
-                        └────────────────┘        └──────────────┘
+                  ┌───────────────┐  ┌──────────────┐  ┌───────────────────┐
+                  │ Redis (cache)  │  │  PostgreSQL   │  │  HashiCorp Vault   │
+                  │                │  │ (users, roles,│  │  (KV v2 — field    │
+                  │                │  │ cloud accounts,│ │  secret per akun   │
+                  │                │  │ audit log)    │  │  cloud; klien satu- │
+                  │                │  │               │  │  satunya: RBAC)    │
+                  └────────────────┘  └──────────────┘  └───────────────────┘
 ```
 
 - **Frontend SPA**: React/Vue (lihat §8), consume API dari BFF.
 - **API Gateway / BFF**: satu pintu masuk, routing ke service lain, terapkan auth check.
 - **Auth Service**: handle login OIDC ke Microsoft Entra ID (Microsoft 365), issue JWT session internal.
-- **RBAC Service**: source of truth untuk user, role, dan mapping akun-cloud-ke-tim.
+- **RBAC Service**: source of truth untuk user, role, dan mapping akun-cloud-ke-tim; juga satu-satunya service yang bicara ke Vault (lihat di bawah), dan yang di-hit langsung oleh tiap Provider Collector untuk resolve config koneksi (termasuk field secret yang sudah di-merge dari Vault) — bukan diteruskan lewat Aggregator, supaya Aggregator tidak pernah melihat credential sama sekali.
 - **Inventory Aggregator**: orkestrasi fetch paralel ke 5 collector, merge hasil, kelola cache.
 - **Provider Collectors (5 service terpisah, satu per provider)**: masing-masing encapsulate SDK & auth spesifik provider tsb, expose API seragam (`GET /instances`) ke Aggregator. Dipisah per service supaya rilis/scaling independen dan kegagalan satu provider terisolasi.
 - **PostgreSQL**: metadata aplikasi (user, role, daftar akun cloud yang terdaftar + referensi ke secret, audit log) — **bukan** menyimpan data VM hasil live-pull (itu live/cache saja).
 - **Redis**: cache hasil fetch inventory, TTL pendek.
+- **HashiCorp Vault (KV v2)**: static secrets engine untuk field kredensial yang genuinely secret (lihat §6.2/§7.3 — hari ini cuma OCI `Private Key`/`Passphrase` dan Biznet Gio `x-token`; field AWS/GCP/Alibaba semuanya identifier non-secret jadi cukup di Postgres). RBAC adalah satu-satunya client Vault di seluruh sistem.
 
 ### 7.2 Integrasi per Provider
 
