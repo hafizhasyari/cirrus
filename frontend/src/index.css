@@ -487,7 +487,8 @@ body {
 .toast {
   position: fixed;
   top: 88px;
-  right: 24px;
+  left: 50%;
+  transform: translateX(-50%);
   z-index: 100;
   display: flex;
   align-items: center;
@@ -505,22 +506,22 @@ body {
 @keyframes toastIn {
   from {
     opacity: 0;
-    transform: translateY(-8px);
+    transform: translate(-50%, -8px);
   }
   to {
     opacity: 1;
-    transform: translateY(0);
+    transform: translate(-50%, 0);
   }
 }
 
 @keyframes toastOut {
   from {
     opacity: 1;
-    transform: translateY(0);
+    transform: translate(-50%, 0);
   }
   to {
     opacity: 0;
-    transform: translateY(-8px);
+    transform: translate(-50%, -8px);
   }
 }
 
