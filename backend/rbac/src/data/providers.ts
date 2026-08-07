@@ -62,8 +62,9 @@ export const SETUP_GUIDE: Record<ProviderId, string[]> = {
   ],
   biznet: [
     'Log in to the Biznet Gio customer portal (portal.biznetgio.com)',
-    'Open the API key section and generate a new token for NEO Lite access',
-    'Copy the token as the x-token value below',
+    'Open the Generate API Key menu',
+    'Choose the privilege for the key — pick Read Only (Cirrus never needs Read & Write)',
+    'Click Generate and copy the resulting token as the x-token value below',
   ],
 };
 
