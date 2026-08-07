@@ -31,5 +31,8 @@ COPY --from=build /app/rbac/dist rbac/dist
 # relative path at runtime.
 COPY --from=build /app/rbac/src/db/migrations rbac/src/db/migrations
 WORKDIR /app/rbac
+COPY rbac/docker-entrypoint.sh ./docker-entrypoint.sh
+RUN chmod +x docker-entrypoint.sh
 EXPOSE 4001
+ENTRYPOINT ["./docker-entrypoint.sh"]
 CMD ["node", "dist/server.js"]
