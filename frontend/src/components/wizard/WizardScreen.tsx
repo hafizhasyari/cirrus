@@ -21,7 +21,7 @@ export function WizardScreen({ app }: { app: CirrusApp }) {
   const step2 = app.wizardStep === 2;
   const wizardProviderMeta = app.wizardProvider ? app.providers.find((p) => p.id === app.wizardProvider) ?? null : null;
   const fields = wizardProviderMeta?.fieldDefs ?? [];
-  const checklist = wizardProviderMeta?.checklist ?? [];
+  const setupGuide = wizardProviderMeta?.setupGuide ?? [];
   const failureMessage = wizardProviderMeta?.failureMessage ?? '';
   const wizardIdle = !app.wizardTesting && !app.wizardResult;
 
@@ -142,8 +142,8 @@ export function WizardScreen({ app }: { app: CirrusApp }) {
           </div>
 
           <div className="card" style={{ width: 300, flexShrink: 0, padding: 20, boxSizing: 'border-box' }}>
-            <div className="section-label" style={{ marginBottom: 12 }}>What Cirrus checks</div>
-            {checklist.map((text, i) => (
+            <div className="section-label" style={{ marginBottom: 12 }}>How to get these values</div>
+            {setupGuide.map((text, i) => (
               <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 9, marginBottom: 12 }}>
                 <div
                   className="font-display"
@@ -167,9 +167,6 @@ export function WizardScreen({ app }: { app: CirrusApp }) {
                 <div style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.5 }}>{text}</div>
               </div>
             ))}
-            <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 14, lineHeight: 1.6, borderTop: '1px solid var(--border)', paddingTop: 14 }}>
-              Least privilege, always — the role or token Cirrus uses can only list and describe instances, never modify them.
-            </div>
           </div>
         </div>
       )}

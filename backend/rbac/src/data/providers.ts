@@ -1,6 +1,6 @@
 import type { FieldDef, Provider, ProviderId } from '@cirrus/shared-types';
 
-// Mirrors frontend/src/data/mockData.ts's PROVIDERS/FIELD_DEFS/CHECKLIST/FAILURE_MSG,
+// Mirrors the frontend's PROVIDERS/FIELD_DEFS/SETUP_GUIDE/FAILURE_MSG,
 // per PRD §7.3 — server-side now so a future frontend-wiring pass is a swap, not a redesign.
 
 export const PROVIDERS: Provider[] = [
@@ -39,12 +39,32 @@ export const FIELD_DEFS: Record<ProviderId, FieldDef[]> = {
   ],
 };
 
-export const CHECKLIST: Record<ProviderId, string[]> = {
-  aws: ['sts:AssumeRole — assume the registered role', 'sts:GetCallerIdentity — confirm assume succeeded', 'ec2:DescribeRegions — confirm EC2 read scope'],
-  gcp: ['iamcredentials.generateAccessToken — exchange WIF token', 'resourcemanager.testIamPermissions — confirm compute.viewer scope'],
-  alibaba: ['sts:AssumeRole — assume the registered RAM role', 'sts:GetCallerIdentity — confirm identity valid'],
-  oci: ['config.validate_config — validate signing config', 'identity.list_regions — confirm signing validity', 'compute.list_instances (limit 1) — confirm read-only policy attached'],
-  biznet: ['GET /neolites/accounts — cheapest authenticated call'],
+export const SETUP_GUIDE: Record<ProviderId, string[]> = {
+  aws: [
+    'In IAM → Roles, create a role trusting the Cirrus hub AWS account as principal',
+    'Require an external ID on the trust policy — paste in the value generated below',
+    'Attach a read-only policy (e.g. EC2 describe-only) and copy the resulting Role ARN',
+  ],
+  gcp: [
+    'In IAM & Admin → Workload Identity Federation, create a pool and an OIDC provider',
+    'Create (or choose) a service account and grant the pool roles/iam.workloadIdentityUser on it',
+    'Grant the service account a read-only role (e.g. Compute Viewer)',
+    'Copy the project number, pool ID, provider ID, and service account email below',
+  ],
+  alibaba: [
+    'In RAM → Roles, create a role with trusted entity type "Alibaba Cloud Account" set to the Cirrus account ID',
+    'Attach a read-only policy to the role and copy its Role ARN',
+  ],
+  oci: [
+    'In Identity → Users → your user → API Keys, generate a new API signing key pair',
+    'Download the private key — it is only shown once',
+    'Copy the tenancy OCID, user OCID, fingerprint, and region from the generated config preview',
+  ],
+  biznet: [
+    'Log in to the Biznet Gio customer portal (portal.biznetgio.com)',
+    'Open the API key section and generate a new token for NEO Lite access',
+    'Copy the token as the x-token value below',
+  ],
 };
 
 export const FAILURE_MSG: Record<ProviderId, string> = {

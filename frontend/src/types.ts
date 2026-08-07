@@ -85,7 +85,7 @@ export interface WizardFormValues {
  * alongside it (`GET /api/providers?includeFieldDefs=true`). */
 export interface ProviderWithFieldDefs extends Provider {
   fieldDefs: FieldDef[];
-  checklist: string[];
+  setupGuide: string[];
   failureMessage: string;
 }
 
