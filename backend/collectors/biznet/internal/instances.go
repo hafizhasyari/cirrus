@@ -13,24 +13,22 @@ type connectionConfig struct {
 	XToken string `json:"xToken"`
 }
 
-// productLine pairs a Biznet Portal resource path with the InstanceType
-// prefix the stub used to distinguish the two NEO product lines.
+// productLine pairs a Biznet Portal resource path for one of the two NEO
+// product lines with its detail-endpoint builder. InstanceType is sourced
+// from each instance's own product_name field, not this pairing.
 type productLine struct {
 	listPath   string
 	detailPath func(id string) string
-	label      string
 }
 
 var productLines = []productLine{
 	{
 		listPath:   "/neolites/accounts",
 		detailPath: func(id string) string { return "/neolites/" + id + "/vm-details" },
-		label:      "NEO Lite ",
 	},
 	{
 		listPath:   "/neolite-pros/accounts",
 		detailPath: func(id string) string { return "/neolite-pros/" + id + "/vm-details" },
-		label:      "NEO Lite Pro ",
 	},
 }
 
@@ -102,6 +100,19 @@ func fetchProductLine(ctx context.Context, client *biznetClient, pl productLine)
 	}
 	items := decodeList(body)
 
+	// Terminated accounts are dropped before any further processing — no
+	// vm-details fallback call, no mapping — since Cirrus's inventory only
+	// ever surfaces running/stopped VMs (there's no "terminated" bucket in
+	// the frontend's VmStatus type).
+	live := make([]json.RawMessage, 0, len(items))
+	for _, item := range items {
+		if mapStatus(extractField(item, "status", "state")) == "terminated" {
+			continue
+		}
+		live = append(live, item)
+	}
+	items = live
+
 	type detailed struct {
 		listRaw   json.RawMessage
 		detailRaw json.RawMessage
@@ -137,7 +148,7 @@ func fetchProductLine(ctx context.Context, client *biznetClient, pl productLine)
 
 	result := make([]collectorkit.Instance, 0, len(prepared))
 	for _, p := range prepared {
-		result = append(result, mapInstance(p.listRaw, p.detailRaw, pl.label))
+		result = append(result, mapInstance(p.listRaw, p.detailRaw))
 	}
 	return result, nil
 }
