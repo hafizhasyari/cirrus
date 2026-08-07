@@ -73,9 +73,6 @@ export function useCirrusApp() {
   const [connections, setConnections] = useState<Connection[]>([]);
   const [users, setUsers] = useState<User[]>([]);
   const [isLoadingVms, setIsLoadingVms] = useState(false);
-  const [isLoadingProviders, setIsLoadingProviders] = useState(false);
-  const [isLoadingConnections, setIsLoadingConnections] = useState(false);
-  const [isLoadingUsers, setIsLoadingUsers] = useState(false);
 
   // VM detail drawer
   const [detailVmId, setDetailVmId] = useState<string | null>(null);
@@ -139,14 +136,12 @@ export function useCirrusApp() {
   useEffect(() => {
     if (!currentUser) return;
 
-    setIsLoadingProviders(true);
     getProviders(true)
       .then((data) => {
         setProviders(data);
         setFilterProviders(data.map((p) => p.id));
       })
-      .catch((err) => showToast(errorMessage(err, 'Failed to load providers')))
-      .finally(() => setIsLoadingProviders(false));
+      .catch((err) => showToast(errorMessage(err, 'Failed to load providers')));
 
     setIsLoadingVms(true);
     getVms()
@@ -158,17 +153,13 @@ export function useCirrusApp() {
       .finally(() => setIsLoadingVms(false));
 
     if (currentUser.role === 'admin') {
-      setIsLoadingConnections(true);
       getConnections()
         .then(setConnections)
-        .catch((err) => showToast(errorMessage(err, 'Failed to load connections')))
-        .finally(() => setIsLoadingConnections(false));
+        .catch((err) => showToast(errorMessage(err, 'Failed to load connections')));
 
-      setIsLoadingUsers(true);
       getUsers()
         .then(setUsers)
-        .catch((err) => showToast(errorMessage(err, 'Failed to load users')))
-        .finally(() => setIsLoadingUsers(false));
+        .catch((err) => showToast(errorMessage(err, 'Failed to load users')));
     }
   }, [currentUser, showToast]);
 
@@ -467,7 +458,7 @@ export function useCirrusApp() {
     role, currentUser, authChecked, theme, setTheme, go, goToInventoryFromLogin, signOut,
     // data
     providers, vms, vmErrors, connections, users,
-    isLoadingVms, isLoadingProviders, isLoadingConnections, isLoadingUsers,
+    isLoadingVms,
     // vm detail
     detailVmId, openDetail, closeDetail,
     // inventory filters

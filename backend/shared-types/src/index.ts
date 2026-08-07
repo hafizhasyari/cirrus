@@ -4,8 +4,6 @@
 
 export type ProviderId = 'aws' | 'gcp' | 'alibaba' | 'oci' | 'biznet';
 
-export const PROVIDER_IDS: ProviderId[] = ['aws', 'gcp', 'alibaba', 'oci', 'biznet'];
-
 export interface Provider {
   id: ProviderId;
   name: string;
@@ -105,13 +103,6 @@ export interface CollectorInstancesResponse {
   provider: ProviderId;
   fetchedAt: string; // ISO datetime
   instances: CollectorInstance[];
-}
-
-export interface CollectorErrorResponse {
-  error: {
-    code: 'TIMEOUT' | 'UPSTREAM_ERROR' | 'AUTH_FAILED';
-    message: string;
-  };
 }
 
 /** RBAC's internal-only "who do we need to fetch inventory for" listing. */
