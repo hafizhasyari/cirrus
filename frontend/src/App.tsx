@@ -18,7 +18,7 @@ function App() {
       <AppContext.Provider value={app}>
         {app.authChecked && <RouterProvider router={router} context={{ app }} />}
       </AppContext.Provider>
-      {app.toast && <Toast message={app.toast.message} />}
+      <Toast toast={app.toast} />
     </ThemeProvider>
   );
 }
