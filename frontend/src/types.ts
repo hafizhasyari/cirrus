@@ -94,6 +94,7 @@ export interface VmFetchError {
   provider: ProviderId;
   connectionId: string;
   message: string;
+  code: string;
 }
 
 /** `GET /auth/me` response — the logged-in user's identity + permission scope. */

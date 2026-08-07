@@ -1,5 +1,5 @@
 import type { ProviderId } from '@cirrus/shared-types';
-import { fetchInstancesCached } from './cache/lock.js';
+import { CollectorError, fetchInstancesCached } from './cache/lock.js';
 import { normalizeInstance, type VmWithConnection } from './normalize.js';
 import { getActiveConnections } from './rbacClient.js';
 
@@ -7,6 +7,7 @@ export interface FetchError {
   provider: ProviderId;
   connectionId: string;
   message: string;
+  code: string;
 }
 
 export interface FetchAllResult {
@@ -36,7 +37,10 @@ export async function fetchAllVms(opts: { forceRefresh?: boolean } = {}): Promis
     if (result.status === 'fulfilled') {
       vms.push(...result.value.instances.map((instance) => normalizeInstance(instance, conn)));
     } else {
-      errors.push({ provider: conn.provider, connectionId: conn.connectionId, message: String(result.reason) });
+      const reason = result.reason;
+      const code = reason instanceof CollectorError ? reason.code : 'UPSTREAM_ERROR';
+      const message = reason instanceof Error ? reason.message : String(reason);
+      errors.push({ provider: conn.provider, connectionId: conn.connectionId, message, code });
     }
   });
 

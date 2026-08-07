@@ -8,9 +8,23 @@ const PROVIDER_NAMES: Record<string, string> = {
   biznet: 'Biznet Gio Cloud',
 };
 
+// Only rendered when every failing provider agrees on the cause — a mix of
+// codes falls back to the generic "not responding" copy rather than building
+// a per-provider multi-message list.
+function reasonFor(errors: VmFetchError[]): string {
+  const codes = new Set(errors.map((e) => e.code));
+  if (codes.size === 1) {
+    const [code] = codes;
+    if (code === 'TIMEOUT') return 'is taking too long to respond';
+    if (code === 'AUTH_FAILED') return 'rejected the stored credentials — check the connection';
+  }
+  return 'not responding';
+}
+
 export function OutageBanner({ errors, onDismiss }: { errors: VmFetchError[]; onDismiss: () => void }) {
   const providerNames = [...new Set(errors.map((e) => PROVIDER_NAMES[e.provider] ?? e.provider))];
   const label = providerNames.length === 1 ? providerNames[0] : `${providerNames.length} providers`;
+  const reason = reasonFor(errors);
 
   return (
     <div
@@ -31,7 +45,7 @@ export function OutageBanner({ errors, onDismiss }: { errors: VmFetchError[]; on
         <circle cx="12" cy="17.5" r="0.6" fill="#f59e0b" />
       </svg>
       <div style={{ flex: 1, fontSize: 12.5, color: 'var(--text-secondary)' }}>
-        <span style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{label} not responding.</span> Showing cached
+        <span style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{label} {reason}.</span> Showing cached
         data where available. Other providers are live.
       </div>
       <div style={{ fontSize: 12, color: 'var(--text-muted)', cursor: 'pointer' }} onClick={onDismiss}>Dismiss</div>

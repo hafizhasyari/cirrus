@@ -7,7 +7,7 @@ export interface VmWithConnection extends Vm {
 
 export interface VmsResult {
   vms: VmWithConnection[];
-  errors: { provider: ProviderId; connectionId: string; message: string }[];
+  errors: { provider: ProviderId; connectionId: string; message: string; code: string }[];
 }
 
 async function aggregatorFetch(path: string, init?: RequestInit): Promise<Response> {

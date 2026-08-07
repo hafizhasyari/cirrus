@@ -5,7 +5,9 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log"
 	"sync"
+	"time"
 
 	"cirrus/collectorkit"
 
@@ -77,25 +79,44 @@ func FetchInstances(ctx context.Context, raw json.RawMessage) ([]collectorkit.In
 	disksByInstance := make(map[string][]collectorkit.Disk)
 
 	g, gctx := errgroup.WithContext(ctx)
-	g.SetLimit(8)
+	g.SetLimit(16)
 	for _, region := range regions {
 		region := region
 		g.Go(func() error {
+			// Bound each region to its own sub-budget so one slow/unreachable
+			// region can't burn the entire shared fetch deadline for every
+			// other region — skip it gracefully instead of failing the whole
+			// fetch.
+			regionCtx, cancel := context.WithTimeout(gctx, 20*time.Second)
+			defer cancel()
+
 			regionalCfg := base.Copy()
 			regionalCfg.Region = region
 			client := ec2.NewFromConfig(regionalCfg)
 
-			instances, err := describeAllInstances(gctx, client)
+			instances, err := describeAllInstances(regionCtx, client)
 			if err != nil {
+				if errors.Is(regionCtx.Err(), context.DeadlineExceeded) {
+					log.Printf("aws collector: region %s timed out, skipping", region)
+					return nil
+				}
 				return err
 			}
 			if len(instances) == 0 {
 				return nil
 			}
 
-			disks, err := describeVolumesByInstance(gctx, client, instanceIDs(instances))
+			// A timed-out volumes lookup only costs disk info for this region —
+			// the instances themselves were already found and must not be
+			// dropped just because their disk sizes couldn't be fetched in time.
+			disks, err := describeVolumesByInstance(regionCtx, client, instanceIDs(instances))
 			if err != nil {
-				return err
+				if errors.Is(regionCtx.Err(), context.DeadlineExceeded) {
+					log.Printf("aws collector: region %s timed out fetching volumes, keeping instances without disk info", region)
+					disks = nil
+				} else {
+					return err
+				}
 			}
 
 			mu.Lock()

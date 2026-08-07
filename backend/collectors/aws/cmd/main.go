@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"errors"
 	"log"
 	"net/http"
@@ -13,6 +14,13 @@ import (
 
 const providerName = "aws"
 
+// instancesTimeout is the hard upper bound for a full multi-region fetch —
+// real accounts with many enabled regions legitimately need more than the
+// old 20s stub-era budget now that each region is individually bounded to
+// 12s (see internal.FetchInstances), so a single bad region can't stall the
+// rest.
+const instancesTimeout = 45 * time.Second
+
 var rbacClient *collectorkit.RBACClient
 
 func main() {
@@ -21,7 +29,7 @@ func main() {
 	mux := http.NewServeMux()
 	// Real multi-region DescribeInstances/DescribeVolumes/DescribeInstanceTypes
 	// doesn't fit in the old 5s stub-era budget.
-	mux.Handle("GET /instances", collectorkit.WithTimeout(http.HandlerFunc(handleInstances), 20*time.Second))
+	mux.Handle("GET /instances", collectorkit.WithTimeout(http.HandlerFunc(handleInstances), instancesTimeout))
 	// The lightweight connection test is just two single-call APIs, no region
 	// fan-out — a much smaller budget than the full fetch.
 	mux.Handle("GET /test", collectorkit.WithTimeout(http.HandlerFunc(handleTest), 8*time.Second))
@@ -55,7 +63,13 @@ func handleInstances(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ctx := r.Context()
+	// http.TimeoutHandler (collectorkit.WithTimeout) doesn't cancel r.Context()
+	// when it fires — it just writes its own timeout response while the
+	// handler keeps running in the background. Deriving our own deadline here
+	// makes the AWS SDK's in-flight calls actually stop instead of leaking
+	// goroutines/API calls past the point the client already gave up.
+	ctx, cancel := context.WithTimeout(r.Context(), instancesTimeout)
+	defer cancel()
 	select {
 	case <-ctx.Done():
 		return

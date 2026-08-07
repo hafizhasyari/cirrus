@@ -13,16 +13,31 @@ const HARD_TTL_MS = 15 * 60 * 1000;
 // LOCK_TTL_MS/COLD_START_MAX_WAIT_MS are raised alongside COLLECTOR_TIMEOUT_MS
 // so the lock can't be stolen mid-fetch and cold-start waiters don't give up
 // before a legitimately-slow-but-successful fetch finishes.
-const LOCK_TTL_MS = 30_000;
+// Raised alongside the AWS collector's own 45s /instances deadline (a real
+// multi-region account's full fetch legitimately needs more than the old
+// 25s/30s budgets) — all three must stay >= COLLECTOR_TIMEOUT_MS so the lock
+// can't be considered stale, and a cold-start waiter doesn't give up, mid a
+// legitimately-slow-but-succeeding real fetch.
+const LOCK_TTL_MS = 55_000;
 const COLD_START_POLL_MS = 150;
-const COLD_START_MAX_WAIT_MS = 30_000;
-const COLLECTOR_TIMEOUT_MS = 25_000;
+const COLD_START_MAX_WAIT_MS = 55_000;
+const COLLECTOR_TIMEOUT_MS = 50_000;
 
 const UNLOCK_SCRIPT = `if redis.call("get", KEYS[1]) == ARGV[1] then return redis.call("del", KEYS[1]) else return 0 end`;
 
 export interface CacheEntry {
   instances: CollectorInstance[];
   fetchedAt: number;
+}
+
+/** Carries a collector's classified error code (TIMEOUT/AUTH_FAILED/UPSTREAM_ERROR) through Promise.allSettled. */
+export class CollectorError extends Error {
+  code: string;
+
+  constructor(code: string, message: string) {
+    super(message);
+    this.code = code;
+  }
 }
 
 function cacheKey(conn: ActiveConnection) {
@@ -41,8 +56,20 @@ async function fetchFromCollector(conn: ActiveConnection): Promise<CollectorInst
     const res = await fetch(`${baseUrl}/instances?connectionId=${encodeURIComponent(conn.connectionId)}`, {
       signal: controller.signal,
     });
-    if (!res.ok) throw new Error(`collector ${conn.provider} responded ${res.status}`);
+    if (!res.ok) {
+      const body = (await res.json().catch(() => null)) as { error?: { code?: string; message?: string } } | null;
+      throw new CollectorError(
+        body?.error?.code ?? 'UPSTREAM_ERROR',
+        body?.error?.message ?? `collector ${conn.provider} responded ${res.status}`,
+      );
+    }
     return (await res.json()) as CollectorInstancesResponse;
+  } catch (err) {
+    if (err instanceof CollectorError) throw err;
+    if (err instanceof Error && err.name === 'AbortError') {
+      throw new CollectorError('TIMEOUT', `collector ${conn.provider} did not respond in time`);
+    }
+    throw err;
   } finally {
     clearTimeout(timeout);
   }
@@ -57,7 +84,7 @@ async function waitForLockRelease(conn: ActiveConnection): Promise<CacheEntry> {
     const stillLocked = await redis.get(lockKey(conn));
     if (!stillLocked) break;
   }
-  throw new Error(`timed out waiting for ${conn.provider}/${conn.connectionId} cache refill`);
+  throw new CollectorError('TIMEOUT', `timed out waiting for ${conn.provider}/${conn.connectionId} cache refill`);
 }
 
 /**
