@@ -28,6 +28,10 @@ const UNLOCK_SCRIPT = `if redis.call("get", KEYS[1]) == ARGV[1] then return redi
 export interface CacheEntry {
   instances: CollectorInstance[];
   fetchedAt: number;
+  /** Set only when this entry is being served as a last-known-good fallback
+   * after a live collector fetch just failed (the lock-winner's own fetch,
+   * not the stampede-protection lock-loser path below, which never fails). */
+  error?: { code: string; message: string };
 }
 
 /** Carries a collector's classified error code (TIMEOUT/AUTH_FAILED/UPSTREAM_ERROR) through Promise.allSettled. */
@@ -112,6 +116,20 @@ export async function fetchInstancesCached(conn: ActiveConnection, forceRefresh:
       const entry: CacheEntry = { instances: fresh.instances, fetchedAt: Date.now() };
       await redis.set(cKey, JSON.stringify(entry), { PX: HARD_TTL_MS });
       return entry;
+    } catch (err) {
+      // The refetch failed — fall back to whatever's still cached rather than
+      // dropping this connection's VMs outright (PRD §6.3 graceful
+      // degradation; matches OutageBanner's "showing cached data" copy).
+      // Left untouched in Redis (same fetchedAt/TTL) since this is a read,
+      // not a refresh.
+      const existing = await redis.get(cKey);
+      if (existing) {
+        const entry = JSON.parse(existing) as CacheEntry;
+        const code = err instanceof CollectorError ? err.code : 'UPSTREAM_ERROR';
+        const message = err instanceof Error ? err.message : String(err);
+        return { ...entry, error: { code, message } };
+      }
+      throw err;
     } finally {
       await redis.eval(UNLOCK_SCRIPT, { keys: [lockKey(conn)], arguments: [token] });
     }

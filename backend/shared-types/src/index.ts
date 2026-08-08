@@ -34,6 +34,9 @@ export interface Vm {
   privateIp: string;
   publicIp: string | null;
   launched: string; // "YYYY-MM-DD"
+  /** True when this record is a last-known-good cache fallback served because
+   * the provider's live fetch just failed (collector down/timed out/etc.). */
+  stale?: boolean;
 }
 
 export type ConnectionStatus = 'active' | 'error' | 'expired' | 'pending';

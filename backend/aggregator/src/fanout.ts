@@ -35,7 +35,11 @@ export async function fetchAllVms(opts: { forceRefresh?: boolean } = {}): Promis
     const conn = connections[index];
     if (!conn) return;
     if (result.status === 'fulfilled') {
-      vms.push(...result.value.instances.map((instance) => normalizeInstance(instance, conn)));
+      const { instances, error } = result.value;
+      vms.push(...instances.map((instance) => normalizeInstance(instance, conn, Boolean(error))));
+      if (error) {
+        errors.push({ provider: conn.provider, connectionId: conn.connectionId, message: error.message, code: error.code });
+      }
     } else {
       const reason = result.reason;
       const code = reason instanceof CollectorError ? reason.code : 'UPSTREAM_ERROR';

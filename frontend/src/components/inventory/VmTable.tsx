@@ -1,4 +1,5 @@
 import { ProviderBadge } from '../shared/ProviderBadge';
+import { StaleBadge } from '../shared/StaleBadge';
 import { StatusDot } from '../shared/StatusDot';
 import type { Provider, Vm } from '../../types';
 
@@ -46,6 +47,7 @@ export function VmTable({ rows, onRowClick }: { rows: VmRowView[]; onRowClick: (
                 <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--text-secondary)' }}>
                   <StatusDot color={vm.statusColor} />
                   {vm.statusLabel}
+                  {vm.stale && <StaleBadge />}
                 </div>
               </td>
               <td className="td font-mono">{vm.type}</td>

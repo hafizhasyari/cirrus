@@ -412,6 +412,18 @@ body {
   font-size: 11.5px;
   cursor: pointer;
 }
+.stale-badge {
+  display: inline-flex;
+  align-items: center;
+  background: var(--warning-bg);
+  border: 1px solid var(--warning-border);
+  color: #f59e0b;
+  border-radius: 20px;
+  padding: 2px 8px;
+  font-size: 10.5px;
+  font-weight: 600;
+  white-space: nowrap;
+}
 
 /* Skeleton loading */
 .skeleton-row {

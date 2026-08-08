@@ -4,7 +4,7 @@
 |---|---|
 | **Status** | Approved |
 | **Owner** | Admin User |
-| **Last updated** | 2026-08-07 |
+| **Last updated** | 2026-08-08 |
 
 ## 1. Latar Belakang & Masalah
 
@@ -63,6 +63,7 @@ Autentikasi via **Microsoft 365 (Microsoft Entra ID / Azure AD)** menggunakan OI
 Skala target: 50–500 VM, banyak akun/project per provider. Live pull murni ke 5 API provider setiap kali user buka dashboard akan lambat dan berisiko kena rate limit. Maka:
 - Data provider di-fetch **on-demand** per request, tapi disimpan di **cache jangka pendek** (Redis, TTL 2–5 menit) supaya request berikutnya (dari user lain / refresh) tidak selalu hit API provider.
 - **Cache stampede protection**: saat TTL expired dan banyak user hit bersamaan, semua request bisa cache-miss serentak dan hammer API provider — bertentangan dengan tujuan caching di poin sebelumnya. Mitigasi: distributed lock (`SET NX PX` di Redis) di sekitar proses refill cache, jadi cuma satu request yang re-fetch ke provider, request lain menunggu/pakai data lama sebentar.
+- **Fallback saat provider gagal di-fetch**: kalau request yang re-fetch itu sendiri gagal (provider down/timeout/dll), sistem tidak boleh langsung mengosongkan data provider tsb — selama masih ada cache lama yang belum kadaluarsa, itu tetap disajikan (ditandai indikator "Stale" di UI), dikombinasikan dengan status error provider di §6.3. Cache lama itu sendiri tidak ditulis ulang oleh fallback ini (murni dibaca), jadi umurnya tetap terikat TTL asalnya.
 - Tersedia tombol "Refresh" manual untuk force-bypass cache saat butuh data ter-update.
 - Fetch ke tiap provider dilakukan **paralel**, bukan sekuensial, supaya total waktu load ≈ waktu provider terlambat, bukan jumlah semuanya.
 - **Connection health check**: tiap koneksi akun cloud yang tersimpan divalidasi ulang otomatis oleh background job berkala (rekomendasi: tiap 6 jam — cukup cepat utk nangkep kredensial revoked/expired sebelum user lain kena error, tapi gak terlalu sering hit API provider cuma buat health check), pakai API call read-only paling ringan per provider (lihat §7.3). Status koneksi (**Active/Error/Expired/Pending**) di-update di Postgres tiap job jalan, ditampilkan di halaman kelola koneksi (§5).
@@ -75,7 +76,7 @@ Skala target: 50–500 VM, banyak akun/project per provider. Live pull murni ke 
 - Audit log untuk: siapa akses apa, perubahan role, perubahan koneksi akun cloud, hasil test connection (sukses/gagal).
 
 ### 6.3 Ketersediaan
-- Kegagalan satu provider (API down/timeout) tidak boleh membuat seluruh dashboard gagal load — provider lain tetap tampil, provider yang gagal ditandai dengan status error di UI (graceful degradation).
+- Kegagalan satu provider (API down/timeout) tidak boleh membuat seluruh dashboard gagal load — provider lain tetap tampil. Provider yang gagal ditandai dengan status error di UI, dan **kalau masih ada data cache terakhir yang berhasil di-fetch (lihat §6.1), data itu tetap ditampilkan** (badge "Stale" per-VM) alih-alih dikosongkan — VM dari provider tsb baru benar-benar hilang dari list kalau memang belum pernah berhasil di-fetch sebelumnya (graceful degradation).
 
 ## 7. Arsitektur
 

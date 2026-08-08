@@ -13,7 +13,11 @@ export interface VmWithConnection extends Vm {
 // VmStatus type doesn't have a third state yet — widen it there, not here,
 // when frontend wiring happens (PRD's own point is stopped-but-billed VMs
 // should stay visible, not get dropped).
-export function normalizeInstance(instance: CollectorInstance, conn: ActiveConnection): VmWithConnection {
+export function normalizeInstance(
+  instance: CollectorInstance,
+  conn: ActiveConnection,
+  stale = false,
+): VmWithConnection {
   return {
     id: instance.id,
     name: instance.name,
@@ -29,5 +33,6 @@ export function normalizeInstance(instance: CollectorInstance, conn: ActiveConne
     publicIp: instance.publicIp,
     launched: instance.launchedAt.slice(0, 10),
     connectionId: conn.connectionId,
+    ...(stale ? { stale: true } : {}),
   };
 }
