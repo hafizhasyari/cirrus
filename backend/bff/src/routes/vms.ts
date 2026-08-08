@@ -21,6 +21,10 @@ async function relay(req: FastifyRequest, reply: FastifyReply, path: '/vms' | '/
   if (!requireAuth(req, reply)) return;
 
   reply.hijack();
+  // Small/frequent writes (one per connection frame, plus the Aggregator's
+  // heartbeat pings) are exactly what Nagle-style coalescing affects —
+  // disable it so each relayed write hits the wire promptly.
+  reply.raw.socket?.setNoDelay(true);
   reply.raw.writeHead(200, {
     'Content-Type': 'application/x-ndjson',
     'Cache-Control': 'no-cache',

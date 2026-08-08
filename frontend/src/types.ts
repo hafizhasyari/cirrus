@@ -106,7 +106,11 @@ export interface VmFetchError {
 export type VmStreamFrame =
   | { type: 'start'; connectionIds: string[] }
   | { type: 'connection'; provider: ProviderId; connectionId: string; vms: Vm[]; error?: VmFetchError }
-  | { type: 'done'; refreshedAt: string };
+  | { type: 'done'; refreshedAt: string }
+  // Sent periodically while a fetch is still in flight — no state to apply,
+  // just proof the connection is alive (helps any idle-timeout-based
+  // buffering intermediary between the server and the client flush sooner).
+  | { type: 'ping' };
 
 /** `GET /auth/me` response — the logged-in user's identity + permission scope. */
 export interface AuthenticatedUser {

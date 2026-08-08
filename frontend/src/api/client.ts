@@ -46,8 +46,12 @@ export const logout = () => request<{ ok: boolean }>('/auth/logout', { method: '
  * `onFrame` for each as it arrives, instead of buffering the whole body —
  * lets the Inventory screen render each connection's VMs as soon as that
  * connection's fetch settles rather than waiting for every provider. */
-async function streamVms(path: '/api/vms' | '/api/vms/refresh', onFrame: (frame: VmStreamFrame) => void): Promise<void> {
-  const res = await fetch(path, { method: path.endsWith('/refresh') ? 'POST' : 'GET', credentials: 'same-origin' });
+async function streamVms(
+  path: '/api/vms' | '/api/vms/refresh',
+  onFrame: (frame: VmStreamFrame) => void,
+  signal?: AbortSignal,
+): Promise<void> {
+  const res = await fetch(path, { method: path.endsWith('/refresh') ? 'POST' : 'GET', credentials: 'same-origin', signal });
   if (!res.ok || !res.body) {
     const body = await res.json().catch(() => null);
     throw new ApiError(res.status, body?.error?.code ?? 'UNKNOWN', body?.error?.message ?? res.statusText);
@@ -71,7 +75,8 @@ async function streamVms(path: '/api/vms' | '/api/vms/refresh', onFrame: (frame:
   if (rest) onFrame(JSON.parse(rest) as VmStreamFrame);
 }
 
-export const getVmsStream = (onFrame: (frame: VmStreamFrame) => void) => streamVms('/api/vms', onFrame);
+export const getVmsStream = (onFrame: (frame: VmStreamFrame) => void, signal?: AbortSignal) =>
+  streamVms('/api/vms', onFrame, signal);
 export const refreshVmsStream = (onFrame: (frame: VmStreamFrame) => void) => streamVms('/api/vms/refresh', onFrame);
 
 export const getProviders = (includeFieldDefs = true) =>

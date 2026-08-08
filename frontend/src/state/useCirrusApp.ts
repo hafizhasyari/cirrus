@@ -165,6 +165,9 @@ export function useCirrusApp() {
         setVmProgress((prev) => (prev ? { done: prev.done + 1, total: prev.total } : prev));
       } else if (frame.type === 'done') {
         setVmProgress(null);
+      } else if (frame.type === 'ping') {
+        // Liveness signal only, sent while a slow fetch (e.g. AWS) is still
+        // in flight — no state to apply.
       }
     });
   }, []);
@@ -180,9 +183,16 @@ export function useCirrusApp() {
       })
       .catch((err) => showToast(errorMessage(err, 'Failed to load providers')));
 
+    // React StrictMode double-invokes effects in dev, which would otherwise
+    // fire two overlapping /api/vms streams racing on the same state — an
+    // AbortController lets the cleanup below cancel a stale run.
+    const vmsAbort = new AbortController();
     setIsLoadingVms(true);
-    consumeVmStream(getVmsStream)
-      .catch((err) => showToast(errorMessage(err, 'Failed to load inventory')))
+    consumeVmStream((onFrame) => getVmsStream(onFrame, vmsAbort.signal))
+      .catch((err) => {
+        if (err instanceof DOMException && err.name === 'AbortError') return;
+        showToast(errorMessage(err, 'Failed to load inventory'));
+      })
       .finally(() => setIsLoadingVms(false));
 
     if (currentUser.role === 'admin') {
@@ -194,6 +204,8 @@ export function useCirrusApp() {
         .then(setUsers)
         .catch((err) => showToast(errorMessage(err, 'Failed to load users')));
     }
+
+    return () => vmsAbort.abort();
   }, [currentUser, showToast, consumeVmStream]);
 
   const go = useCallback((next: '/inventory' | '/connections' | '/users') => {
