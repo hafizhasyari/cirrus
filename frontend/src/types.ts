@@ -100,6 +100,14 @@ export interface VmFetchError {
   code: string;
 }
 
+/** One frame of the NDJSON stream `GET /api/vms` and `POST /api/vms/refresh`
+ * send, so the Inventory screen can render each connection's VMs as soon as
+ * that connection's fetch settles instead of waiting for every provider. */
+export type VmStreamFrame =
+  | { type: 'start'; connectionIds: string[] }
+  | { type: 'connection'; provider: ProviderId; connectionId: string; vms: Vm[]; error?: VmFetchError }
+  | { type: 'done'; refreshedAt: string };
+
 /** `GET /auth/me` response — the logged-in user's identity + permission scope. */
 export interface AuthenticatedUser {
   id: string;

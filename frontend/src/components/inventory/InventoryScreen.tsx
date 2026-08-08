@@ -38,7 +38,18 @@ export function InventoryHeader({ app }: { app: CirrusApp }) {
             placeholder="Search name or ID"
           />
         </div>
-        <div className="ghost-btn" onClick={() => app.refreshInventory()}>
+        {app.vmProgress && (
+          <div style={{ fontSize: 11.5, color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>
+            Refreshing {app.vmProgress.done}/{app.vmProgress.total} connections…
+          </div>
+        )}
+        <div
+          className="ghost-btn"
+          style={app.vmProgress ? { opacity: 0.6, cursor: 'default' } : undefined}
+          onClick={() => {
+            if (!app.vmProgress) app.refreshInventory();
+          }}
+        >
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <path d="M21 12a9 9 0 11-3-6.7" />
             <path d="M21 3v6h-6" />
@@ -125,7 +136,10 @@ export function InventoryScreen({ app }: { app: CirrusApp }) {
   }, [filterProviders, filterStatuses, providers.length, search, app]);
 
   const showOutageBanner = vmErrors.length > 0 && !outageDismissed;
-  const showSkeleton = isLoadingVms;
+  // Only blank the whole table on the very first load — once at least one
+  // connection's VMs have arrived, later frames (initial load or refresh)
+  // update rows in place instead of hiding the table again.
+  const showSkeleton = isLoadingVms && vms.length === 0;
   const displayVms = filtered;
   const showEmpty = !showSkeleton && displayVms.length === 0;
   const showTable = !showSkeleton && !showEmpty;
@@ -213,7 +227,7 @@ export function InventoryScreen({ app }: { app: CirrusApp }) {
       </div>
 
       <div style={{ fontSize: 11.5, color: 'var(--text-muted)', flexShrink: 0 }}>
-        Showing {rows.length} of {vms.length} VMs · fetched in parallel from 5 providers
+        Showing {rows.length} of {vms.length} VMs
       </div>
 
       {detailSrc && detailStatusMeta && (

@@ -39,6 +39,22 @@ export interface Vm {
   stale?: boolean;
 }
 
+/** One provider/connection's fetch failure, from `GET /api/vms`'s `errors` array. */
+export interface VmFetchError {
+  provider: ProviderId;
+  connectionId: string;
+  message: string;
+  code: string;
+}
+
+/** One frame of the NDJSON stream `GET /api/vms` and `POST /api/vms/refresh`
+ * send, so the Inventory screen can render each connection's VMs as soon as
+ * that connection's fetch settles instead of waiting for every provider. */
+export type VmStreamFrame =
+  | { type: 'start'; connectionIds: string[] }
+  | { type: 'connection'; provider: ProviderId; connectionId: string; vms: Vm[]; error?: VmFetchError }
+  | { type: 'done'; refreshedAt: string };
+
 export type ConnectionStatus = 'active' | 'error' | 'expired' | 'pending';
 
 export interface Connection {

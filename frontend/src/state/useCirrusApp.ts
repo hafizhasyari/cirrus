@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ApiError,
   createConnection,
@@ -9,9 +9,9 @@ import {
   getMe,
   getProviders,
   getUsers,
-  getVms,
+  getVmsStream,
   logout,
-  refreshVms,
+  refreshVmsStream,
   testConnection,
   updateConnection,
   updateUser,
@@ -29,6 +29,7 @@ import type {
   Vm,
   VmFetchError,
   VmStatus,
+  VmStreamFrame,
   WizardFormValues,
   WizardResult,
 } from '../types';
@@ -68,8 +69,16 @@ export function useCirrusApp() {
 
   // Data (fetch-driven — empty until the bootstrap/data effects below populate them)
   const [providers, setProviders] = useState<ProviderWithFieldDefs[]>([]);
-  const [vms, setVms] = useState<Vm[]>([]);
-  const [vmErrors, setVmErrors] = useState<VmFetchError[]>([]);
+  // Per-connection maps rather than a single vms/vmErrors array — GET /api/vms
+  // and POST /api/vms/refresh stream one NDJSON frame per connection as its
+  // fetch settles (see api/client.ts's getVmsStream/refreshVmsStream), so each
+  // connection's slice of state is updated independently as its frame arrives
+  // instead of the whole list flipping at once when everything is done.
+  const [vmsByConnection, setVmsByConnection] = useState<Map<string, Vm[]>>(new Map());
+  const [vmErrorsByConnection, setVmErrorsByConnection] = useState<Map<string, VmFetchError>>(new Map());
+  const [vmProgress, setVmProgress] = useState<{ done: number; total: number } | null>(null);
+  const vms = useMemo(() => Array.from(vmsByConnection.values()).flat(), [vmsByConnection]);
+  const vmErrors = useMemo(() => Array.from(vmErrorsByConnection.values()), [vmErrorsByConnection]);
   const [connections, setConnections] = useState<Connection[]>([]);
   const [users, setUsers] = useState<User[]>([]);
   const [isLoadingVms, setIsLoadingVms] = useState(false);
@@ -132,6 +141,34 @@ export function useCirrusApp() {
       .finally(() => setAuthChecked(true));
   }, []);
 
+  // Consumes an NDJSON VM stream (initial load or refresh), updating
+  // vmsByConnection/vmErrorsByConnection/vmProgress frame by frame. The
+  // `start` frame's connectionIds list is also used to prune any connection
+  // that no longer exists (deleted since the last load) from state, so a
+  // stale row doesn't linger forever once its connection is gone.
+  const consumeVmStream = useCallback((streamFn: (onFrame: (f: VmStreamFrame) => void) => Promise<void>) => {
+    setVmProgress({ done: 0, total: 0 });
+    return streamFn((frame) => {
+      if (frame.type === 'start') {
+        const known = new Set(frame.connectionIds);
+        setVmsByConnection((prev) => new Map([...prev].filter(([id]) => known.has(id))));
+        setVmErrorsByConnection((prev) => new Map([...prev].filter(([id]) => known.has(id))));
+        setVmProgress({ done: 0, total: frame.connectionIds.length });
+      } else if (frame.type === 'connection') {
+        setVmsByConnection((prev) => new Map(prev).set(frame.connectionId, frame.vms));
+        setVmErrorsByConnection((prev) => {
+          const next = new Map(prev);
+          if (frame.error) next.set(frame.connectionId, frame.error);
+          else next.delete(frame.connectionId);
+          return next;
+        });
+        setVmProgress((prev) => (prev ? { done: prev.done + 1, total: prev.total } : prev));
+      } else if (frame.type === 'done') {
+        setVmProgress(null);
+      }
+    });
+  }, []);
+
   // --- Once a session is confirmed, load everything the role can see ------
   useEffect(() => {
     if (!currentUser) return;
@@ -144,11 +181,7 @@ export function useCirrusApp() {
       .catch((err) => showToast(errorMessage(err, 'Failed to load providers')));
 
     setIsLoadingVms(true);
-    getVms()
-      .then((res) => {
-        setVms(res.vms);
-        setVmErrors(res.errors);
-      })
+    consumeVmStream(getVmsStream)
       .catch((err) => showToast(errorMessage(err, 'Failed to load inventory')))
       .finally(() => setIsLoadingVms(false));
 
@@ -161,7 +194,7 @@ export function useCirrusApp() {
         .then(setUsers)
         .catch((err) => showToast(errorMessage(err, 'Failed to load users')));
     }
-  }, [currentUser, showToast]);
+  }, [currentUser, showToast, consumeVmStream]);
 
   const go = useCallback((next: '/inventory' | '/connections' | '/users') => {
     router.navigate({ to: next });
@@ -180,8 +213,9 @@ export function useCirrusApp() {
       // clear local state regardless of whether the network call succeeded
     }
     setCurrentUser(null);
-    setVms([]);
-    setVmErrors([]);
+    setVmsByConnection(new Map());
+    setVmErrorsByConnection(new Map());
+    setVmProgress(null);
     setConnections([]);
     setUsers([]);
     router.navigate({ to: '/' });
@@ -213,18 +247,18 @@ export function useCirrusApp() {
   const selectAllStatuses = useCallback(() => setFilterStatuses(['running', 'stopped']), []);
 
   const refreshInventory = useCallback(async () => {
+    if (vmProgress) return; // a stream is already in flight — ignore re-entrant clicks
     setIsLoadingVms(true);
     try {
-      const res = await refreshVms();
-      setVms(res.vms);
-      setVmErrors(res.errors);
+      await consumeVmStream(refreshVmsStream);
       showToast('Inventory refreshed');
     } catch (err) {
       showToast(errorMessage(err, 'Refresh failed'));
+      setVmProgress(null);
     } finally {
       setIsLoadingVms(false);
     }
-  }, [showToast]);
+  }, [consumeVmStream, vmProgress, showToast]);
 
   const startWizard = useCallback(() => {
     router.navigate({ to: '/connections/new' });
@@ -458,7 +492,7 @@ export function useCirrusApp() {
     role, currentUser, authChecked, theme, setTheme, go, goToInventoryFromLogin, signOut,
     // data
     providers, vms, vmErrors, connections, users,
-    isLoadingVms,
+    isLoadingVms, vmProgress,
     // vm detail
     detailVmId, openDetail, closeDetail,
     // inventory filters
