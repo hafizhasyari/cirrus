@@ -47,10 +47,14 @@ export const SETUP_GUIDE: Record<ProviderId, string[]> = {
     'Copy the Access Key ID and Secret Access Key below now — the secret is only ever shown once',
   ],
   gcp: [
-    'In IAM & Admin → Workload Identity Federation, create a pool and an OIDC provider',
-    'Create (or choose) a service account and grant the pool roles/iam.workloadIdentityUser on it',
-    'Grant the service account a read-only role (e.g. Compute Viewer)',
-    'Copy the project number, pool ID, provider ID, and service account email below',
+    'In IAM & Admin → Workload Identity Federation, click Create Pool (e.g. name it cirrus-inventory-pool)',
+    'Add a provider to the pool and choose OpenID Connect (OIDC) — not AWS, Azure AD, or SAML',
+    "Set the Issuer (URL) to a public HTTPS address for Cirrus's own Auth Service — Google must be able to reach it, so an internal-only hostname won't work",
+    'Leave Audiences on "Default audience" — do not add a custom one',
+    'Under Attribute Mapping, set google.subject = assertion.sub (required)',
+    'Create or choose a Service Account, then grant it roles/iam.workloadIdentityUser for principals from this pool',
+    'Grant that Service Account a read-only role on the project, e.g. Compute Viewer',
+    'Copy the Project Number (numeric, from the project Dashboard — not the Project ID string), Pool ID, Provider ID, and Service Account email into the fields below',
   ],
   alibaba: [
     'In RAM → Roles, create a role with trusted entity type "Alibaba Cloud Account" set to the Cirrus account ID',
