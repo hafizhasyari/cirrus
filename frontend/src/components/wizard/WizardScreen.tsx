@@ -24,6 +24,7 @@ export function WizardScreen({ app }: { app: CirrusApp }) {
   const setupGuide = wizardProviderMeta?.setupGuide ?? [];
   const failureMessage = wizardProviderMeta?.failureMessage ?? '';
   const wizardIdle = !app.wizardTesting && !app.wizardResult;
+  const gcpPrincipalId = `principalSet://iam.googleapis.com/projects/${app.wizardForm.projectId || '<Project Number>'}/locations/global/workloadIdentityPools/${app.wizardForm.poolId || '<Pool ID>'}/*`;
 
   return (
     <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', overflowX: 'hidden' }}>
@@ -61,7 +62,7 @@ export function WizardScreen({ app }: { app: CirrusApp }) {
       )}
 
       {step2 && wizardProviderMeta && (
-        <div style={{ display: 'flex', gap: 24, alignItems: 'flex-start', maxWidth: 900 }}>
+        <div style={{ display: 'flex', gap: 24, alignItems: 'flex-start', maxWidth: wizardProviderMeta.id === 'gcp' ? 1180 : 900 }}>
           <div className="card" style={{ flex: 1, padding: 24, boxSizing: 'border-box' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 20 }}>
               <ProviderBadge provider={wizardProviderMeta} size={30} iconSize={15} />
@@ -167,17 +168,34 @@ export function WizardScreen({ app }: { app: CirrusApp }) {
                 <div style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.5 }}>{text}</div>
               </div>
             ))}
-            {wizardProviderMeta?.id === 'gcp' && (
+          </div>
+
+          {wizardProviderMeta.id === 'gcp' && (
+            <div className="card" style={{ width: 260, flexShrink: 0, padding: 20, boxSizing: 'border-box' }}>
+              <div className="section-label" style={{ marginBottom: 8 }}>Download JWKS</div>
               <a
                 href="/api/gcp/jwks"
                 download="cirrus-jwks.json"
                 className="ghost-btn"
-                style={{ marginTop: 4, width: '100%', justifyContent: 'center' }}
+                style={{ width: '100%', justifyContent: 'center', marginBottom: 20 }}
               >
                 Download cirrus-jwks.json
               </a>
-            )}
-          </div>
+
+              <div className="section-label" style={{ marginBottom: 8 }}>Principal identifier (step 7)</div>
+              <div className="generated-field" style={{ wordBreak: 'break-all', marginBottom: 8 }}>{gcpPrincipalId}</div>
+              <div
+                className="ghost-btn"
+                style={{ width: '100%', justifyContent: 'center' }}
+                onClick={() => {
+                  navigator.clipboard.writeText(gcpPrincipalId);
+                  app.showToast('Copied to clipboard');
+                }}
+              >
+                Copy
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>

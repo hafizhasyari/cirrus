@@ -53,7 +53,7 @@ export const SETUP_GUIDE: Record<ProviderId, string[]> = {
     'Since the issuer isn\'t public, choose "Upload JWKS manually" and paste in the JSON from the "Download cirrus-jwks.json" button below',
     'Leave Audiences on "Default audience" — do not add a custom one',
     'Under Attribute Mapping, set google.subject = assertion.sub (required)',
-    'Create or choose a Service Account, open it, go to "Principals with access" (not "Permissions") → Grant Access, and give the pool the Workload Identity User role there — this must be granted on the Service Account itself, not on the project',
+    'Create or choose a Service Account, open it, go to "Principals with access" (not "Permissions") → Grant Access, and for "New principals" use the identifier shown below, then assign it the Workload Identity User role — this must be granted on the Service Account itself, not on the project',
     'Separately, on the IAM page, grant that same Service Account a read-only role on the project, e.g. Compute Viewer',
     'Copy the Project Number (numeric, from the project Dashboard — not the Project ID string), Pool ID, Provider ID, and Service Account email into the fields below',
   ],
