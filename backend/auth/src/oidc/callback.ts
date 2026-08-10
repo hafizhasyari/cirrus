@@ -1,12 +1,30 @@
 import type { FastifyInstance } from 'fastify';
+import { AuthError, ClientAuthErrorCodes, type AuthorizationCodeRequest } from '@azure/msal-node';
 import { env } from '../env.js';
 import { signSession } from '../jwt.js';
 import { cryptoProvider, msalClient, SCOPES } from './msalClient.js';
+import { redirectWithError } from './errorRedirect.js';
 
 interface FlowState {
   verifier: string;
   state: string;
   nonce: string;
+}
+
+// A blip on the outbound call to Microsoft's token endpoint (seen in
+// production as AuthError errorCode "network_error") is transient, not a
+// rejection of the code/verifier — worth one retry before giving up.
+async function acquireTokenWithRetry(params: AuthorizationCodeRequest, attempts = 2) {
+  for (let attempt = 1; attempt <= attempts; attempt++) {
+    try {
+      return await msalClient.acquireTokenByCode(params);
+    } catch (err) {
+      const isNetworkError = err instanceof AuthError && err.errorCode === ClientAuthErrorCodes.networkError;
+      if (!isNetworkError || attempt === attempts) throw err;
+      await new Promise((resolve) => setTimeout(resolve, 500));
+    }
+  }
+  throw new Error('unreachable');
 }
 
 export async function registerOidcRoutes(app: FastifyInstance) {
@@ -40,33 +58,44 @@ export async function registerOidcRoutes(app: FastifyInstance) {
   app.get<{ Querystring: { code?: string; state?: string; error?: string; error_description?: string } }>(
     '/callback',
     async (req, reply) => {
-      const { code, state, error, error_description } = req.query;
+      const { code, state, error } = req.query;
 
       if (error) {
-        reply.code(400);
-        return { error, message: error_description };
+        reply.clearCookie('auth_flow', { path: '/' });
+        return redirectWithError(reply, 'OAUTH_ERROR');
       }
 
       const rawFlowCookie = req.cookies.auth_flow;
       const unsigned = rawFlowCookie ? req.unsignCookie(rawFlowCookie) : null;
       if (!rawFlowCookie || !unsigned?.valid || !unsigned.value) {
-        reply.code(400);
-        return { error: { code: 'INVALID_FLOW', message: 'missing or invalid login flow cookie — please retry /login' } };
+        return redirectWithError(reply, 'INVALID_FLOW');
       }
       const flow = JSON.parse(unsigned.value) as FlowState;
-      reply.clearCookie('auth_flow', { path: '/' });
 
       if (!code || state !== flow.state) {
-        reply.code(400);
-        return { error: { code: 'STATE_MISMATCH', message: 'state did not match — possible CSRF or expired flow' } };
+        reply.clearCookie('auth_flow', { path: '/' });
+        return redirectWithError(reply, 'STATE_MISMATCH');
       }
 
-      const tokenResponse = await msalClient.acquireTokenByCode({
-        code,
-        scopes: SCOPES,
-        redirectUri: env.redirectUri,
-        codeVerifier: flow.verifier,
-      });
+      // Deliberately NOT clearing auth_flow yet: if the exchange below fails
+      // on a transient network error, the cookie (still within its 10-minute
+      // maxAge) needs to survive so a hard-refresh of this same callback URL
+      // can genuinely retry rather than dying on a missing-cookie check.
+      let tokenResponse;
+      try {
+        tokenResponse = await acquireTokenWithRetry({
+          code,
+          scopes: SCOPES,
+          redirectUri: env.redirectUri,
+          codeVerifier: flow.verifier,
+        });
+      } catch {
+        return redirectWithError(reply, 'NETWORK_ERROR');
+      }
+
+      // The code is spent now regardless of what happens next — the flow's
+      // job is done, so it's safe (and correct) to clear it from here on.
+      reply.clearCookie('auth_flow', { path: '/' });
 
       const claims = (tokenResponse.idTokenClaims ?? {}) as Record<string, unknown>;
       const oid = claims.oid as string | undefined;
@@ -75,13 +104,7 @@ export async function registerOidcRoutes(app: FastifyInstance) {
       const preferredUsername = (claims.preferred_username as string | undefined) ?? '';
 
       if (!oid || !tid) {
-        reply.code(502);
-        return {
-          error: {
-            code: 'MISSING_CLAIMS',
-            message: 'id token is missing oid/tid — check that the app registration requests the profile scope',
-          },
-        };
+        return redirectWithError(reply, 'MISSING_CLAIMS');
       }
 
       const rbacRes = await fetch(`${env.rbacUrl}/internal/upsert-on-login`, {
@@ -91,17 +114,10 @@ export async function registerOidcRoutes(app: FastifyInstance) {
       });
 
       if (rbacRes.status === 404) {
-        reply.code(403);
-        return {
-          error: {
-            code: 'NOT_INVITED',
-            message: 'This Microsoft account has not been invited to Cirrus. Contact an Admin to request access.',
-          },
-        };
+        return redirectWithError(reply, 'NOT_INVITED');
       }
       if (!rbacRes.ok) {
-        reply.code(502);
-        return { error: { code: 'RBAC_UNAVAILABLE', message: 'could not resolve user via RBAC service' } };
+        return redirectWithError(reply, 'RBAC_UNAVAILABLE');
       }
 
       const sessionJwt = await signSession({ oid, tid, name, preferredUsername });

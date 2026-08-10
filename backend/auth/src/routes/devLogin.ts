@@ -1,6 +1,7 @@
 import type { FastifyInstance } from 'fastify';
 import { env } from '../env.js';
 import { signSession } from '../jwt.js';
+import { redirectWithError } from '../oidc/errorRedirect.js';
 
 // TEMPORARY dev-only bypass for exercising the app before a real Entra ID
 // app registration exists. Only registered when DEV_LOGIN_ENABLED=true
@@ -12,8 +13,7 @@ export async function registerDevLoginRoutes(app: FastifyInstance) {
   app.get<{ Querystring: { email?: string } }>('/dev-login', async (req, reply) => {
     const email = req.query.email;
     if (!email) {
-      reply.code(400);
-      return { error: { code: 'BAD_REQUEST', message: 'email query param is required' } };
+      return redirectWithError(reply, 'BAD_REQUEST');
     }
 
     // Deterministic fake identity derived from the email so repeated dev
@@ -28,12 +28,10 @@ export async function registerDevLoginRoutes(app: FastifyInstance) {
     });
 
     if (rbacRes.status === 404) {
-      reply.code(403);
-      return { error: { code: 'NOT_INVITED', message: 'no pending or active invitation for this email' } };
+      return redirectWithError(reply, 'NOT_INVITED');
     }
     if (!rbacRes.ok) {
-      reply.code(502);
-      return { error: { code: 'RBAC_UNAVAILABLE', message: 'could not resolve user via RBAC' } };
+      return redirectWithError(reply, 'RBAC_UNAVAILABLE');
     }
 
     const sessionJwt = await signSession({ oid, tid, name: email, preferredUsername: email });

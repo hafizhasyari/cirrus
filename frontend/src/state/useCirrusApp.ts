@@ -124,12 +124,12 @@ export function useCirrusApp() {
   const userFormRef = useLatestRef(userForm);
 
   // Toast
-  const [toast, setToast] = useState<{ message: string } | null>(null);
+  const [toast, setToast] = useState<{ message: string; variant?: 'success' | 'error' } | null>(null);
   const toastTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
-  const showToast = useCallback((message: string) => {
+  const showToast = useCallback((message: string, variant?: 'success' | 'error') => {
     clearTimeout(toastTimer.current);
-    setToast({ message });
+    setToast({ message, variant });
     toastTimer.current = setTimeout(() => setToast(null), 3200);
   }, []);
 
