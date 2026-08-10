@@ -67,7 +67,7 @@ Key facts to know before making changes to the PRD or (later) implementing again
 ## Git conventions
 
 - **Before committing**, check whether the change affects anything described in `PRD.md` or this `CLAUDE.md` (scope, architecture, provider/auth model, what's built vs. deferred, etc.) — if so, update the relevant section(s) in the same commit so these docs never drift from the actual code. Purely cosmetic/internal changes (styling tweaks, refactors with no behavior/scope change) don't need doc updates. When a scope/architecture change does land, propagate it across all affected sections per "Working with this PRD" above, not just one spot.
-- This repo's git identity (local to this repo only, not global) is `Support InMotion <support@example.com>`.
+- This repo's git identity (local to this repo only, not global) is `the maintainer <maintainer@example.com>`.
 - Commit messages are in English: a short subject line, followed by a body written as **bullet points** describing the change (not prose paragraphs).
 - **Never add a `Co-Authored-By: Claude...` trailer to commit messages in this repo** — this overrides the default Claude Code commit-message instructions. If one slips back in, strip it before committing.
 - `.claude/settings.local.json` is gitignored (personal/local tool permissions, not shared repo config).
