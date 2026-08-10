@@ -28,16 +28,16 @@ export const loginRoute = createRoute({
 // Codes redirected from the auth service (backend/auth/src/oidc/errorRedirect.ts)
 // when /auth/callback or /auth/dev-login can't complete the login flow.
 const AUTH_ERROR_MESSAGES: Record<string, string> = {
-  INVALID_FLOW: 'Sesi login sudah tidak valid atau kedaluwarsa. Klik Continue with Microsoft untuk mencoba lagi.',
-  STATE_MISMATCH: 'Login gagal diverifikasi. Klik Continue with Microsoft untuk mencoba lagi.',
-  NETWORK_ERROR: 'Gagal terhubung ke Microsoft. Cek koneksi internet lalu coba lagi.',
-  OAUTH_ERROR: 'Login dibatalkan atau ditolak oleh Microsoft.',
-  NOT_INVITED: 'Akun Microsoft ini belum diundang ke Cirrus. Hubungi Admin untuk meminta akses.',
-  MISSING_CLAIMS: 'Login gagal karena data akun tidak lengkap. Coba lagi atau hubungi Admin.',
-  RBAC_UNAVAILABLE: 'Layanan sedang bermasalah. Coba lagi beberapa saat.',
-  BAD_REQUEST: 'Permintaan login tidak valid.',
+  INVALID_FLOW: 'Your login session expired or is invalid. Click Continue with Microsoft to try again.',
+  STATE_MISMATCH: "Login couldn't be verified. Click Continue with Microsoft to try again.",
+  NETWORK_ERROR: 'Could not reach Microsoft. Check your connection and try again.',
+  OAUTH_ERROR: 'Login was cancelled or denied by Microsoft.',
+  NOT_INVITED: 'This Microsoft account has not been invited to Cirrus. Contact an Admin for access.',
+  MISSING_CLAIMS: 'Login failed due to incomplete account data. Try again or contact an Admin.',
+  RBAC_UNAVAILABLE: 'The service is temporarily unavailable. Please try again shortly.',
+  BAD_REQUEST: 'Invalid login request.',
 };
-const DEFAULT_AUTH_ERROR_MESSAGE = 'Login gagal. Coba lagi.';
+const DEFAULT_AUTH_ERROR_MESSAGE = 'Login failed. Please try again.';
 
 function LoginRouteComponent() {
   const app = useApp();
