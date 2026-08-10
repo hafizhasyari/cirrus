@@ -49,11 +49,12 @@ export const SETUP_GUIDE: Record<ProviderId, string[]> = {
   gcp: [
     'In IAM & Admin → Workload Identity Federation, click Create Pool (e.g. name it cirrus-inventory-pool)',
     'Add a provider to the pool and choose OpenID Connect (OIDC) — not AWS, Azure AD, or SAML',
-    "Set the Issuer (URL) to a public HTTPS address for Cirrus's own Auth Service — Google must be able to reach it, so an internal-only hostname won't work",
+    'Set the Issuer (URL) to https://auth.cirrus.internal — it does not need to be a publicly reachable address',
+    'Since the issuer isn\'t public, choose "Upload JWKS manually" and paste in the JSON from the "Download cirrus-jwks.json" button below',
     'Leave Audiences on "Default audience" — do not add a custom one',
     'Under Attribute Mapping, set google.subject = assertion.sub (required)',
-    'Create or choose a Service Account, then grant it roles/iam.workloadIdentityUser for principals from this pool',
-    'Grant that Service Account a read-only role on the project, e.g. Compute Viewer',
+    'Create or choose a Service Account, open it, go to "Principals with access" (not "Permissions") → Grant Access, and give the pool the Workload Identity User role there — this must be granted on the Service Account itself, not on the project',
+    'Separately, on the IAM page, grant that same Service Account a read-only role on the project, e.g. Compute Viewer',
     'Copy the Project Number (numeric, from the project Dashboard — not the Project ID string), Pool ID, Provider ID, and Service Account email into the fields below',
   ],
   alibaba: [

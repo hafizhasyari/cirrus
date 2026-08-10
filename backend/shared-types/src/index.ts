@@ -69,6 +69,8 @@ export interface Connection {
   status: ConnectionStatus;
   lastChecked: string; // ISO timestamp (frontend formats to relative time)
   addedBy: string;
+  /** Non-secret field values only — secret fields (FieldDef.secret) live in Vault and are never sent to the client. */
+  config: Record<string, unknown>;
 }
 
 export type Role = 'admin' | 'viewer';

@@ -100,6 +100,7 @@ export function useCirrusApp() {
   const [wizardConnectionId, setWizardConnectionId] = useState<string | null>(null);
   const [wizardTesting, setWizardTesting] = useState(false);
   const [wizardResult, setWizardResult] = useState<WizardResult>(null);
+  const [wizardFailureMessage, setWizardFailureMessage] = useState<string | null>(null);
   const wizardFormRef = useLatestRef(wizardForm);
   const wizardAccountRef = useLatestRef(wizardAccount);
   const wizardProviderRef = useLatestRef(wizardProvider);
@@ -280,6 +281,7 @@ export function useCirrusApp() {
     setWizardForm({});
     setWizardConnectionId(null);
     setWizardResult(null);
+    setWizardFailureMessage(null);
     setWizardTesting(false);
   }, []);
 
@@ -290,12 +292,14 @@ export function useCirrusApp() {
     setWizardForm({});
     setWizardConnectionId(null);
     setWizardResult(null);
+    setWizardFailureMessage(null);
   }, []);
 
   const wizardBackToStep1 = useCallback(() => {
     setWizardStep(1);
     setWizardProvider(null);
     setWizardResult(null);
+    setWizardFailureMessage(null);
   }, []);
 
   const updateWizardAccount = useCallback((val: string) => setWizardAccount(val), []);
@@ -313,6 +317,7 @@ export function useCirrusApp() {
     if (!provider) return;
     setWizardTesting(true);
     setWizardResult(null);
+    setWizardFailureMessage(null);
     try {
       const identifier = computeIdentifier(provider, wizardFormRef.current);
       const account = wizardAccountRef.current || 'Untitled account';
@@ -330,6 +335,7 @@ export function useCirrusApp() {
 
       const result = await testConnection(id);
       setWizardResult(result.result);
+      setWizardFailureMessage(result.result === 'failure' ? result.message : null);
       setConnections((prev) =>
         prev.map((c) => (c.id === id ? { ...c, status: result.result === 'success' ? 'active' : 'error' } : c)),
       );
@@ -340,7 +346,10 @@ export function useCirrusApp() {
     }
   }, [wizardProviderRef, wizardFormRef, wizardAccountRef, wizardConnectionIdRef, showToast]);
 
-  const editRetry = useCallback(() => setWizardResult(null), []);
+  const editRetry = useCallback(() => {
+    setWizardResult(null);
+    setWizardFailureMessage(null);
+  }, []);
 
   // The connection already exists (created during runTest) — this step is
   // now just navigation, not a second create call.
@@ -353,8 +362,8 @@ export function useCirrusApp() {
     const providerMeta = providers.find((p) => p.id === conn.provider);
     const defs = providerMeta?.fieldDefs ?? [];
     const vals: WizardFormValues = {};
-    defs.forEach((f, i) => {
-      if (f.kind === 'text') vals[f.key] = i === 0 ? conn.identifier : '';
+    defs.forEach((f) => {
+      if (f.kind === 'text') vals[f.key] = (conn.config[f.key] as string) ?? '';
       if (f.kind === 'textarea') vals[f.key] = MASKED_PLACEHOLDER;
     });
     setEditingConnectionId(conn.id);
@@ -516,7 +525,7 @@ export function useCirrusApp() {
     editingConnectionId, editForm, editFieldValues, editTesting, editTested,
     updateEditAccount, updateEditFieldValue, runEditTest, saveEditConnection, removeEditConnection,
     // wizard
-    startWizard, wizardStep, wizardProvider, wizardAccount, wizardForm, wizardTesting, wizardResult,
+    startWizard, wizardStep, wizardProvider, wizardAccount, wizardForm, wizardTesting, wizardResult, wizardFailureMessage,
     selectWizardProvider, wizardBackToStep1, updateWizardAccount, updateWizardField, runTest, editRetry, saveConnection,
     // users
     userDrawerMode, editingUserId, userForm, openEditUser, openInviteUser, closeUserDrawer,

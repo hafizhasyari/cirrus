@@ -5,6 +5,7 @@ import { env } from './env.js';
 import { registerSessionMiddleware } from './plugins/session.js';
 import { registerAuthRoutes } from './routes/auth.js';
 import { registerConnectionRoutes } from './routes/connections.js';
+import { registerGcpRoutes } from './routes/gcp.js';
 import { registerProviderRoutes } from './routes/providers.js';
 import { registerUserRoutes } from './routes/users.js';
 import { registerVmRoutes } from './routes/vms.js';
@@ -38,6 +39,7 @@ await registerVmRoutes(app);
 await registerConnectionRoutes(app);
 await registerUserRoutes(app);
 await registerProviderRoutes(app);
+await registerGcpRoutes(app);
 
 app.listen({ port: env.port, host: '0.0.0.0' }).catch((err) => {
   app.log.error(err);

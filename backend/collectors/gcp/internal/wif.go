@@ -73,7 +73,13 @@ func cachedTokenSource(ctx context.Context, cacheKey string, gcfg gcpConfig, sco
 		Scopes:                         scopes,
 	}
 
-	base, err := externalaccount.NewTokenSource(ctx, cfg)
+	// Deliberately context.Background(), not the caller's ctx: this token
+	// source is cached and reused across future requests (see below), but a
+	// request-scoped ctx is canceled the moment the request that created it
+	// returns — every later reuse would then fail immediately with "context
+	// canceled" instead of attempting a real refresh, since externalaccount's
+	// TokenSource has no per-call ctx param to override it with.
+	base, err := externalaccount.NewTokenSource(context.Background(), cfg)
 	if err != nil {
 		return nil, fmt.Errorf("%w: building WIF token source: %v", ErrAuthFailed, err)
 	}

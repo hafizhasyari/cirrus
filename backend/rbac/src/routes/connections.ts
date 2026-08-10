@@ -48,6 +48,10 @@ function toConnectionDto(row: ConnectionRow, addedByName: string): Connection {
     status: row.status,
     lastChecked: row.lastCheckedAt ? row.lastCheckedAt.toISOString() : 'never',
     addedBy: addedByName,
+    // Safe to send as-is: row.config only ever holds the non-secret split
+    // of the connection's fields (see splitConfig above) — secret fields
+    // live in Vault and never reach this row at all.
+    config: row.config as Record<string, unknown>,
   };
 }
 

@@ -134,7 +134,7 @@ export function WizardScreen({ app }: { app: CirrusApp }) {
                     <circle cx="12" cy="12" r="9" />
                     <path d="M15 9l-6 6M9 9l6 6" />
                   </svg>
-                  <div>{failureMessage}</div>
+                  <div>{app.wizardFailureMessage || failureMessage}</div>
                 </div>
                 <div className="ghost-btn" onClick={() => app.editRetry()}>Edit &amp; Retry</div>
               </div>
@@ -167,6 +167,16 @@ export function WizardScreen({ app }: { app: CirrusApp }) {
                 <div style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.5 }}>{text}</div>
               </div>
             ))}
+            {wizardProviderMeta?.id === 'gcp' && (
+              <a
+                href="/api/gcp/jwks"
+                download="cirrus-jwks.json"
+                className="ghost-btn"
+                style={{ marginTop: 4, width: '100%', justifyContent: 'center' }}
+              >
+                Download cirrus-jwks.json
+              </a>
+            )}
           </div>
         </div>
       )}
