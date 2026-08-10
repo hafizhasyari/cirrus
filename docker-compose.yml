@@ -253,7 +253,25 @@ services:
       - "5173:80"
     depends_on:
       - bff
+    networks:
+      - default
+      - proxy
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=proxy"
+      - "traefik.http.routers.cirrus.rule=Host(`cirrus.example.com`)"
+      - "traefik.http.routers.cirrus.entrypoints=websecure"
+      - "traefik.http.routers.cirrus.tls=true"
+      - "traefik.http.routers.cirrus.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.cirrus.tls.domains[0].main=example.com"
+      - "traefik.http.routers.cirrus.tls.domains[0].sans=*.example.com"
+      - "traefik.http.services.cirrus.loadbalancer.server.port=80"
 
 volumes:
   pgdata:
   vault-file:
+
+networks:
+  proxy:
+    external: true
+    name: proxy
