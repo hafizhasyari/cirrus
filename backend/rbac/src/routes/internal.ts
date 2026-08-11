@@ -100,7 +100,7 @@ export async function registerInternalRoutes(app: FastifyInstance) {
   });
 
   // Collectors' only path to a connection's provider-specific config
-  // (accessKeyId/secretAccessKey, roleArn/regionId, projectId/poolId/providerId/
+  // (accessKeyId/secretAccessKey, projectId/poolId/providerId/
   // saEmail, ...) — the collector resolves this itself, the Aggregator
   // never sees or forwards credential material.
   app.get<{ Params: { id: string } }>('/internal/connections/:id', async (req, reply) => {

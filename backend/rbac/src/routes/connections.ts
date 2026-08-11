@@ -27,7 +27,7 @@ type ConnectionRow = typeof cloudConnections.$inferSelect;
 // Splits an incoming config payload by each field's FIELD_DEFS.secret flag —
 // non-secret fields stay in Postgres (as always), secret fields (OCI's
 // privateKey/passphrase, Biznet's xToken) are routed to Vault instead.
-// For providers with no secret fields (AWS/GCP/Alibaba) `secret` is always
+// For GCP, the only provider with no secret fields, `secret` is always
 // empty, so behavior is byte-for-byte unchanged from before Vault existed.
 function splitConfig(provider: ProviderId, config: Record<string, unknown>) {
   const secretKeys = new Set(FIELD_DEFS[provider].filter((f) => f.secret).map((f) => f.key));

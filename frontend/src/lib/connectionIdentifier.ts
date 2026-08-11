@@ -9,7 +9,7 @@ export function computeIdentifier(provider: ProviderId, form: WizardFormValues):
     case 'aws':
       return form.accessKeyId || '—';
     case 'alibaba':
-      return form.roleArn || '—';
+      return form.accessKeyId || '—';
     case 'gcp':
       return form.projectId ? `project: ${form.projectId}` : '—';
     case 'oci':

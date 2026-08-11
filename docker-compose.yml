@@ -149,8 +149,6 @@ services:
       PORT: 8080
       RBAC_URL: http://rbac:4001
       INTERNAL_SHARED_SECRET: ${INTERNAL_SHARED_SECRET:-dev-internal-secret}
-      ALIBABA_CLOUD_ACCESS_KEY_ID: ${ALIBABA_CLOUD_ACCESS_KEY_ID:-}
-      ALIBABA_CLOUD_ACCESS_KEY_SECRET: ${ALIBABA_CLOUD_ACCESS_KEY_SECRET:-}
     ports:
       - "5003:8080"
     depends_on:

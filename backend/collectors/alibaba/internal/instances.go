@@ -3,9 +3,12 @@ package internal
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
-	"os"
+	"log"
+	"net"
 	"strings"
+	"sync"
 
 	"cirrus/collectorkit"
 
@@ -13,23 +16,40 @@ import (
 	ecs20140526 "github.com/alibabacloud-go/ecs-20140526/v7/client"
 	"github.com/alibabacloud-go/tea/tea"
 	"github.com/aliyun/credentials-go/credentials"
+	"golang.org/x/sync/errgroup"
 )
 
+// defaultBootstrapRegion is only used to resolve the initial client used for
+// DescribeRegions — that call isn't truly region-scoped, this just needs to
+// be a valid region to construct an SDK client with (mirrors the AWS
+// collector's own defaultBootstrapRegion).
+const defaultBootstrapRegion = "cn-hangzhou"
+
+// regionFetchTimeoutMs bounds each region's DescribeInstances calls. Alibaba's
+// tea-generated SDK methods don't accept a Go context at all, so a
+// context.WithTimeout around a call has no effect on the underlying HTTP
+// request — the only real way to bound one is the SDK's own ReadTimeout/
+// ConnectTimeout config fields (milliseconds), set per-client in
+// newECSClient. Kept smaller than AWS's 20s per-region budget since Alibaba
+// only makes one paginated DescribeInstances call per region, no extra
+// DescribeVolumes/DescribeInstanceTypes round-trips.
+const regionFetchTimeoutMs = 15000
+
 type connectionConfig struct {
-	RoleArn  string `json:"roleArn"`
-	RegionID string `json:"regionId"`
+	AccessKeyID     string `json:"accessKeyId"`
+	SecretAccessKey string `json:"secretAccessKey"`
 }
 
-// buildAssumedCredential assumes the connection's RAM role via Cirrus's own
-// hub credential (AccessKey/Secret from env) — shared by the full inventory
-// fetch and the lightweight connection-test path.
-func buildAssumedCredential(cc connectionConfig) (credentials.Credential, error) {
+// buildAlibabaCredential builds a static RAM User AccessKey/Secret credential
+// straight from the connection's own config — no hub identity, no role
+// assumption, built fresh per request, mirroring the AWS collector's
+// buildAWSConfig pattern — shared by the full inventory fetch and the
+// lightweight connection-test path.
+func buildAlibabaCredential(cc connectionConfig) (credentials.Credential, error) {
 	credCfg := new(credentials.Config).
-		SetType("ram_role_arn").
-		SetAccessKeyId(os.Getenv("ALIBABA_CLOUD_ACCESS_KEY_ID")).
-		SetAccessKeySecret(os.Getenv("ALIBABA_CLOUD_ACCESS_KEY_SECRET")).
-		SetRoleArn(cc.RoleArn).
-		SetRoleSessionName("cirrus-collector")
+		SetType("access_key").
+		SetAccessKeyId(cc.AccessKeyID).
+		SetAccessKeySecret(cc.SecretAccessKey)
 	cred, err := credentials.NewCredential(credCfg)
 	if err != nil {
 		return nil, fmt.Errorf("%w: building credential: %v", ErrAuthFailed, err)
@@ -37,39 +57,37 @@ func buildAssumedCredential(cc connectionConfig) (credentials.Credential, error)
 	return cred, nil
 }
 
-// FetchInstances resolves a connection's roleArn/regionId, assumes the RAM
-// role via Cirrus's own hub credential (AccessKey/Secret from env), and
-// returns a real ECS inventory for that region (or a classified error —
-// ErrAuthFailed / ErrUpstream, see errors.go).
-func FetchInstances(ctx context.Context, raw json.RawMessage) ([]collectorkit.Instance, error) {
-	var cc connectionConfig
-	if err := json.Unmarshal(raw, &cc); err != nil || cc.RoleArn == "" || cc.RegionID == "" {
-		return nil, fmt.Errorf("%w: missing/invalid roleArn or regionId in connection config", ErrAuthFailed)
-	}
-
-	cred, err := buildAssumedCredential(cc)
-	if err != nil {
-		return nil, err
-	}
-
+// newECSClient builds an ECS client scoped to a single region's endpoint,
+// with a read/connect timeout so one slow/unreachable region can't hang
+// indefinitely (see regionFetchTimeoutMs).
+func newECSClient(cred credentials.Credential, region string) (*ecs20140526.Client, error) {
 	client, err := ecs20140526.NewClient(&openapi.Config{
-		Credential: cred,
-		RegionId:   tea.String(cc.RegionID),
-		Endpoint:   tea.String(fmt.Sprintf("ecs.%s.aliyuncs.com", cc.RegionID)),
+		Credential:     cred,
+		RegionId:       tea.String(region),
+		Endpoint:       tea.String(fmt.Sprintf("ecs.%s.aliyuncs.com", region)),
+		ReadTimeout:    tea.Int(regionFetchTimeoutMs),
+		ConnectTimeout: tea.Int(regionFetchTimeoutMs),
 	})
 	if err != nil {
 		return nil, fmt.Errorf("%w: building ECS client: %v", ErrUpstream, err)
 	}
+	return client, nil
+}
 
+// describeAllInstances pages through DescribeInstances for one region,
+// returning the raw error unclassified so the caller can tell a timeout
+// (skip this region gracefully) apart from a real failure (classify and
+// propagate) — see the timeout check in FetchInstances below.
+func describeAllInstances(client *ecs20140526.Client, region string) ([]*ecs20140526.DescribeInstancesResponseBodyInstancesInstance, error) {
 	var all []*ecs20140526.DescribeInstancesResponseBodyInstancesInstance
 	for page := int32(1); ; page++ {
 		resp, err := client.DescribeInstances(&ecs20140526.DescribeInstancesRequest{
-			RegionId:   tea.String(cc.RegionID),
+			RegionId:   tea.String(region),
 			PageSize:   tea.Int32(100),
 			PageNumber: tea.Int32(page),
 		})
 		if err != nil {
-			return nil, classifyAlibabaErr(err)
+			return nil, err
 		}
 		if resp.Body == nil || resp.Body.Instances == nil {
 			break
@@ -80,22 +98,105 @@ func FetchInstances(ctx context.Context, raw json.RawMessage) ([]collectorkit.In
 			break
 		}
 	}
+	return all, nil
+}
+
+// FetchInstances resolves a connection's own static AccessKey/Secret,
+// discovers every region the account can access, and returns a real ECS
+// inventory across every enabled region (or a classified error —
+// ErrAuthFailed / ErrUpstream, see errors.go).
+func FetchInstances(ctx context.Context, raw json.RawMessage) ([]collectorkit.Instance, error) {
+	var cc connectionConfig
+	if err := json.Unmarshal(raw, &cc); err != nil || cc.AccessKeyID == "" || cc.SecretAccessKey == "" {
+		return nil, fmt.Errorf("%w: missing/invalid accessKeyId or secretAccessKey in connection config", ErrAuthFailed)
+	}
+
+	cred, err := buildAlibabaCredential(cc)
+	if err != nil {
+		return nil, err
+	}
+
+	bootstrapClient, err := newECSClient(cred, defaultBootstrapRegion)
+	if err != nil {
+		return nil, err
+	}
+
+	// DescribeRegions doubles as the earliest possible credential-rejection
+	// signal — mirrors the AWS collector's own DescribeRegions bootstrap call.
+	regionsResp, err := bootstrapClient.DescribeRegions(&ecs20140526.DescribeRegionsRequest{})
+	if err != nil {
+		return nil, classifyAlibabaErr(err)
+	}
+
+	var regions []string
+	if regionsResp.Body != nil && regionsResp.Body.Regions != nil {
+		for _, r := range regionsResp.Body.Regions.Region {
+			if r.RegionId != nil {
+				regions = append(regions, *r.RegionId)
+			}
+		}
+	}
+
+	var mu sync.Mutex
+	var all []*ecs20140526.DescribeInstancesResponseBodyInstancesInstance
+	regionByInstance := make(map[string]string)
+
+	var g errgroup.Group
+	for _, region := range regions {
+		region := region
+		g.Go(func() error {
+			client, err := newECSClient(cred, region)
+			if err != nil {
+				return err
+			}
+
+			insts, err := describeAllInstances(client, region)
+			if err != nil {
+				var netErr net.Error
+				if errors.As(err, &netErr) && netErr.Timeout() {
+					log.Printf("alibaba collector: region %s timed out, skipping", region)
+					return nil
+				}
+				return classifyAlibabaErr(err)
+			}
+
+			mu.Lock()
+			for _, inst := range insts {
+				if inst.InstanceId != nil {
+					regionByInstance[*inst.InstanceId] = region
+				}
+			}
+			all = append(all, insts...)
+			mu.Unlock()
+			return nil
+		})
+	}
+	if err := g.Wait(); err != nil {
+		return nil, err
+	}
 
 	result := make([]collectorkit.Instance, 0, len(all))
 	for _, inst := range all {
-		result = append(result, mapInstance(inst, cc.RegionID))
+		region := ""
+		if inst.InstanceId != nil {
+			region = regionByInstance[*inst.InstanceId]
+		}
+		result = append(result, mapInstance(inst, region))
 	}
 	return result, nil
 }
 
-// classifyAlibabaErr distinguishes access/trust-policy failures (AUTH_FAILED)
+// classifyAlibabaErr distinguishes credential/permission failures (AUTH_FAILED)
 // from everything else (UPSTREAM_ERROR). Alibaba's tea-generated clients
-// surface API errors as *tea.SDKError with a Code string.
+// surface API errors as *tea.SDKError with a Code string — InvalidAccessKeyId
+// covers an unknown Access Key ID, SignatureDoesNotMatch a wrong secret for a
+// valid ID (mirrors AWS's classifyAWSErr code list for the same static-key
+// failure modes).
 func classifyAlibabaErr(err error) error {
 	if sdkErr, ok := err.(*tea.SDKError); ok && sdkErr.Code != nil {
 		code := *sdkErr.Code
 		if strings.Contains(code, "Forbidden") || strings.Contains(code, "Unauthorized") ||
-			strings.Contains(code, "InvalidAccessKeyId") || code == "AccessDenied" {
+			strings.Contains(code, "InvalidAccessKeyId") || code == "AccessDenied" || code == "SignatureDoesNotMatch" {
 			return fmt.Errorf("%w: %v", ErrAuthFailed, err)
 		}
 	}

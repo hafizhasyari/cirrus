@@ -9,6 +9,7 @@ require (
 	github.com/alibabacloud-go/sts-20150401/v2 v2.1.0
 	github.com/alibabacloud-go/tea v1.5.3
 	github.com/aliyun/credentials-go v1.4.12
+	golang.org/x/sync v0.10.0
 )
 
 require (

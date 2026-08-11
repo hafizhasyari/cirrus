@@ -19,10 +19,17 @@ func main() {
 	rbacClient = collectorkit.NewRBACClient(requireEnv("RBAC_URL"), requireEnv("INTERNAL_SHARED_SECRET"))
 
 	mux := http.NewServeMux()
-	// Real AssumeRole + DescribeInstances doesn't fit in the old 5s
-	// stub-era budget (single region, no extra calls needed, so a smaller
-	// budget than AWS's multi-region fan-out is sufficient).
-	mux.Handle("GET /instances", collectorkit.WithTimeout(http.HandlerFunc(handleInstances), 10*time.Second))
+	// Now fans out across every enabled region (DescribeRegions + per-region
+	// DescribeInstances, see internal/instances.go), not just one — needs
+	// more than the old single-region 10s budget, though still less than
+	// AWS's 45s since each Alibaba region only makes one paginated
+	// DescribeInstances call, no extra DescribeVolumes/DescribeInstanceTypes
+	// round-trips. Each region is separately bounded by the SDK's own
+	// ReadTimeout/ConnectTimeout (regionFetchTimeoutMs in instances.go) since
+	// Alibaba's tea-generated SDK methods don't accept a Go context at all —
+	// unlike AWS, deriving a cancellable context here wouldn't actually stop
+	// an in-flight call, so this handler doesn't bother.
+	mux.Handle("GET /instances", collectorkit.WithTimeout(http.HandlerFunc(handleInstances), 30*time.Second))
 	// The lightweight connection test is AssumeRole + one identity call only.
 	mux.Handle("GET /test", collectorkit.WithTimeout(http.HandlerFunc(handleTest), 6*time.Second))
 	mux.HandleFunc("GET /healthz", collectorkit.HealthHandler)

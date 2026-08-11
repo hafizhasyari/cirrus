@@ -6,7 +6,7 @@ import type { FieldDef, Provider, ProviderId } from '@cirrus/shared-types';
 export const PROVIDERS: Provider[] = [
   { id: 'aws', name: 'AWS', mono: 'AWS', color: '#f0a13c', bg: 'rgba(240,161,60,0.12)', authLabel: 'IAM User Access Key' },
   { id: 'gcp', name: 'Google Cloud', mono: 'GCP', color: '#5b9bf7', bg: 'rgba(91,155,247,0.12)', authLabel: 'Workload Identity Federation' },
-  { id: 'alibaba', name: 'Alibaba Cloud', mono: 'AL', color: '#ff8b5a', bg: 'rgba(255,139,90,0.12)', authLabel: 'RAM Role (STS AssumeRole)' },
+  { id: 'alibaba', name: 'Alibaba Cloud', mono: 'AL', color: '#ff8b5a', bg: 'rgba(255,139,90,0.12)', authLabel: 'Static Access Key (RAM User)' },
   { id: 'oci', name: 'Oracle Cloud', mono: 'OCI', color: '#ef6b6b', bg: 'rgba(239,107,107,0.12)', authLabel: 'API Signing Key' },
   { id: 'biznet', name: 'Biznet Gio Cloud', mono: 'BG', color: '#3ecf8e', bg: 'rgba(62,207,142,0.12)', authLabel: 'Static token (x-token)' },
 ];
@@ -23,8 +23,8 @@ export const FIELD_DEFS: Record<ProviderId, FieldDef[]> = {
     { key: 'saEmail', label: 'Service Account email', kind: 'text' },
   ],
   alibaba: [
-    { key: 'roleArn', label: 'Role ARN', kind: 'text' },
-    { key: 'regionId', label: 'Region ID', kind: 'text' },
+    { key: 'accessKeyId', label: 'AccessKey ID', placeholder: 'LTAI5t...', kind: 'text' },
+    { key: 'secretAccessKey', label: 'AccessKey Secret', kind: 'textarea', secret: true },
   ],
   oci: [
     { key: 'tenancyOcid', label: 'Tenancy OCID', kind: 'text' },
@@ -58,8 +58,11 @@ export const SETUP_GUIDE: Record<ProviderId, string[]> = {
     'Copy the Project Number (numeric, from the project Dashboard — not the Project ID string), Pool ID, Provider ID, and Service Account email into the fields below',
   ],
   alibaba: [
-    'In RAM → Roles, create a role with trusted entity type "Alibaba Cloud Account" set to the Cirrus account ID',
-    'Attach a read-only policy to the role and copy its Role ARN',
+    'In RAM → Users → Create User, add a new user for Cirrus (e.g. cirrus-readonly) — skip console access, this only needs programmatic access',
+    'Attach the AliyunECSReadOnlyAccess policy directly to the user',
+    'Open the user → User Details → AccessKey pairs → Create AccessKey',
+    'Copy the AccessKey ID and AccessKey Secret below now — the secret is only ever shown once',
+    'No need to pick a region — Cirrus automatically discovers and fetches instances from every region this AccessKey can access',
   ],
   oci: [
     'In Identity → Users → your user → API Keys, generate a new API signing key pair',
@@ -77,7 +80,7 @@ export const SETUP_GUIDE: Record<ProviderId, string[]> = {
 export const FAILURE_MSG: Record<ProviderId, string> = {
   aws: 'Authentication failed — the Access Key ID/Secret Access Key is invalid, or the IAM user lacks read permissions on EC2.',
   gcp: 'Token exchange failed — check the Workload Identity Pool/Provider IDs and that the service account grants roles/iam.workloadIdentityUser to Cirrus.',
-  alibaba: 'AssumeRole failed — the RAM role trust policy does not include the Cirrus account ID.',
+  alibaba: 'Authentication failed — the AccessKey ID/AccessKey Secret is invalid, or the RAM user lacks read permissions on ECS.',
   oci: 'Signing key validation failed — check the tenancy/user OCID and fingerprint match the uploaded private key.',
   biznet: 'Request rejected (401/403) — the x-token is invalid or has been revoked from the Biznet Gio portal.',
 };

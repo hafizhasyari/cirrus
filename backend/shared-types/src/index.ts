@@ -140,7 +140,7 @@ export interface ActiveConnection {
 
 /** RBAC's internal-only single-connection lookup — a collector's only path
  * to a connection's provider-specific config (accessKeyId/secretAccessKey,
- * roleArn/regionId, projectId/poolId/providerId/saEmail, ...). Never routed
+ * projectId/poolId/providerId/saEmail, ...). Never routed
  * through the Aggregator. */
 export interface ConnectionConfigResponse {
   connectionId: string;

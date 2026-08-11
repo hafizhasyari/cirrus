@@ -11,16 +11,15 @@ import (
 )
 
 // TestConnection performs the cheapest authenticated call per PRD §7.3's
-// Alibaba Cloud checklist — AssumeRole, then sts:GetCallerIdentity — with no
-// ECS call at all, since GetCallerIdentity alone confirms the RAM role's
-// trust policy is valid.
+// Alibaba Cloud checklist — sts:GetCallerIdentity only, confirming the
+// access key/secret pair is valid, with no ECS call at all.
 func TestConnection(ctx context.Context, raw json.RawMessage) (string, error) {
 	var cc connectionConfig
-	if err := json.Unmarshal(raw, &cc); err != nil || cc.RoleArn == "" {
-		return "", fmt.Errorf("%w: missing/invalid roleArn in connection config", ErrAuthFailed)
+	if err := json.Unmarshal(raw, &cc); err != nil || cc.AccessKeyID == "" || cc.SecretAccessKey == "" {
+		return "", fmt.Errorf("%w: missing/invalid accessKeyId or secretAccessKey in connection config", ErrAuthFailed)
 	}
 
-	cred, err := buildAssumedCredential(cc)
+	cred, err := buildAlibabaCredential(cc)
 	if err != nil {
 		return "", err
 	}
@@ -42,5 +41,5 @@ func TestConnection(ctx context.Context, raw json.RawMessage) (string, error) {
 	if resp.Body != nil && resp.Body.Arn != nil {
 		arn = *resp.Body.Arn
 	}
-	return fmt.Sprintf("AssumeRole ok, identity confirmed (arn=%s)", arn), nil
+	return fmt.Sprintf("Access key valid, identity confirmed (arn=%s)", arn), nil
 }
