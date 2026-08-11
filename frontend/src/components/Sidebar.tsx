@@ -74,7 +74,8 @@ export function Sidebar({ app }: { app: CirrusApp }) {
                 position: 'fixed',
                 top: 0,
                 left: 0,
-                height: '100vh',
+                height: '100dvh',
+                paddingBottom: 'calc(20px + env(safe-area-inset-bottom))',
                 zIndex: 200,
                 transform: isOpen ? 'translateX(0)' : 'translateX(-100%)',
                 transition: 'transform 200ms ease',
@@ -82,7 +83,14 @@ export function Sidebar({ app }: { app: CirrusApp }) {
             : {}),
         }}
       >
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '2px 4px 20px' }}>
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 10,
+          padding: isCompact ? '2px 4px 20px 42px' : '2px 4px 20px',
+        }}
+      >
         <img src={cirrusMark} alt="" width={40} height={40} style={{ flexShrink: 0 }} />
         <div>
           <div className="font-display" style={{ fontSize: 17, fontWeight: 700 }}>Cirrus</div>
