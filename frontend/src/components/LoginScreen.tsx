@@ -1,7 +1,6 @@
 import type { Theme } from '../types';
 import { useMediaQuery } from '../lib/useMediaQuery';
 import { MOBILE_QUERY } from '../lib/responsive';
-import cirrusMark from '../assets/cirrus-mark.svg';
 
 export function LoginScreen({
   theme,
@@ -184,23 +183,14 @@ function LoginFeature({ text }: { text: string }) {
   );
 }
 
-export function CirrusMark({ size = 34 }: { size?: number }) {
+export function CirrusMark({ size = 38 }: { size?: number }) {
   return (
-    <div
-      style={{
-        width: size,
-        height: size,
-        borderRadius: Math.round(size * 0.29),
-        background: 'rgba(255,255,255,0.18)',
-        border: '1px solid rgba(255,255,255,0.3)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        flexShrink: 0,
-      }}
-    >
-      <img src={cirrusMark} alt="" style={{ width: size * 0.72, height: size * 0.72 }} />
-    </div>
+    <svg width={size} height={size} viewBox="0 0 32 32" style={{ flexShrink: 0 }}>
+      <circle cx="16" cy="14.2" r="4.8" fill="#ffffff" />
+      <circle cx="11.6" cy="17.6" r="3.7" fill="#ffffff" />
+      <circle cx="20.4" cy="17.6" r="3.7" fill="#ffffff" />
+      <rect x="8.6" y="17" width="14.8" height="4.6" rx="2.3" fill="#ffffff" />
+    </svg>
   );
 }
 
