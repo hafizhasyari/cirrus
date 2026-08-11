@@ -106,14 +106,6 @@ body {
   background: rgba(20, 20, 35, 0.3);
 }
 
-@keyframes cirrus-shimmer {
-  0% {
-    background-position: -300px 0;
-  }
-  100% {
-    background-position: 300px 0;
-  }
-}
 @keyframes cirrus-spin {
   to {
     transform: rotate(360deg);
@@ -425,17 +417,16 @@ body {
   white-space: nowrap;
 }
 
-/* Skeleton loading */
-.skeleton-row {
+/* Skeleton loading (phantom-ui) */
+phantom-ui {
+  display: block;
+  --shimmer-bg: var(--surface-alt);
+  --shimmer-color: var(--surface-hover);
+}
+.skeleton-row-shape {
   height: 44px;
   border-radius: 8px;
   margin: 8px 0;
-  background: linear-gradient(90deg, var(--surface-alt) 25%, var(--surface-hover) 37%, var(--surface-alt) 63%);
-  background-size: 400px 100%;
-  animation: cirrus-shimmer 1.4s ease-in-out infinite;
-}
-.skeleton-row:not(:last-child) {
-  border-bottom: 1px solid var(--border);
 }
 .spin {
   animation: cirrus-spin 0.8s linear infinite;
