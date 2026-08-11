@@ -1,4 +1,11 @@
+import { useLayoutEffect, useRef, useState } from 'react';
+
 const COLUMN_LABELS = ['Name', 'Provider', 'Account', 'Region', 'Status', 'Type', 'CPU', 'Memory', 'Disk', 'IP'];
+// phantom-ui hides its slotted content while `loading` (to show the shimmer overlay
+// instead), so a row inside it always measures 0 via offsetHeight/getBoundingClientRect —
+// can't be measured at runtime. This is the rendered height of one .skeleton-grid-row
+// body row (padding + its tallest, 2-line cell) observed in practice.
+const BODY_ROW_HEIGHT = 46;
 
 function Chip({ w, h = 12, round, ml, mt }: { w: number; h?: number; round?: boolean; ml?: number; mt?: number }) {
   return (
@@ -56,10 +63,30 @@ function SkeletonRow() {
   );
 }
 
-export function SkeletonRows({ count = 8 }: { count?: number }) {
+export function SkeletonRows() {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const headerRef = useRef<HTMLDivElement>(null);
+  const [count, setCount] = useState(8);
+
+  useLayoutEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+
+    const recompute = () => {
+      const headerHeight = headerRef.current?.offsetHeight ?? 0;
+      const available = container.clientHeight - headerHeight;
+      setCount(Math.max(1, Math.ceil(available / BODY_ROW_HEIGHT) + 1));
+    };
+
+    recompute();
+    const observer = new ResizeObserver(recompute);
+    observer.observe(container);
+    return () => observer.disconnect();
+  }, []);
+
   return (
-    <div style={{ flex: 1, minHeight: 0, overflow: 'auto' }}>
-      <div className="skeleton-grid-row">
+    <div ref={containerRef} style={{ flex: 1, minHeight: 0, overflow: 'auto' }}>
+      <div ref={headerRef} className="skeleton-grid-row">
         {COLUMN_LABELS.map((label) => (
           <div key={label} className="th">{label}</div>
         ))}
