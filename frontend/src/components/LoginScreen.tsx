@@ -186,10 +186,10 @@ function LoginFeature({ text }: { text: string }) {
 export function CirrusMark({ size = 38 }: { size?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 32 32" style={{ flexShrink: 0 }}>
-      <circle cx="16" cy="14.2" r="4.8" fill="#ffffff" />
-      <circle cx="11.6" cy="17.6" r="3.7" fill="#ffffff" />
-      <circle cx="20.4" cy="17.6" r="3.7" fill="#ffffff" />
-      <rect x="8.6" y="17" width="14.8" height="4.6" rx="2.3" fill="#ffffff" />
+      <circle cx="16" cy="13.9" r="7.7" fill="#ffffff" />
+      <circle cx="9" cy="19.4" r="5.9" fill="#ffffff" />
+      <circle cx="23" cy="19.4" r="5.9" fill="#ffffff" />
+      <rect x="4.2" y="18.4" width="23.6" height="7.4" rx="3.7" fill="#ffffff" />
     </svg>
   );
 }
