@@ -83,7 +83,7 @@ export function Sidebar({ app }: { app: CirrusApp }) {
         }}
       >
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '2px 4px 20px' }}>
-        <img src={cirrusMark} alt="" width={32} height={32} style={{ flexShrink: 0 }} />
+        <img src={cirrusMark} alt="" width={40} height={40} style={{ flexShrink: 0 }} />
         <div>
           <div className="font-display" style={{ fontSize: 17, fontWeight: 700 }}>Cirrus</div>
           <div className="section-label" style={{ fontSize: 9.5 }}>VM Inventory</div>
