@@ -3,6 +3,7 @@ import { Link } from '@tanstack/react-router';
 import type { CirrusApp } from '../state/useCirrusApp';
 import { useMediaQuery } from '../lib/useMediaQuery';
 import { COMPACT_QUERY } from '../lib/responsive';
+import cirrusMark from '../assets/cirrus-mark.svg';
 
 export function Sidebar({ app }: { app: CirrusApp }) {
   const { role, theme, currentUser } = app;
@@ -82,25 +83,7 @@ export function Sidebar({ app }: { app: CirrusApp }) {
         }}
       >
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '2px 4px 20px' }}>
-        <div
-          style={{
-            width: 32,
-            height: 32,
-            borderRadius: 9,
-            background: 'var(--accent-gradient)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            flexShrink: 0,
-            boxShadow: 'var(--accent-glow)',
-          }}
-        >
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 3, width: 15 }}>
-            <div style={{ height: 3, borderRadius: 2, background: '#ffffff', width: '100%' }} />
-            <div style={{ height: 3, borderRadius: 2, background: '#ffffff', opacity: 0.75, width: '70%' }} />
-            <div style={{ height: 3, borderRadius: 2, background: '#ffffff', opacity: 0.5, width: '46%' }} />
-          </div>
-        </div>
+        <img src={cirrusMark} alt="" width={32} height={32} style={{ flexShrink: 0 }} />
         <div>
           <div className="font-display" style={{ fontSize: 17, fontWeight: 700 }}>Cirrus</div>
           <div className="section-label" style={{ fontSize: 9.5 }}>VM Inventory</div>

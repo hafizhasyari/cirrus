@@ -1,6 +1,7 @@
 import type { Theme } from '../types';
 import { useMediaQuery } from '../lib/useMediaQuery';
 import { MOBILE_QUERY } from '../lib/responsive';
+import cirrusMark from '../assets/cirrus-mark.svg';
 
 export function LoginScreen({
   theme,
@@ -198,11 +199,7 @@ export function CirrusMark({ size = 34 }: { size?: number }) {
         flexShrink: 0,
       }}
     >
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 3, width: size * 0.47 }}>
-        <div style={{ height: 3, borderRadius: 2, background: '#ffffff', width: '100%' }} />
-        <div style={{ height: 3, borderRadius: 2, background: '#ffffff', opacity: 0.75, width: '70%' }} />
-        <div style={{ height: 3, borderRadius: 2, background: '#ffffff', opacity: 0.5, width: '46%' }} />
-      </div>
+      <img src={cirrusMark} alt="" style={{ width: size * 0.72, height: size * 0.72 }} />
     </div>
   );
 }
