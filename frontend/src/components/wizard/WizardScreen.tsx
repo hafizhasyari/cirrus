@@ -62,8 +62,8 @@ export function WizardScreen({ app }: { app: CirrusApp }) {
       )}
 
       {step2 && wizardProviderMeta && (
-        <div style={{ display: 'flex', gap: 24, alignItems: 'flex-start', maxWidth: wizardProviderMeta.id === 'gcp' ? 1180 : 900 }}>
-          <div className="card" style={{ flex: 1, padding: 24, boxSizing: 'border-box' }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 24, alignItems: 'flex-start', maxWidth: wizardProviderMeta.id === 'gcp' ? 1180 : 900 }}>
+          <div className="card" style={{ flex: 1, minWidth: 300, padding: 24, boxSizing: 'border-box' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 20 }}>
               <ProviderBadge provider={wizardProviderMeta} size={30} iconSize={15} />
               <div className="font-display" style={{ fontSize: 15, fontWeight: 700 }}>{wizardProviderMeta.name}</div>
@@ -142,7 +142,7 @@ export function WizardScreen({ app }: { app: CirrusApp }) {
             )}
           </div>
 
-          <div className="card" style={{ width: 300, flexShrink: 0, padding: 20, boxSizing: 'border-box' }}>
+          <div className="card" style={{ width: 'min(300px, 100%)', flexShrink: 0, padding: 20, boxSizing: 'border-box' }}>
             <div className="section-label" style={{ marginBottom: 12 }}>How to get these values</div>
             {setupGuide.map((text, i) => (
               <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 9, marginBottom: 12 }}>
@@ -171,7 +171,7 @@ export function WizardScreen({ app }: { app: CirrusApp }) {
           </div>
 
           {wizardProviderMeta.id === 'gcp' && (
-            <div className="card" style={{ width: 260, flexShrink: 0, padding: 20, boxSizing: 'border-box' }}>
+            <div className="card" style={{ width: 'min(260px, 100%)', flexShrink: 0, padding: 20, boxSizing: 'border-box' }}>
               <div className="section-label" style={{ marginBottom: 8 }}>Download JWKS</div>
               <a
                 href="/api/gcp/jwks"

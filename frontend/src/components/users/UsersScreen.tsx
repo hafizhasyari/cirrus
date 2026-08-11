@@ -45,13 +45,14 @@ export function UsersScreen({ app }: { app: CirrusApp }) {
 
   return (
     <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', overflowX: 'hidden', display: 'flex', flexDirection: 'column', gap: 16 }}>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 14, flexShrink: 0 }}>
+      <div className="stat-grid" style={{ flexShrink: 0 }}>
         <StatCard label="Total users" value={userStats.total} />
         <StatCard label="Admins" value={userStats.admins} />
         <StatCard label="Viewers" value={userStats.viewers} />
       </div>
 
       <div className="card" style={{ overflow: 'hidden' }}>
+      <div style={{ overflow: 'auto' }}>
         <table className="cirrus-table">
           <thead>
             <tr>
@@ -130,6 +131,7 @@ export function UsersScreen({ app }: { app: CirrusApp }) {
             ))}
           </tbody>
         </table>
+      </div>
       </div>
 
       {app.userDrawerMode && <UserDrawer app={app} />}

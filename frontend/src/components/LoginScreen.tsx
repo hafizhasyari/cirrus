@@ -1,4 +1,6 @@
 import type { Theme } from '../types';
+import { useMediaQuery } from '../lib/useMediaQuery';
+import { MOBILE_QUERY } from '../lib/responsive';
 
 export function LoginScreen({
   theme,
@@ -10,8 +12,18 @@ export function LoginScreen({
   onContinue: () => void;
 }) {
   const dark = theme === 'dark';
+  const isMobile = useMediaQuery(MOBILE_QUERY);
   return (
-    <div style={{ width: '100%', height: '100vh', display: 'flex', position: 'relative' }}>
+    <div
+      style={{
+        width: '100%',
+        minHeight: '100vh',
+        height: isMobile ? 'auto' : '100vh',
+        display: 'flex',
+        flexDirection: isMobile ? 'column' : 'row',
+        position: 'relative',
+      }}
+    >
       <div
         style={{
           position: 'absolute',
@@ -36,14 +48,15 @@ export function LoginScreen({
 
       <div
         style={{
-          width: 460,
+          width: isMobile ? '100%' : 460,
+          height: isMobile ? 'auto' : '100%',
           flexShrink: 0,
           background: 'linear-gradient(155deg,#4c3ce8 0%,#7c6bff 48%,#b28cff 100%)',
           position: 'relative',
           overflow: 'hidden',
           display: 'flex',
           flexDirection: 'column',
-          padding: '44px 40px',
+          padding: isMobile ? '32px 28px' : '44px 40px',
           boxSizing: 'border-box',
         }}
       >
@@ -76,11 +89,11 @@ export function LoginScreen({
         </div>
       </div>
 
-      <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: isMobile ? '32px 20px' : 0, boxSizing: 'border-box' }}>
         <div
           className="card"
           style={{
-            width: 380,
+            width: 'min(380px, 100%)',
             padding: '40px 34px 32px',
             display: 'flex',
             flexDirection: 'column',

@@ -61,7 +61,7 @@ export function ConnectionsScreen({ app }: { app: CirrusApp }) {
 
   return (
     <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', overflowX: 'hidden', display: 'flex', flexDirection: 'column', gap: 16 }}>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 14, flexShrink: 0 }}>
+      <div className="stat-grid" style={{ flexShrink: 0 }}>
         <StatCard label="Total connections" value={connStats.total} />
         <StatCard label="Active" value={connStats.active} color="#10b981" />
         <StatCard label="Pending" value={connStats.pending} color="#f59e0b" />

@@ -23,7 +23,7 @@ export function VmDetailDrawer({
 }) {
   return (
     <div className="drawer-overlay" onClick={onClose}>
-      <div className="drawer-panel" style={{ width: 440 }} onClick={(e) => e.stopPropagation()}>
+      <div className="drawer-panel" style={{ width: 'min(440px, 100vw)' }} onClick={(e) => e.stopPropagation()}>
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
           <ProviderBadge provider={providerMeta} size={32} />
           <div style={{ cursor: 'pointer', color: 'var(--text-muted)' }} onClick={onClose}>
@@ -44,7 +44,7 @@ export function VmDetailDrawer({
 
         <div>
           <div className="section-label" style={{ marginBottom: 10 }}>Specs</div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+          <div className="drawer-grid-2col">
             <Field label="Instance type" value={vm.type} mono />
             <Field label="CPU / Memory" value={`${cpuDisplay} · ${memoryDisplay}`} mono />
             <Field label="Region" value={vm.region} mono />
@@ -55,7 +55,7 @@ export function VmDetailDrawer({
 
         <div>
           <div className="section-label" style={{ marginBottom: 10 }}>Storage</div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+          <div className="drawer-grid-2col">
             {vm.disks.map((disk, i) => (
               <Field key={i} label={disk.label} value={`${disk.sizeGB} GB`} mono />
             ))}
@@ -67,7 +67,7 @@ export function VmDetailDrawer({
 
         <div>
           <div className="section-label" style={{ marginBottom: 10 }}>Network</div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+          <div className="drawer-grid-2col">
             <Field label="Private IP" value={vm.privateIp} mono />
             <Field label="Public IP" value={publicIpDisplay} mono />
           </div>

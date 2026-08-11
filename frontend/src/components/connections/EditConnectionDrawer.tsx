@@ -17,7 +17,7 @@ export function EditConnectionDrawer({ app }: { app: CirrusApp }) {
 
   return (
     <div className="drawer-overlay" onClick={() => app.closeEditConnection()}>
-      <div className="drawer-panel" style={{ width: 440 }} onClick={(e) => e.stopPropagation()}>
+      <div className="drawer-panel" style={{ width: 'min(440px, 100vw)' }} onClick={(e) => e.stopPropagation()}>
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
           <ProviderBadge provider={providerMeta} size={32} />
           <div style={{ cursor: 'pointer', color: 'var(--text-muted)' }} onClick={() => app.closeEditConnection()}>
@@ -66,7 +66,7 @@ export function EditConnectionDrawer({ app }: { app: CirrusApp }) {
           />
         ))}
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, borderTop: '1px solid var(--border)', paddingTop: 16 }}>
+        <div className="drawer-grid-2col" style={{ borderTop: '1px solid var(--border)', paddingTop: 16 }}>
           <div>
             <div style={{ fontSize: 10.5, color: 'var(--text-muted)', marginBottom: 3 }}>Last checked</div>
             <div style={{ fontSize: 12.5 }}>{formatRelativeTime(conn.lastChecked)}</div>

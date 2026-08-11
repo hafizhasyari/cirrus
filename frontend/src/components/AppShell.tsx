@@ -2,6 +2,8 @@ import type { ReactNode } from 'react';
 import { Outlet } from '@tanstack/react-router';
 import { Sidebar } from './Sidebar';
 import { useApp } from '../state/AppContext';
+import { useMediaQuery } from '../lib/useMediaQuery';
+import { COMPACT_QUERY, MOBILE_QUERY } from '../lib/responsive';
 
 export function ProtectedLayout() {
   const app = useApp();
@@ -22,23 +24,42 @@ export function ProtectedLayout() {
  * single `<Outlet />` can only render one matched component, not a header
  * and body split across two separate containers. */
 export function ScreenLayout({ header, children }: { header: ReactNode; children: ReactNode }) {
+  const isCompact = useMediaQuery(COMPACT_QUERY);
+  const isMobile = useMediaQuery(MOBILE_QUERY);
+
   return (
     <>
       <div
         style={{
-          height: 72,
+          height: isMobile ? 'auto' : 72,
+          minHeight: 72,
           flexShrink: 0,
           borderBottom: '1px solid var(--border)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
-          padding: '0 32px',
+          flexWrap: isMobile ? 'wrap' : 'nowrap',
+          gap: isMobile ? 10 : 0,
+          paddingTop: isMobile ? 14 : 0,
+          paddingBottom: isMobile ? 14 : 0,
+          paddingRight: isMobile ? 16 : 32,
+          paddingLeft: isMobile ? 62 : isCompact ? 62 : 32,
           boxSizing: 'border-box',
         }}
       >
         {header}
       </div>
-      <div style={{ flex: 1, overflow: 'hidden', padding: '24px 32px 32px', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+      <div
+        style={{
+          flex: 1,
+          overflow: 'hidden',
+          padding: isMobile ? '16px' : '24px 32px 32px',
+          boxSizing: 'border-box',
+          display: 'flex',
+          flexDirection: 'column',
+          minHeight: 0,
+        }}
+      >
         {children}
       </div>
     </>

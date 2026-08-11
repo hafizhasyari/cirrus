@@ -1,5 +1,8 @@
+import { useState } from 'react';
 import { Link } from '@tanstack/react-router';
 import type { CirrusApp } from '../state/useCirrusApp';
+import { useMediaQuery } from '../lib/useMediaQuery';
+import { COMPACT_QUERY } from '../lib/responsive';
 
 export function Sidebar({ app }: { app: CirrusApp }) {
   const { role, theme, currentUser } = app;
@@ -14,19 +17,70 @@ export function Sidebar({ app }: { app: CirrusApp }) {
       .join('')
       .toUpperCase() || '?';
 
+  const isCompact = useMediaQuery(COMPACT_QUERY);
+  const [isOpen, setIsOpen] = useState(false);
+  const closeIfCompact = () => {
+    if (isCompact) setIsOpen(false);
+  };
+
   return (
-    <div
-      style={{
-        width: 264,
-        flexShrink: 0,
-        background: 'var(--sidebar-bg)',
-        borderRight: '1px solid var(--border)',
-        display: 'flex',
-        flexDirection: 'column',
-        padding: '20px 16px',
-        boxSizing: 'border-box',
-      }}
-    >
+    <>
+      {isCompact && (
+        <button
+          aria-label="Toggle navigation"
+          onClick={() => setIsOpen((v) => !v)}
+          style={{
+            position: 'fixed',
+            top: 16,
+            left: 16,
+            zIndex: 210,
+            width: 38,
+            height: 38,
+            borderRadius: 10,
+            border: '1px solid var(--border)',
+            background: 'var(--surface)',
+            color: 'var(--text-primary)',
+            boxShadow: 'var(--shadow-card)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            cursor: 'pointer',
+          }}
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <path d="M3 6h18M3 12h18M3 18h18" />
+          </svg>
+        </button>
+      )}
+      {isCompact && isOpen && (
+        <div
+          onClick={() => setIsOpen(false)}
+          style={{ position: 'fixed', inset: 0, background: 'var(--overlay-bg)', zIndex: 190 }}
+        />
+      )}
+      <div
+        style={{
+          width: 264,
+          flexShrink: 0,
+          background: 'var(--sidebar-bg)',
+          borderRight: '1px solid var(--border)',
+          display: 'flex',
+          flexDirection: 'column',
+          padding: '20px 16px',
+          boxSizing: 'border-box',
+          ...(isCompact
+            ? {
+                position: 'fixed',
+                top: 0,
+                left: 0,
+                height: '100vh',
+                zIndex: 200,
+                transform: isOpen ? 'translateX(0)' : 'translateX(-100%)',
+                transition: 'transform 200ms ease',
+              }
+            : {}),
+        }}
+      >
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '2px 4px 20px' }}>
         <div
           style={{
@@ -54,7 +108,15 @@ export function Sidebar({ app }: { app: CirrusApp }) {
       </div>
 
       <div className="section-label" style={{ padding: '0 10px', marginBottom: 6 }}>Workspace</div>
-      <Link to="/inventory" className="nav-item" activeProps={{ 'data-active': true }} onClick={() => app.closeDetail()}>
+      <Link
+        to="/inventory"
+        className="nav-item"
+        activeProps={{ 'data-active': true }}
+        onClick={() => {
+          app.closeDetail();
+          closeIfCompact();
+        }}
+      >
         <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
           <rect x="3" y="3" width="8" height="8" rx="1.5" /><rect x="13" y="3" width="8" height="8" rx="1.5" />
           <rect x="3" y="13" width="8" height="8" rx="1.5" /><rect x="13" y="13" width="8" height="8" rx="1.5" />
@@ -70,14 +132,25 @@ export function Sidebar({ app }: { app: CirrusApp }) {
             className="nav-item"
             activeProps={{ 'data-active': true }}
             activeOptions={{ exact: false }}
-            onClick={() => app.closeDetail()}
+            onClick={() => {
+              app.closeDetail();
+              closeIfCompact();
+            }}
           >
             <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
               <path d="M9 15L15 9" /><path d="M10 6l1.5-1.5a4 4 0 015.66 5.66L15.5 11.5" /><path d="M14 18l-1.5 1.5a4 4 0 01-5.66-5.66L8.5 12.5" />
             </svg>
             Cloud Connections
           </Link>
-          <Link to="/users" className="nav-item" activeProps={{ 'data-active': true }} onClick={() => app.closeDetail()}>
+          <Link
+            to="/users"
+            className="nav-item"
+            activeProps={{ 'data-active': true }}
+            onClick={() => {
+              app.closeDetail();
+              closeIfCompact();
+            }}
+          >
             <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
               <circle cx="9" cy="8" r="3.2" /><path d="M3.5 19c0-3 2.5-5 5.5-5s5.5 2 5.5 5" />
               <circle cx="17.5" cy="8.5" r="2.3" /><path d="M15.5 13.2c2.4.4 4 2 4 5.8" />
@@ -145,6 +218,7 @@ export function Sidebar({ app }: { app: CirrusApp }) {
           <div style={{ fontSize: 11, color: 'var(--text-muted)', cursor: 'pointer' }} onClick={() => app.signOut()}>Sign out</div>
         </div>
       </div>
-    </div>
+      </div>
+    </>
   );
 }

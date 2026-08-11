@@ -6,7 +6,7 @@ export function UserDrawer({ app }: { app: CirrusApp }) {
 
   return (
     <div className="drawer-overlay" onClick={() => app.closeUserDrawer()}>
-      <div className="drawer-panel" style={{ width: 420 }} onClick={(e) => e.stopPropagation()}>
+      <div className="drawer-panel" style={{ width: 'min(420px, 100vw)' }} onClick={(e) => e.stopPropagation()}>
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
           <div className="font-display" style={{ fontSize: 19, fontWeight: 700 }}>
             {isEdit ? 'Edit User' : 'Invite User'}

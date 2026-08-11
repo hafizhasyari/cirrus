@@ -17,8 +17,8 @@ export function InventoryHeader({ app }: { app: CirrusApp }) {
         <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 3 }}>Workspace</div>
         <div className="font-display" style={{ fontSize: 19, fontWeight: 700 }}>Inventory</div>
       </div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-        <div style={{ position: 'relative' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+        <div style={{ position: 'relative', flex: '1 1 160px', minWidth: 0 }}>
           <svg
             width="15"
             height="15"
@@ -169,7 +169,7 @@ export function InventoryScreen({ app }: { app: CirrusApp }) {
 
   return (
     <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', gap: 16 }}>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 14, flexShrink: 0 }}>
+      <div className="stat-grid" style={{ flexShrink: 0 }}>
         <StatCard label="Total VMs" value={stats.total} />
         <StatCard label="Running" value={stats.running} color="#10b981" />
         <StatCard label="Stopped" value={stats.attention} color="#f43f5e" />

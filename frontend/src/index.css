@@ -156,10 +156,16 @@ body {
   letter-spacing: -0.01em;
   color: var(--text-primary);
 }
+.stat-grid {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+}
 
 /* Table */
 .cirrus-table {
   width: 100%;
+  min-width: 760px;
   border-collapse: collapse;
 }
 .cirrus-table thead {
@@ -204,7 +210,9 @@ body {
   outline: none;
 }
 .search-input {
-  width: 240px;
+  width: 100%;
+  max-width: 240px;
+  min-width: 120px;
   border-radius: 10px;
   padding: 9px 12px 9px 32px;
   font-family: 'Plus Jakarta Sans', sans-serif;
@@ -489,15 +497,29 @@ phantom-ui {
   flex-direction: column;
   gap: 22px;
 }
+.drawer-grid-2col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+@media (max-width: 480px) {
+  .drawer-grid-2col {
+    grid-template-columns: 1fr;
+  }
+}
+@media (max-width: 640px) {
+  .drawer-panel {
+    padding: 16px;
+  }
+}
 
-/* Toast: centered in the workspace (viewport minus the fixed 264px sidebar,
-   so + 132px half-width), vertically centered in the 72px header row (36px)
-   to align with each screen's search field / action buttons. */
+/* Toast: fixed top-right, independent of sidebar width/visibility so it stays
+   correctly placed whether the sidebar is in-flow or off-canvas. */
 .toast {
   position: fixed;
-  top: 36px;
-  left: calc(50% + 132px);
-  transform: translate(-50%, -50%);
+  top: 88px;
+  right: 24px;
+  max-width: calc(100vw - 24px);
   z-index: 100;
   display: flex;
   align-items: center;
@@ -515,22 +537,22 @@ phantom-ui {
 @keyframes toastIn {
   from {
     opacity: 0;
-    transform: translate(-50%, calc(-50% - 8px));
+    transform: translateY(-8px);
   }
   to {
     opacity: 1;
-    transform: translate(-50%, -50%);
+    transform: translateY(0);
   }
 }
 
 @keyframes toastOut {
   from {
     opacity: 1;
-    transform: translate(-50%, -50%);
+    transform: translateY(0);
   }
   to {
     opacity: 0;
-    transform: translate(-50%, calc(-50% - 8px));
+    transform: translateY(-8px);
   }
 }
 
