@@ -47,6 +47,13 @@ interface EditFormValues {
 
 const MASKED_PLACEHOLDER = '••••••••••••••••••••';
 
+const THEME_STORAGE_KEY = 'cirrus-theme';
+
+function getInitialTheme(): Theme {
+  const stored = localStorage.getItem(THEME_STORAGE_KEY);
+  return stored === 'light' || stored === 'dark' ? stored : 'light';
+}
+
 /** Keeps a ref in sync with the latest value of state on every render, so
  * async callbacks captured at click time can read the current value
  * instead of the value from the render they were created in. */
@@ -62,10 +69,14 @@ function errorMessage(err: unknown, fallback: string): string {
 
 export function useCirrusApp() {
   // Session
-  const [theme, setTheme] = useState<Theme>('light');
+  const [theme, setTheme] = useState<Theme>(getInitialTheme);
   const [currentUser, setCurrentUser] = useState<AuthenticatedUser | null>(null);
   const [authChecked, setAuthChecked] = useState(false);
   const role: Role = currentUser?.role ?? 'viewer';
+
+  useEffect(() => {
+    localStorage.setItem(THEME_STORAGE_KEY, theme);
+  }, [theme]);
 
   // Data (fetch-driven — empty until the bootstrap/data effects below populate them)
   const [providers, setProviders] = useState<ProviderWithFieldDefs[]>([]);
