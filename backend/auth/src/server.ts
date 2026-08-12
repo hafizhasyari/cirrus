@@ -1,5 +1,5 @@
 import cookie from '@fastify/cookie';
-import Fastify from 'fastify';
+import Fastify, { type FastifyError } from 'fastify';
 import { env } from './env.js';
 import { getJwks, initSigningKey } from './jwt.js';
 import { registerOidcRoutes } from './oidc/callback.js';
@@ -8,6 +8,16 @@ import { registerInternalAuth } from './plugins/internalAuth.js';
 import { registerWifRoutes } from './routes/wif.js';
 
 const app = Fastify({ logger: true });
+
+app.setErrorHandler((err: FastifyError, _req, reply) => {
+  const status = err.statusCode ?? 500;
+  if (status >= 500) {
+    app.log.error({ err }, 'unhandled request error');
+    reply.status(status).send({ error: 'Internal Server Error' });
+    return;
+  }
+  reply.status(status).send({ error: err.message });
+});
 
 app.get('/health', async () => ({ status: 'ok' }));
 app.get('/.well-known/jwks.json', async () => getJwks());
@@ -23,6 +33,9 @@ await app.register(
   { prefix: '/internal' },
 );
 
+if (env.devLoginSuppressedByNodeEnv) {
+  app.log.warn('DEV_LOGIN_ENABLED=true but NODE_ENV=production — dev-login bypass suppressed.');
+}
 if (env.devLoginEnabled) {
   app.log.warn('DEV_LOGIN_ENABLED=true — /dev-login bypass is active. Never enable this in production.');
   await registerDevLoginRoutes(app);

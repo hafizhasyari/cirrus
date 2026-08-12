@@ -1,0 +1,32 @@
+# Production overlay — layer on top of the base file:
+#   docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
+#
+# Local dev keeps using the plain `docker compose up -d --build` (base file
+# only): Postgres/Redis/Vault stay reachable on the host for local
+# psql/redis-cli/vault CLI access, and NODE_ENV stays unset (defaults to
+# "development" in code, which keeps DEV_LOGIN_ENABLED's bypass usable).
+#
+# `!reset []` (Compose Specification merge tag) is required here rather than
+# just omitting `ports:` — Compose concatenates list-type fields like `ports`
+# across -f files instead of replacing them, so an override file can't drop
+# a base file's port mapping any other way.
+services:
+  postgres:
+    ports: !reset []
+  redis:
+    ports: !reset []
+  vault:
+    ports: !reset []
+
+  bff:
+    environment:
+      NODE_ENV: production
+  auth:
+    environment:
+      NODE_ENV: production
+  rbac:
+    environment:
+      NODE_ENV: production
+  aggregator:
+    environment:
+      NODE_ENV: production

@@ -193,21 +193,23 @@ A collector's `{error:{code,message}}` body carries one of `TIMEOUT` / `AUTH_FAI
 
 ## 4. Deployment
 
-Local dev is **Docker Compose only** (`docker-compose.yml` at repo root) — Helm/Kubernetes (PRD §8) is not yet built.
+Docker Compose (`docker-compose.yml` at repo root) is both the local dev and the production deployment mechanism — Helm/Kubernetes (PRD §8) is not yet built. Production layers a second file on top: `docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build`, which clears Postgres/Redis/Vault's direct host port publishing (`ports: !reset []` — Compose's list fields concatenate across `-f` files rather than replace, so dropping a base file's port mapping needs this explicit reset tag) and sets `NODE_ENV=production` for the four Node services. Local dev keeps using the plain `docker compose up -d --build` (base file only), leaving those ports reachable for direct `psql`/`redis-cli`/`vault` CLI access.
 
 | Service | Image/build | Port | Depends on |
 |---|---|---|---|
-| postgres | `postgres:17-alpine` | 5432 | — |
-| redis | `redis:8-alpine` | 6379 | — |
-| vault | `hashicorp/vault:2.0.4` + custom entrypoint | 8200 | — |
+| postgres | `postgres:17-alpine` | 5432 (dev only) | — |
+| redis | `redis:8-alpine` | 6379 (dev only) | — |
+| vault | `hashicorp/vault:2.0.4` + custom entrypoint | 8200 (dev only) | — |
 | rbac | `./backend`, `rbac/Dockerfile` | 4001 | postgres, vault (healthy) |
-| auth | `./backend`, `auth/Dockerfile` | 4000 | rbac |
-| collector-aws/gcp/alibaba/oci/biznet | `./backend/collectors`, per-provider Dockerfile | 5001–5005 | rbac (gcp also: auth) |
-| aggregator | `./backend`, `aggregator/Dockerfile` | 4002 | redis, rbac, all 5 collectors |
-| bff | `./backend`, `bff/Dockerfile` | 8080 | auth, rbac, aggregator |
-| frontend | `./frontend/Dockerfile` (nginx) | 5173→80 | bff |
+| auth | `./backend`, `auth/Dockerfile` | 4000 | rbac (healthy) |
+| collector-aws/gcp/alibaba/oci/biznet | `./backend/collectors`, per-provider Dockerfile | 5001–5005 | rbac (healthy; gcp also: auth healthy) |
+| aggregator | `./backend`, `aggregator/Dockerfile` | 4002 | redis, rbac, all 5 collectors (all healthy) |
+| bff | `./backend`, `bff/Dockerfile` | 8080 | auth, rbac, aggregator (healthy) |
+| frontend | `./frontend/Dockerfile` (nginx) | 5173→80 | bff (healthy) |
 
-Vault's `entrypoint.sh` runs an idempotent bootstrap on every container start (init once, unseal every time from persisted key shares, enable KV v2, write the `cirrus-rbac` policy, mint RBAC's fixed-ID token) gated by a `bootstrapped` sentinel file that `healthcheck.sh` checks before `rbac` (which `depends_on: vault: condition: service_healthy`) is allowed to start.
+Every service has `restart: unless-stopped` and a healthcheck (Postgres/Redis/Vault/RBAC/Auth/Aggregator ping their own HTTP `/health`; BFF the same; frontend and the 5 collectors are checked via a `wget --spider` against nginx's `/` and each collector's `GET /healthz` respectively — the collectors run on a shell-less distroless base image, so their Dockerfiles `COPY` in a statically-linked `busybox` `wget` purely so there's something for the healthcheck to exec).
+
+Vault's `entrypoint.sh` runs an idempotent bootstrap on every container start (init once, unseal every time from persisted key shares, enable KV v2, write the `cirrus-rbac` policy, mint RBAC's fixed-ID token) gated by a `bootstrapped` sentinel file that `healthcheck.sh` checks before `rbac` (which `depends_on: vault: condition: service_healthy`) is allowed to start. The one-time bootstrap record (Shamir unseal keys + root token) lives in its own `vault-init` volume, deliberately separate from `vault-file` where Vault's encrypted secret data itself lives, and is never printed to container logs.
 
 No manual migrate/seed step: `rbac`'s entrypoint runs migrations then an idempotent admin-seed on every start.
 

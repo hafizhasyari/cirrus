@@ -20,7 +20,13 @@ export const env = {
   cookieSecret: required('COOKIE_SECRET'), // for signed flow-state cookies (PKCE verifier/nonce/state)
   sessionTtlSeconds: Number(process.env.SESSION_TTL_SECONDS ?? 12 * 60 * 60),
   signingKeyJwk: process.env.AUTH_SIGNING_KEY_JWK,
+  nodeEnv: process.env.NODE_ENV ?? 'development',
   // TEMPORARY: lets the frontend be exercised end-to-end before a real Entra
-  // ID app registration exists. Must default OFF — never `required()`.
-  devLoginEnabled: (process.env.DEV_LOGIN_ENABLED ?? 'false') === 'true',
+  // ID app registration exists. Must default OFF — never `required()`. Also
+  // gated on NODE_ENV as a second, independent layer of defense: even a
+  // stray DEV_LOGIN_ENABLED=true left over in a production .env can't bring
+  // the bypass back to life once NODE_ENV=production (see
+  // docker-compose.prod.yml) is set.
+  devLoginEnabled: (process.env.DEV_LOGIN_ENABLED ?? 'false') === 'true' && (process.env.NODE_ENV ?? 'development') !== 'production',
+  devLoginSuppressedByNodeEnv: (process.env.DEV_LOGIN_ENABLED ?? 'false') === 'true' && (process.env.NODE_ENV ?? 'development') === 'production',
 };

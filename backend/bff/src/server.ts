@@ -1,6 +1,6 @@
 import cookie from '@fastify/cookie';
 import httpProxy from '@fastify/http-proxy';
-import Fastify from 'fastify';
+import Fastify, { type FastifyError } from 'fastify';
 import { env } from './env.js';
 import { registerSessionMiddleware } from './plugins/session.js';
 import { registerAuthRoutes } from './routes/auth.js';
@@ -11,6 +11,16 @@ import { registerUserRoutes } from './routes/users.js';
 import { registerVmRoutes } from './routes/vms.js';
 
 const app = Fastify({ logger: true });
+
+app.setErrorHandler((err: FastifyError, _req, reply) => {
+  const status = err.statusCode ?? 500;
+  if (status >= 500) {
+    app.log.error({ err }, 'unhandled request error');
+    reply.status(status).send({ error: 'Internal Server Error' });
+    return;
+  }
+  reply.status(status).send({ error: err.message });
+});
 
 app.get('/health', async () => ({ status: 'ok' }));
 

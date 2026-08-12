@@ -3,10 +3,11 @@ name: cirrus
 services:
   postgres:
     image: postgres:17-alpine
+    restart: unless-stopped
     environment:
       POSTGRES_DB: cirrus
       POSTGRES_USER: cirrus
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-cirrus_dev}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
     volumes:
       - pgdata:/var/lib/postgresql/data
     ports:
@@ -18,6 +19,7 @@ services:
 
   redis:
     image: redis:8-alpine
+    restart: unless-stopped
     ports:
       - "6379:6379"
     healthcheck:
@@ -27,6 +29,7 @@ services:
 
   vault:
     image: hashicorp/vault:2.0.4
+    restart: unless-stopped
     environment:
       VAULT_API_ADDR: http://127.0.0.1:8200
       VAULT_ADDR: http://127.0.0.1:8200
@@ -40,6 +43,10 @@ services:
       - ./vault/entrypoint.sh:/vault/entrypoint.sh:ro
       - ./vault/healthcheck.sh:/vault/healthcheck.sh:ro
       - vault-file:/vault/file
+      # Separate from vault-file on purpose: holds the one-time bootstrap
+      # record (unseal keys + root token) so it no longer lives in the same
+      # volume as the encrypted secret data it can unlock — see entrypoint.sh.
+      - vault-init:/vault/init
     ports:
       - "8200:8200"
     healthcheck:
@@ -52,10 +59,11 @@ services:
     build:
       context: ./backend
       dockerfile: rbac/Dockerfile
+    restart: unless-stopped
     environment:
       PORT: 4001
-      DATABASE_URL: postgres://cirrus:${POSTGRES_PASSWORD:-cirrus_dev}@postgres:5432/cirrus
-      INTERNAL_SHARED_SECRET: ${INTERNAL_SHARED_SECRET:-dev-internal-secret}
+      DATABASE_URL: postgres://cirrus:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}@postgres:5432/cirrus
+      INTERNAL_SHARED_SECRET: ${INTERNAL_SHARED_SECRET:?INTERNAL_SHARED_SECRET is required}
       SEED_ADMIN_EMAIL: ${SEED_ADMIN_EMAIL:-admin@example.com}
       SEED_ADMIN_NAME: ${SEED_ADMIN_NAME:-Administrator}
       VAULT_ADDR: http://vault:8200
@@ -82,6 +90,7 @@ services:
     build:
       context: ./backend
       dockerfile: auth/Dockerfile
+    restart: unless-stopped
     environment:
       PORT: 4000
       ENTRA_TENANT_ID: ${ENTRA_TENANT_ID}
@@ -90,12 +99,12 @@ services:
       AUTH_REDIRECT_URI: ${AUTH_REDIRECT_URI:-http://localhost:8080/auth/callback}
       POST_LOGIN_REDIRECT: ${POST_LOGIN_REDIRECT:-http://localhost:5173/}
       RBAC_URL: http://rbac:4001
-      INTERNAL_SHARED_SECRET: ${INTERNAL_SHARED_SECRET:-dev-internal-secret}
+      INTERNAL_SHARED_SECRET: ${INTERNAL_SHARED_SECRET:?INTERNAL_SHARED_SECRET is required}
       JWT_ISSUER: ${JWT_ISSUER:-https://auth.cirrus.internal}
       JWT_AUDIENCE: ${JWT_AUDIENCE:-cirrus-bff}
       SESSION_COOKIE_NAME: ${SESSION_COOKIE_NAME:-cirrus_session}
       COOKIE_SECURE: ${COOKIE_SECURE:-false}
-      COOKIE_SECRET: ${COOKIE_SECRET:-dev-cookie-secret-change-me}
+      COOKIE_SECRET: ${COOKIE_SECRET:?COOKIE_SECRET is required}
       SESSION_TTL_SECONDS: ${SESSION_TTL_SECONDS:-43200}
       AUTH_SIGNING_KEY_JWK: ${AUTH_SIGNING_KEY_JWK:-}
       DEV_LOGIN_ENABLED: ${DEV_LOGIN_ENABLED:-false}
@@ -114,25 +123,32 @@ services:
     build:
       context: ./backend/collectors
       dockerfile: aws/Dockerfile
+    restart: unless-stopped
     environment:
       PORT: 8080
       RBAC_URL: http://rbac:4001
-      INTERNAL_SHARED_SECRET: ${INTERNAL_SHARED_SECRET:-dev-internal-secret}
+      INTERNAL_SHARED_SECRET: ${INTERNAL_SHARED_SECRET:?INTERNAL_SHARED_SECRET is required}
     ports:
       - "5001:8080"
     depends_on:
       rbac:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD", "/usr/bin/wget", "-q", "--spider", "http://localhost:8080/healthz"]
+      interval: 5s
+      retries: 10
+      start_period: 5s
 
   collector-gcp:
     build:
       context: ./backend/collectors
       dockerfile: gcp/Dockerfile
+    restart: unless-stopped
     environment:
       PORT: 8080
       AUTH_URL: http://auth:4000
       RBAC_URL: http://rbac:4001
-      INTERNAL_SHARED_SECRET: ${INTERNAL_SHARED_SECRET:-dev-internal-secret}
+      INTERNAL_SHARED_SECRET: ${INTERNAL_SHARED_SECRET:?INTERNAL_SHARED_SECRET is required}
     ports:
       - "5002:8080"
     depends_on:
@@ -140,58 +156,82 @@ services:
         condition: service_healthy
       rbac:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD", "/usr/bin/wget", "-q", "--spider", "http://localhost:8080/healthz"]
+      interval: 5s
+      retries: 10
+      start_period: 5s
 
   collector-alibaba:
     build:
       context: ./backend/collectors
       dockerfile: alibaba/Dockerfile
+    restart: unless-stopped
     environment:
       PORT: 8080
       RBAC_URL: http://rbac:4001
-      INTERNAL_SHARED_SECRET: ${INTERNAL_SHARED_SECRET:-dev-internal-secret}
+      INTERNAL_SHARED_SECRET: ${INTERNAL_SHARED_SECRET:?INTERNAL_SHARED_SECRET is required}
     ports:
       - "5003:8080"
     depends_on:
       rbac:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD", "/usr/bin/wget", "-q", "--spider", "http://localhost:8080/healthz"]
+      interval: 5s
+      retries: 10
+      start_period: 5s
 
   collector-oci:
     build:
       context: ./backend/collectors
       dockerfile: oci/Dockerfile
+    restart: unless-stopped
     environment:
       PORT: 8080
       RBAC_URL: http://rbac:4001
-      INTERNAL_SHARED_SECRET: ${INTERNAL_SHARED_SECRET:-dev-internal-secret}
+      INTERNAL_SHARED_SECRET: ${INTERNAL_SHARED_SECRET:?INTERNAL_SHARED_SECRET is required}
     ports:
       - "5004:8080"
     depends_on:
       rbac:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD", "/usr/bin/wget", "-q", "--spider", "http://localhost:8080/healthz"]
+      interval: 5s
+      retries: 10
+      start_period: 5s
 
   collector-biznet:
     build:
       context: ./backend/collectors
       dockerfile: biznet/Dockerfile
+    restart: unless-stopped
     environment:
       PORT: 8080
       RBAC_URL: http://rbac:4001
-      INTERNAL_SHARED_SECRET: ${INTERNAL_SHARED_SECRET:-dev-internal-secret}
+      INTERNAL_SHARED_SECRET: ${INTERNAL_SHARED_SECRET:?INTERNAL_SHARED_SECRET is required}
     ports:
       - "5005:8080"
     depends_on:
       rbac:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD", "/usr/bin/wget", "-q", "--spider", "http://localhost:8080/healthz"]
+      interval: 5s
+      retries: 10
+      start_period: 5s
 
   aggregator:
     build:
       context: ./backend
       dockerfile: aggregator/Dockerfile
+    restart: unless-stopped
     environment:
       PORT: 4002
       REDIS_URL: redis://redis:6379
       RBAC_URL: http://rbac:4001
-      INTERNAL_SHARED_SECRET: ${INTERNAL_SHARED_SECRET:-dev-internal-secret}
+      INTERNAL_SHARED_SECRET: ${INTERNAL_SHARED_SECRET:?INTERNAL_SHARED_SECRET is required}
       AWS_COLLECTOR_URL: http://collector-aws:8080
       GCP_COLLECTOR_URL: http://collector-gcp:8080
       ALIBABA_COLLECTOR_URL: http://collector-alibaba:8080
@@ -205,15 +245,15 @@ services:
       rbac:
         condition: service_healthy
       collector-aws:
-        condition: service_started
+        condition: service_healthy
       collector-gcp:
-        condition: service_started
+        condition: service_healthy
       collector-alibaba:
-        condition: service_started
+        condition: service_healthy
       collector-oci:
-        condition: service_started
+        condition: service_healthy
       collector-biznet:
-        condition: service_started
+        condition: service_healthy
     healthcheck:
       test: ["CMD", "node", "-e", "fetch('http://localhost:4002/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
       interval: 5s
@@ -224,12 +264,13 @@ services:
     build:
       context: ./backend
       dockerfile: bff/Dockerfile
+    restart: unless-stopped
     environment:
       PORT: 8080
       AUTH_URL: http://auth:4000
       RBAC_URL: http://rbac:4001
       AGGREGATOR_URL: http://aggregator:4002
-      INTERNAL_SHARED_SECRET: ${INTERNAL_SHARED_SECRET:-dev-internal-secret}
+      INTERNAL_SHARED_SECRET: ${INTERNAL_SHARED_SECRET:?INTERNAL_SHARED_SECRET is required}
       SESSION_COOKIE_NAME: ${SESSION_COOKIE_NAME:-cirrus_session}
       JWT_ISSUER: ${JWT_ISSUER:-https://auth.cirrus.internal}
       JWT_AUDIENCE: ${JWT_AUDIENCE:-cirrus-bff}
@@ -242,18 +283,30 @@ services:
         condition: service_healthy
       aggregator:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://localhost:8080/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 5s
+      retries: 10
+      start_period: 10s
 
   frontend:
     build:
       context: ./frontend
       dockerfile: Dockerfile
+    restart: unless-stopped
     ports:
       - "5173:80"
     depends_on:
-      - bff
+      bff:
+        condition: service_healthy
     networks:
       - default
       - proxy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "--spider", "http://localhost/"]
+      interval: 5s
+      retries: 10
+      start_period: 5s
     labels:
       - "traefik.enable=true"
       - "traefik.docker.network=proxy"
@@ -268,6 +321,7 @@ services:
 volumes:
   pgdata:
   vault-file:
+  vault-init:
 
 networks:
   proxy:

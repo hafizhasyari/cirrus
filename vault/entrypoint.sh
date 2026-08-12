@@ -1,8 +1,9 @@
 #!/bin/sh
 # Bootstraps Vault in production (non-dev) mode on every container start:
 # starts the server, initializes it once (persisting unseal keys + root
-# token into the same file-storage volume Vault itself writes to, so both
-# live or die together), unseals it, and ensures the KV v2 mount + the
+# token into a dedicated vault-init volume — deliberately NOT the vault-file
+# volume Vault's own encrypted data lives in, so a compromise of one doesn't
+# hand over the other), unseals it, and ensures the KV v2 mount + the
 # least-privilege policy/token RBAC uses all exist. Idempotent — safe to
 # run on every `docker compose up`/restart, not just the first.
 #
@@ -16,9 +17,25 @@
 export VAULT_ADDR
 
 CONFIG=/vault/config/config.hcl
-INIT_DIR=/vault/file/.cirrus-init
+INIT_DIR=/vault/init/.cirrus-init
 INIT_FILE="$INIT_DIR/init.txt"
 BOOTSTRAP_FILE="$INIT_DIR/bootstrapped"
+
+# Pre-existing deployments initialized before the vault-init volume split
+# above wrote this material under vault-file instead — migrate it over once,
+# in place, so this fix applies to an already-running deployment on its next
+# restart with no manual steps.
+LEGACY_INIT_DIR=/vault/file/.cirrus-init
+LEGACY_INIT_FILE="$LEGACY_INIT_DIR/init.txt"
+LEGACY_BOOTSTRAP_FILE="$LEGACY_INIT_DIR/bootstrapped"
+if [ ! -f "$INIT_FILE" ] && [ -f "$LEGACY_INIT_FILE" ]; then
+  echo "entrypoint: migrating vault init material out of the vault-file volume into vault-init"
+  mkdir -p "$INIT_DIR"
+  mv "$LEGACY_INIT_FILE" "$INIT_FILE"
+  chmod 600 "$INIT_FILE"
+  [ -f "$LEGACY_BOOTSTRAP_FILE" ] && mv "$LEGACY_BOOTSTRAP_FILE" "$BOOTSTRAP_FILE"
+  rmdir "$LEGACY_INIT_DIR" 2>/dev/null || true
+fi
 
 vault server -config="$CONFIG" &
 VAULT_PID=$!
@@ -43,10 +60,9 @@ if [ ! -f "$INIT_FILE" ]; then
   echo "entrypoint: first boot — initializing vault (5 key shares, threshold 3)"
   mkdir -p "$INIT_DIR"
   INIT_OUTPUT=$(vault operator init -key-shares=5 -key-threshold=3)
-  echo "$INIT_OUTPUT"
-  echo "entrypoint: ^ SAVE THE ABOVE UNSEAL KEYS + ROOT TOKEN NOW (e.g. to a password manager) — this is the only time they print to logs."
   printf '%s\n' "$INIT_OUTPUT" >"$INIT_FILE"
   chmod 600 "$INIT_FILE"
+  echo "entrypoint: vault initialized. Unseal keys + root token were written to $INIT_FILE — they are NOT printed to logs. Retrieve them from that file now and store them in a password manager, then restrict/rotate access to it once copied out."
 fi
 
 UNSEAL_KEYS=$(grep -E '^Unseal Key [0-9]+:' "$INIT_FILE" | awk '{print $NF}')
