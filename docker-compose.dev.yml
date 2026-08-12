@@ -1,0 +1,34 @@
+# Dev-mode overlay — the mirror image of docker-compose.prod.yml, layered on
+# top of the SAME base file, same `.env`, same project name, same volumes
+# (real data), same `proxy`/Traefik network as prod. This is a mode TOGGLE
+# on the one live stack, not a second isolated stack:
+#   docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d --build --force-recreate
+# and back to production with:
+#   docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build --force-recreate
+#
+# SECURITY NOTE — read before switching the live site into this mode: only
+# `auth`'s NODE_ENV actually gates anything security-sensitive — env.ts's
+# `devLoginEnabled` requires NODE_ENV !== 'production' (see backend/auth/src
+# /env.ts), and `.env` already has DEV_LOGIN_ENABLED=true. So while this
+# overlay is active, POST https://cirrus.example.com/auth/dev-login
+# ?email=<any already-invited user's email> logs in as that user with no
+# password/MFA at all — reachable by anyone on the public internet who knows
+# or guesses an invited email, for as long as the site stays in this mode.
+# Switch back to docker-compose.prod.yml as soon as you're done testing.
+# rbac/aggregator/bff's NODE_ENV don't gate anything as security-sensitive
+# as auth's does — they're only here for symmetry with docker-compose.prod.yml
+# (their production-mode effect is just hiding raw error messages from
+# clients on a 5xx; harmless to relax during a short local test session).
+services:
+  bff:
+    environment:
+      NODE_ENV: development
+  auth:
+    environment:
+      NODE_ENV: development
+  rbac:
+    environment:
+      NODE_ENV: development
+  aggregator:
+    environment:
+      NODE_ENV: development
