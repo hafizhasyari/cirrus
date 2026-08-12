@@ -6,8 +6,8 @@ import { db } from '../db/client.js';
 import { cloudConnections, users } from '../db/schema.js';
 import { writeAudit } from '../lib/audit.js';
 import { deleteSecret, writeSecret } from '../lib/vault.js';
-import { testConnectionViaCollector } from '../lib/collectorClient.js';
-import { FAILURE_MSG, FIELD_DEFS } from '../data/providers.js';
+import { runConnectionCheck } from '../lib/connectionCheck.js';
+import { FIELD_DEFS } from '../data/providers.js';
 
 const createSchema = z.object({
   provider: z.enum(['aws', 'gcp', 'alibaba', 'oci', 'biznet']),
@@ -166,29 +166,9 @@ export async function registerConnectionRoutes(app: FastifyInstance) {
       return { error: { code: 'NOT_FOUND', message: 'connection not found' } };
     }
 
-    const outcome = await testConnectionViaCollector(conn.provider, conn.id);
-    const success = outcome.ok;
-    const message = outcome.message || FAILURE_MSG[conn.provider];
-
-    await db
-      .update(cloudConnections)
-      .set({
-        status: success ? 'active' : 'error',
-        lastCheckedAt: new Date(),
-        lastCheckMessage: message,
-        updatedAt: new Date(),
-      })
-      .where(eq(cloudConnections.id, conn.id));
-
     const actorUserId = (req.headers['x-actor-user-id'] as string) ?? null;
-    await writeAudit({
-      actorUserId,
-      action: 'connection_test',
-      targetType: 'connection',
-      targetId: conn.id,
-      metadata: success ? { result: 'success' } : { result: 'failure', code: outcome.code },
-    });
+    const result = await runConnectionCheck(conn, { actorUserId, source: 'manual' });
 
-    return success ? { result: 'success' as const } : { result: 'failure' as const, message };
+    return result.success ? { result: 'success' as const } : { result: 'failure' as const, message: result.message };
   });
 }

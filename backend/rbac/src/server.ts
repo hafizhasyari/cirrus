@@ -5,6 +5,7 @@ import { registerUserRoutes } from './routes/users.js';
 import { registerConnectionRoutes } from './routes/connections.js';
 import { registerProviderRoutes } from './routes/providers.js';
 import { registerInternalRoutes } from './routes/internal.js';
+import { startHealthCheckScheduler } from './scheduler.js';
 
 const app = Fastify({ logger: true });
 
@@ -26,7 +27,13 @@ await registerConnectionRoutes(app);
 await registerProviderRoutes(app);
 await registerInternalRoutes(app);
 
-app.listen({ port: env.port, host: '0.0.0.0' }).catch((err) => {
+try {
+  await app.listen({ port: env.port, host: '0.0.0.0' });
+} catch (err) {
   app.log.error(err);
   process.exit(1);
-});
+}
+
+// Only starts once the HTTP server is confirmed listening. PRD §6.1: automatic
+// ~6h re-validation of every stored connection — see scheduler.ts.
+startHealthCheckScheduler(app);

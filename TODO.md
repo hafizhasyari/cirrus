@@ -19,7 +19,7 @@ See [ARCHITECTURE.md](ARCHITECTURE.md) for how the pieces fit together and [CLAU
 
 Found via a direct code audit against `PRD.md` §4–§6 and the frontend's own UI completeness, separate from the infra/ops gaps above. Some of these are the same underlying issue already listed elsewhere (e.g. the health-check job also appears in P2) — kept here too since they're PRD-level functional gaps, not just ops nice-to-haves.
 
-- [ ] **Periodic connection health-check job (PRD §6.1/§7.3) — missing entirely, not just deferred ops polish.** PRD explicitly requires an automatic ~6h re-validation of every stored connection so an Admin learns about a bad credential before a Viewer hits an error. No cron/scheduler/timer exists anywhere in the stack; `POST /connections/:id/test` (`backend/rbac/src/routes/connections.ts`) is manual-only. (Same item as P2's health-check bullet — surfaced again here because it's a named PRD requirement, not just general reliability hardening.)
+- [x] **Periodic connection health-check job (PRD §6.1/§7.3) — built.** `backend/rbac/src/scheduler.ts` runs an in-process `setInterval` (`HEALTH_CHECK_INTERVAL_SECONDS`, default 21600s/6h, 0 disables it) that re-checks every stored connection (all providers, all statuses) in batches of 5 via `Promise.allSettled`. The manual `POST /connections/:id/test` route's update+audit logic was extracted into `backend/rbac/src/lib/connectionCheck.ts`'s `runConnectionCheck()` so both paths share one code path; a new `metadata.source: 'manual' | 'scheduled'` field on the `connection_test` audit action distinguishes the two (no new "system actor" — `actorUserId: null` was already a supported value). Single-`rbac`-instance assumption, no jitter needed today. (Same item as P2's health-check bullet below.)
 - [ ] **Inventory filters are partial**: PRD §4.1.2/§5.3 promise filter by provider, account/project, region, and status. `frontend/src/state/useCirrusApp.ts` and `InventoryScreen.tsx` only implement provider + status + name/ID text search — there is no account/project filter and no region filter anywhere in `FilterDropdown.tsx`.
 - [ ] **Users screen has no empty state**: `UsersScreen.tsx` renders a bare table with no rows/message when `app.users` is empty, unlike Inventory/Connections which both have a real `EmptyState`.
 - [ ] **No real "fetch failed" state on any screen**: Inventory/Connections/Users all only ever show a toast (gone after ~3.2s) on a load failure; once it fades the screen looks identical to "genuinely empty" (e.g. Connections still shows its "Add Connection" empty-state CTA after a failed fetch, not an error state).
@@ -40,7 +40,7 @@ Found via a direct code audit against `PRD.md` §4–§6 and the frontend's own 
 
 ## P2 — Reliability & observability
 
-- [ ] Build the periodic connection health-check job that PRD §6.1 calls for (recommended every 6h) — today `POST /api/connections/:id/test` is manual/on-demand only, so a connection that goes bad shows stale "Active" status until someone notices or re-tests it.
+- [x] Build the periodic connection health-check job that PRD §6.1 calls for (recommended every 6h) — see the P0.5 bullet above for what shipped.
 - [ ] Add basic metrics/uptime visibility (even minimal — container-level monitoring, or a `/metrics` endpoint on the Fastify services) — nothing exists today beyond `/healthz`/`/health` liveness checks.
 - [ ] Add alerting on collector/connection outages rather than relying on an Admin visually noticing a red status or an `OutageBanner`.
 

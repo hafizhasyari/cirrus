@@ -14,6 +14,10 @@ export const env = {
   seedAdminName: process.env.SEED_ADMIN_NAME,
   vaultAddr: required('VAULT_ADDR'),
   vaultToken: required('VAULT_TOKEN'),
+  // PRD §6.1: how often (ms) the connection health-check scheduler
+  // (scheduler.ts) re-validates every stored connection. Stored in seconds
+  // in the env var (matches SESSION_TTL_SECONDS's house style). 0 disables it.
+  healthCheckIntervalMs: Number(process.env.HEALTH_CHECK_INTERVAL_SECONDS ?? 21_600) * 1000,
 };
 
 export const COLLECTOR_URLS: Record<ProviderId, string> = {

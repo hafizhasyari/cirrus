@@ -217,7 +217,6 @@ No manual migrate/seed step: `rbac`'s entrypoint runs migrations then an idempot
 
 See `CLAUDE.md` for full incident-level detail on each of these:
 
-- No periodic connection health-check job (PRD §6.1 recommends every 6h) — `/test` is on-demand only, run manually or from the wizard.
 - AWS/Alibaba only cover EC2/ECS compute — e.g. AWS Lightsail VMs are invisible today.
 - GCP and Alibaba are unverified against a real successful *instance* fetch (both compile and fail gracefully against real APIs; GCP's lightweight `/test` path is confirmed against a real project).
 - Helm charts / Kubernetes deploy path is not built.
