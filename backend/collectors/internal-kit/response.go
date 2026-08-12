@@ -28,7 +28,6 @@ type Instance struct {
 	PrivateIP    string            `json:"privateIp"`
 	PublicIP     *string           `json:"publicIp"`
 	LaunchedAt   string            `json:"launchedAt"`
-	Tags         map[string]string `json:"tags"`
 }
 
 // InstancesResponse is the GET /instances success envelope.

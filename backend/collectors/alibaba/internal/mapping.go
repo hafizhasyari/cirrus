@@ -19,7 +19,7 @@ func mapStatus(status string) string {
 }
 
 // mapInstance maps one ECS DescribeInstances result. CPU/Memory/IPs/creation
-// time/tags all come directly off the instance (unlike AWS, no extra
+// time all come directly off the instance (unlike AWS, no extra
 // DescribeInstanceTypes/DescribeVolumes calls needed) — disk sizes are not
 // returned by DescribeInstances at all; a real per-disk size would need a
 // separate DescribeDisks call, left as a known follow-up (flagged, not
@@ -50,15 +50,6 @@ func mapInstance(inst *ecs20140526.DescribeInstancesResponseBodyInstancesInstanc
 		}
 	}
 
-	tags := map[string]string{}
-	if inst.Tags != nil {
-		for _, t := range inst.Tags.Tag {
-			if t.TagKey != nil && t.TagValue != nil {
-				tags[tea.StringValue(t.TagKey)] = tea.StringValue(t.TagValue)
-			}
-		}
-	}
-
 	return collectorkit.Instance{
 		ID:           id,
 		Name:         name,
@@ -71,6 +62,5 @@ func mapInstance(inst *ecs20140526.DescribeInstancesResponseBodyInstancesInstanc
 		PrivateIP:    privateIP,
 		PublicIP:     publicIP,
 		LaunchedAt:   tea.StringValue(inst.CreationTime),
-		Tags:         tags,
 	}
 }

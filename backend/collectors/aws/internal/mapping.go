@@ -78,13 +78,6 @@ func mapInstance(
 		status = mapStatus(inst.State.Name)
 	}
 
-	tags := map[string]string{}
-	for _, tag := range inst.Tags {
-		if tag.Key != nil && tag.Value != nil {
-			tags[*tag.Key] = *tag.Value
-		}
-	}
-
 	if len(disks) == 0 {
 		disks = []collectorkit.Disk{}
 	}
@@ -101,7 +94,6 @@ func mapInstance(
 		PrivateIP:    privateIP,
 		PublicIP:     publicIP,
 		LaunchedAt:   launchedAt,
-		Tags:         tags,
 	}
 }
 

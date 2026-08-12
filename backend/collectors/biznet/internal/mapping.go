@@ -194,6 +194,5 @@ func mapInstance(listRaw, detailRaw json.RawMessage) collectorkit.Instance {
 		PrivateIP:    extractFieldAny([]string{"private_ip", "ip_private", "internal_ip"}, extraDetails, source),
 		PublicIP:     publicIP,
 		LaunchedAt:   extractField(source, "created_at", "createdat", "created", "order_date"),
-		Tags:         map[string]string{},
 	}
 }

@@ -89,6 +89,5 @@ func mapInstance(inst *computepb.Instance, specByZoneType map[string]machineSpec
 		PrivateIP:    privateIP,
 		PublicIP:     publicIP,
 		LaunchedAt:   inst.GetCreationTimestamp(),
-		Tags:         inst.GetLabels(),
 	}
 }

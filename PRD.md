@@ -39,8 +39,8 @@ Autentikasi via **Microsoft 365 (Microsoft Entra ID / Azure AD)** menggunakan OI
 ## 4. Scope MVP
 
 ### 4.1 Fitur inti
-1. **Inventory list** — daftar semua VM lintas 5 provider dalam satu tabel: nama, provider, akun/project, region, status (running/stopped/terminated), instance type/size, IP, tags.
-2. **Filter & search** — filter by provider, akun/project, region, status, tag; search by nama/ID instance.
+1. **Inventory list** — daftar semua VM lintas 5 provider dalam satu tabel: nama, provider, akun/project, region, status (running/stopped/terminated), instance type/size, IP.
+2. **Filter & search** — filter by provider, akun/project, region, status; search by nama/ID instance.
 3. **RBAC & SSO login** — sesuai §3.
 
 ### 4.2 Yang disederhanakan dulu di MVP
@@ -52,7 +52,7 @@ Autentikasi via **Microsoft 365 (Microsoft Entra ID / Azure AD)** menggunakan OI
 1. User login via SSO → diarahkan ke dashboard sesuai role-nya.
 2. Landing page: tabel gabungan VM dari semua provider yang dia punya akses, dengan filter provider/region/status di sidebar.
 3. User apply filter (misal: provider=AWS, status=running) atau search by nama.
-4. User klik satu VM → detail panel: spesifikasi & tag.
+4. User klik satu VM → detail panel: spesifikasi.
 5. Admin: halaman terpisah untuk tambah/hapus koneksi akun cloud (credentials) dan atur role user.
 6. Admin klik "Tambah Koneksi Akun Cloud" → pilih provider → isi form sesuai provider (field per provider lihat §7.3) → klik **"Test Connection"** → sistem validasi kredensial dgn API call read-only paling ringan ke provider tsb → kalau sukses, koneksi disimpan dgn status **Active**; kalau gagal, form menampilkan error spesifik (kredensial salah/permission kurang) sebelum disimpan.
 7. Tiap koneksi akun cloud yang tersimpan tampil di list dgn badge status (**Active** / **Error** / **Expired** / **Pending**) + timestamp "last checked" — status di-refresh otomatis oleh background job berkala (lihat §6.1), jadi Admin tahu kalau ada kredensial invalid/revoked sebelum user lain mengalami error di dashboard.

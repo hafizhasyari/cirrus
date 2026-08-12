@@ -79,11 +79,6 @@ func mapInstance(inst core.Instance, spec shapeSpec, disks []collectorkit.Disk, 
 		launchedAt = inst.TimeCreated.UTC().Format("2006-01-02T15:04:05Z")
 	}
 
-	tags := map[string]string{}
-	for k, v := range inst.FreeformTags {
-		tags[k] = v
-	}
-
 	if disks == nil {
 		disks = []collectorkit.Disk{}
 	}
@@ -100,7 +95,6 @@ func mapInstance(inst core.Instance, spec shapeSpec, disks []collectorkit.Disk, 
 		PrivateIP:    privateIP,
 		PublicIP:     publicIP,
 		LaunchedAt:   launchedAt,
-		Tags:         tags,
 	}
 }
 

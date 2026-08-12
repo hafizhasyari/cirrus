@@ -121,7 +121,6 @@ export interface CollectorInstance {
   privateIp: string;
   publicIp: string | null;
   launchedAt: string; // ISO datetime
-  tags: Record<string, string>;
 }
 
 export interface CollectorInstancesResponse {
