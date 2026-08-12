@@ -4,10 +4,12 @@ export function CredentialFieldRow({
   field,
   value,
   onChange,
+  error,
 }: {
   field: FieldDef;
   value: string;
   onChange: (value: string) => void;
+  error?: string;
 }) {
   return (
     <div style={{ marginBottom: 16 }}>
@@ -35,6 +37,7 @@ export function CredentialFieldRow({
           <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 5 }}>{field.caption}</div>
         </>
       )}
+      {error && <div style={{ fontSize: 11, color: 'var(--error-border)', marginTop: 5 }}>{error}</div>}
     </div>
   );
 }

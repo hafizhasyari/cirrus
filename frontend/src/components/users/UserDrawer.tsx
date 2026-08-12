@@ -26,6 +26,9 @@ export function UserDrawer({ app }: { app: CirrusApp }) {
             onChange={(e) => app.updateUserField('name', e.target.value)}
             placeholder="e.g. Andi Wijaya"
           />
+          {app.userFormErrors.name && (
+            <div style={{ fontSize: 11, color: 'var(--error-border)', marginTop: 5 }}>{app.userFormErrors.name}</div>
+          )}
         </div>
         <div>
           <div className="section-label" style={{ marginBottom: 8 }}>Email</div>
@@ -35,6 +38,9 @@ export function UserDrawer({ app }: { app: CirrusApp }) {
             onChange={(e) => app.updateUserField('email', e.target.value)}
             placeholder="name@example.com"
           />
+          {app.userFormErrors.email && (
+            <div style={{ fontSize: 11, color: 'var(--error-border)', marginTop: 5 }}>{app.userFormErrors.email}</div>
+          )}
         </div>
         <div>
           <div className="section-label" style={{ marginBottom: 8 }}>Role</div>

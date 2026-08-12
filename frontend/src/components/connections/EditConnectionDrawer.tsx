@@ -55,6 +55,9 @@ export function EditConnectionDrawer({ app }: { app: CirrusApp }) {
             value={app.editForm.account}
             onChange={(e) => app.updateEditAccount(e.target.value)}
           />
+          {app.editFormErrors.account && (
+            <div style={{ fontSize: 11, color: 'var(--error-border)', marginTop: 5 }}>{app.editFormErrors.account}</div>
+          )}
         </div>
 
         {fields.map((f) => (
@@ -63,6 +66,7 @@ export function EditConnectionDrawer({ app }: { app: CirrusApp }) {
             field={f}
             value={f.kind === 'generated' ? (f.value ?? '') : app.editFieldValues[f.key] || ''}
             onChange={(v) => app.updateEditFieldValue(f.key, v)}
+            error={app.editFormErrors[f.key]}
           />
         ))}
 

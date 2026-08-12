@@ -80,6 +80,9 @@ export function WizardScreen({ app }: { app: CirrusApp }) {
                 onChange={(e) => app.updateWizardAccount(e.target.value)}
                 placeholder="e.g. prod-infra-01"
               />
+              {app.wizardFormErrors.account && (
+                <div style={{ fontSize: 11, color: 'var(--error-border)', marginTop: 5 }}>{app.wizardFormErrors.account}</div>
+              )}
             </div>
 
             {fields.map((f) => (
@@ -88,6 +91,7 @@ export function WizardScreen({ app }: { app: CirrusApp }) {
                 field={f}
                 value={f.kind === 'generated' ? (f.value ?? '') : app.wizardForm[f.key] || ''}
                 onChange={(v) => app.updateWizardField(f.key, v)}
+                error={app.wizardFormErrors[f.key]}
               />
             ))}
 

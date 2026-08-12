@@ -18,6 +18,7 @@ import {
   updateUser,
 } from '../api/client';
 import { computeIdentifier } from '../lib/connectionIdentifier';
+import { MASKED_PLACEHOLDER, validateConnectionFields, validateUserForm } from '../lib/formValidation';
 import { router } from '../router';
 import type {
   AuthenticatedUser,
@@ -46,8 +47,6 @@ interface EditFormValues {
   account: string;
 }
 
-const MASKED_PLACEHOLDER = '••••••••••••••••••••';
-
 const THEME_STORAGE_KEY = 'cirrus-theme';
 
 function getInitialTheme(): Theme {
@@ -66,6 +65,16 @@ function useLatestRef<T>(value: T) {
 
 function errorMessage(err: unknown, fallback: string): string {
   return err instanceof ApiError ? err.message : fallback;
+}
+
+/** Drops `key` from a field-errors map if present, returning the same
+ * reference otherwise so callers can skip a re-render when there was
+ * nothing to clear. */
+function clearFieldError<T extends Record<string, string>>(errors: T, key: string): T {
+  if (!errors[key]) return errors;
+  const next = { ...errors };
+  delete next[key];
+  return next;
 }
 
 export function useCirrusApp() {
@@ -124,6 +133,7 @@ export function useCirrusApp() {
   const [wizardTesting, setWizardTesting] = useState(false);
   const [wizardResult, setWizardResult] = useState<WizardResult>(null);
   const [wizardFailureMessage, setWizardFailureMessage] = useState<string | null>(null);
+  const [wizardFormErrors, setWizardFormErrors] = useState<Record<string, string>>({});
   const wizardFormRef = useLatestRef(wizardForm);
   const wizardAccountRef = useLatestRef(wizardAccount);
   const wizardProviderRef = useLatestRef(wizardProvider);
@@ -135,6 +145,7 @@ export function useCirrusApp() {
   const [editFieldValues, setEditFieldValues] = useState<WizardFormValues>({});
   const [editTesting, setEditTesting] = useState(false);
   const [editTested, setEditTested] = useState(false);
+  const [editFormErrors, setEditFormErrors] = useState<Record<string, string>>({});
   const editingConnectionIdRef = useLatestRef(editingConnectionId);
   const editFormRef = useLatestRef(editForm);
   const editFieldValuesRef = useLatestRef(editFieldValues);
@@ -143,6 +154,7 @@ export function useCirrusApp() {
   const [userDrawerMode, setUserDrawerMode] = useState<'edit' | 'invite' | null>(null);
   const [editingUserId, setEditingUserId] = useState<string | null>(null);
   const [userForm, setUserForm] = useState<UserFormValues>({ name: '', email: '', role: 'viewer', accountConnectionIds: [] });
+  const [userFormErrors, setUserFormErrors] = useState<Record<string, string>>({});
   const userDrawerModeRef = useLatestRef(userDrawerMode);
   const editingUserIdRef = useLatestRef(editingUserId);
   const userFormRef = useLatestRef(userForm);
@@ -361,6 +373,7 @@ export function useCirrusApp() {
     setWizardConnectionId(null);
     setWizardResult(null);
     setWizardFailureMessage(null);
+    setWizardFormErrors({});
     setWizardTesting(false);
   }, []);
 
@@ -372,6 +385,7 @@ export function useCirrusApp() {
     setWizardConnectionId(null);
     setWizardResult(null);
     setWizardFailureMessage(null);
+    setWizardFormErrors({});
   }, []);
 
   const wizardBackToStep1 = useCallback(() => {
@@ -379,12 +393,17 @@ export function useCirrusApp() {
     setWizardProvider(null);
     setWizardResult(null);
     setWizardFailureMessage(null);
+    setWizardFormErrors({});
   }, []);
 
-  const updateWizardAccount = useCallback((val: string) => setWizardAccount(val), []);
+  const updateWizardAccount = useCallback((val: string) => {
+    setWizardAccount(val);
+    setWizardFormErrors((prev) => clearFieldError(prev, 'account'));
+  }, []);
 
   const updateWizardField = useCallback((key: string, val: string) => {
     setWizardForm((prev) => ({ ...prev, [key]: val }));
+    setWizardFormErrors((prev) => clearFieldError(prev, key));
   }, []);
 
   // Test Connection creates the connection on first test (status starts
@@ -394,6 +413,13 @@ export function useCirrusApp() {
   const runTest = useCallback(async () => {
     const provider = wizardProviderRef.current;
     if (!provider) return;
+    const defs = providers.find((p) => p.id === provider)?.fieldDefs ?? [];
+    const errors = validateConnectionFields(wizardAccountRef.current, wizardFormRef.current, defs);
+    if (Object.keys(errors).length > 0) {
+      setWizardFormErrors(errors);
+      return;
+    }
+    setWizardFormErrors({});
     setWizardTesting(true);
     setWizardResult(null);
     setWizardFailureMessage(null);
@@ -423,7 +449,7 @@ export function useCirrusApp() {
     } finally {
       setWizardTesting(false);
     }
-  }, [wizardProviderRef, wizardFormRef, wizardAccountRef, wizardConnectionIdRef, showToast]);
+  }, [wizardProviderRef, wizardFormRef, wizardAccountRef, wizardConnectionIdRef, showToast, providers]);
 
   const editRetry = useCallback(() => {
     setWizardResult(null);
@@ -450,18 +476,24 @@ export function useCirrusApp() {
     setEditFieldValues(vals);
     setEditTesting(false);
     setEditTested(false);
+    setEditFormErrors({});
   }, [providers]);
 
-  const closeEditConnection = useCallback(() => setEditingConnectionId(null), []);
+  const closeEditConnection = useCallback(() => {
+    setEditingConnectionId(null);
+    setEditFormErrors({});
+  }, []);
 
   const updateEditAccount = useCallback((val: string) => {
     setEditForm((prev) => ({ ...prev, account: val }));
     setEditTested(false);
+    setEditFormErrors((prev) => clearFieldError(prev, 'account'));
   }, []);
 
   const updateEditFieldValue = useCallback((key: string, val: string) => {
     setEditFieldValues((prev) => ({ ...prev, [key]: val }));
     setEditTested(false);
+    setEditFormErrors((prev) => clearFieldError(prev, key));
   }, []);
 
   const runEditTest = useCallback(async () => {
@@ -486,6 +518,16 @@ export function useCirrusApp() {
   const saveEditConnection = useCallback(async () => {
     const id = editingConnectionIdRef.current;
     if (!id) return;
+    const conn = connections.find((c) => c.id === id);
+    const defs = providers.find((p) => p.id === conn?.provider)?.fieldDefs ?? [];
+    const errors = validateConnectionFields(editFormRef.current.account, editFieldValuesRef.current, defs, {
+      allowMaskedSecret: true,
+    });
+    if (Object.keys(errors).length > 0) {
+      setEditFormErrors(errors);
+      return;
+    }
+    setEditFormErrors({});
     // Only send config if every field was genuinely (re)entered — secret
     // fields are prefilled blank/masked (never round-tripped to the
     // frontend), so a partial submit would otherwise overwrite real stored
@@ -504,7 +546,7 @@ export function useCirrusApp() {
     } catch (err) {
       showToast(errorMessage(err, 'Update failed'));
     }
-  }, [editingConnectionIdRef, editFieldValuesRef, editFormRef, showToast]);
+  }, [editingConnectionIdRef, editFieldValuesRef, editFormRef, showToast, connections, providers]);
 
   const removeEditConnection = useCallback(async () => {
     const id = editingConnectionIdRef.current;
@@ -523,18 +565,24 @@ export function useCirrusApp() {
     setUserDrawerMode('edit');
     setEditingUserId(u.id);
     setUserForm({ name: u.name, email: u.email, role: u.role, accountConnectionIds: u.connectionIds });
+    setUserFormErrors({});
   }, []);
 
   const openInviteUser = useCallback(() => {
     setUserDrawerMode('invite');
     setEditingUserId(null);
     setUserForm({ name: '', email: '', role: 'viewer', accountConnectionIds: [] });
+    setUserFormErrors({});
   }, []);
 
-  const closeUserDrawer = useCallback(() => setUserDrawerMode(null), []);
+  const closeUserDrawer = useCallback(() => {
+    setUserDrawerMode(null);
+    setUserFormErrors({});
+  }, []);
 
   const updateUserField = useCallback((key: 'name' | 'email', val: string) => {
     setUserForm((prev) => ({ ...prev, [key]: val }));
+    setUserFormErrors((prev) => clearFieldError(prev, key));
   }, []);
 
   const setUserFormRole = useCallback((role: Role) => {
@@ -553,6 +601,12 @@ export function useCirrusApp() {
   const saveUser = useCallback(async () => {
     const wasInvite = userDrawerModeRef.current === 'invite';
     const f = userFormRef.current;
+    const errors = validateUserForm(f);
+    if (Object.keys(errors).length > 0) {
+      setUserFormErrors(errors);
+      return;
+    }
+    setUserFormErrors({});
     // Only send accountConnectionIds for viewers — omitting it for admins
     // leaves any pre-existing assignment untouched (PATCH/POST semantics),
     // and an admin's DTO ignores assignments anyway.
@@ -602,13 +656,14 @@ export function useCirrusApp() {
     filterOpen, toggleFilterOpen, closeFilterOpen,
     // connections
     openEditConnection, closeEditConnection,
-    editingConnectionId, editForm, editFieldValues, editTesting, editTested,
+    editingConnectionId, editForm, editFieldValues, editTesting, editTested, editFormErrors,
     updateEditAccount, updateEditFieldValue, runEditTest, saveEditConnection, removeEditConnection,
     // wizard
     startWizard, wizardStep, wizardProvider, wizardAccount, wizardForm, wizardTesting, wizardResult, wizardFailureMessage,
+    wizardFormErrors,
     selectWizardProvider, wizardBackToStep1, updateWizardAccount, updateWizardField, runTest, editRetry, saveConnection,
     // users
-    userDrawerMode, editingUserId, userForm, openEditUser, openInviteUser, closeUserDrawer,
+    userDrawerMode, editingUserId, userForm, userFormErrors, openEditUser, openInviteUser, closeUserDrawer,
     updateUserField, setUserFormRole, toggleUserFormConnection, saveUser, removeUser,
     // toast
     toast, showToast,
