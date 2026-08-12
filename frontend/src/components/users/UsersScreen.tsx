@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { UserDrawer } from './UserDrawer';
 import { StatCard } from '../shared/StatCard';
-import { EmptyState, UsersOffIcon } from '../shared/EmptyState';
+import { AlertTriangleIcon, EmptyState, UsersOffIcon } from '../shared/EmptyState';
 import { formatRelativeTime } from '../../lib/relativeTime';
 import type { CirrusApp } from '../../state/useCirrusApp';
 
@@ -44,7 +44,8 @@ export function UsersScreen({ app }: { app: CirrusApp }) {
     [usersRows],
   );
 
-  const showEmpty = usersRows.length === 0;
+  const showError = !!app.usersError && usersRows.length === 0;
+  const showEmpty = !showError && usersRows.length === 0;
 
   return (
     <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', overflowX: 'hidden', display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -55,6 +56,13 @@ export function UsersScreen({ app }: { app: CirrusApp }) {
       </div>
 
       <div className="card" style={{ overflow: 'hidden' }}>
+      {showError && (
+        <EmptyState
+          icon={<AlertTriangleIcon />}
+          message={app.usersError!}
+          action={<div className="empty-action" onClick={() => app.loadUsers()}>Retry</div>}
+        />
+      )}
       {showEmpty && (
         <EmptyState
           icon={<UsersOffIcon />}
@@ -62,7 +70,7 @@ export function UsersScreen({ app }: { app: CirrusApp }) {
           action={<div className="empty-action" onClick={() => app.openInviteUser()}>+ Invite User</div>}
         />
       )}
-      {!showEmpty && (
+      {!showError && !showEmpty && (
       <div style={{ overflow: 'auto' }}>
         <table className="cirrus-table">
           <thead>

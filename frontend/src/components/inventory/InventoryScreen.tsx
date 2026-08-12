@@ -4,7 +4,7 @@ import { OutageBanner } from './OutageBanner';
 import { SkeletonRows } from './SkeletonRows';
 import { VmTable, type VmRowView } from './VmTable';
 import { VmDetailDrawer } from './VmDetailDrawer';
-import { EmptyState, SearchOffIcon } from '../shared/EmptyState';
+import { AlertTriangleIcon, EmptyState, SearchOffIcon } from '../shared/EmptyState';
 import { StatCard } from '../shared/StatCard';
 import { STATUS_META } from '../../theme/ThemeContext';
 import type { CirrusApp } from '../../state/useCirrusApp';
@@ -189,8 +189,12 @@ export function InventoryScreen({ app }: { app: CirrusApp }) {
   // update rows in place instead of hiding the table again.
   const showSkeleton = isLoadingVms && vms.length === 0;
   const displayVms = filtered;
-  const showEmpty = !showSkeleton && displayVms.length === 0;
-  const showTable = !showSkeleton && !showEmpty;
+  // A total fetch failure (rejected before any NDJSON frame arrived) leaves
+  // vms empty just like a genuinely empty account — distinguish the two so
+  // the "no VMs match your filters" copy/action isn't shown for a load error.
+  const showLoadError = !showSkeleton && vms.length === 0 && !!app.vmsLoadError;
+  const showEmpty = !showSkeleton && !showLoadError && displayVms.length === 0;
+  const showTable = !showSkeleton && !showLoadError && !showEmpty;
 
   const rows: VmRowView[] = useMemo(
     () =>
@@ -284,6 +288,13 @@ export function InventoryScreen({ app }: { app: CirrusApp }) {
 
       <div className="card" style={{ overflow: 'hidden', flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
         {showSkeleton && <SkeletonRows />}
+        {showLoadError && (
+          <EmptyState
+            icon={<AlertTriangleIcon />}
+            message={app.vmsLoadError!}
+            action={<div className="empty-action" onClick={() => app.refreshInventory()}>Retry</div>}
+          />
+        )}
         {showEmpty && (
           <EmptyState
             icon={<SearchOffIcon />}

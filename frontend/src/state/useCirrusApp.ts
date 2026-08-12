@@ -93,8 +93,11 @@ export function useCirrusApp() {
   const vms = useMemo(() => Array.from(vmsByConnection.values()).flat(), [vmsByConnection]);
   const vmErrors = useMemo(() => Array.from(vmErrorsByConnection.values()), [vmErrorsByConnection]);
   const [connections, setConnections] = useState<Connection[]>([]);
+  const [connectionsError, setConnectionsError] = useState<string | null>(null);
   const [users, setUsers] = useState<User[]>([]);
+  const [usersError, setUsersError] = useState<string | null>(null);
   const [isLoadingVms, setIsLoadingVms] = useState(false);
+  const [vmsLoadError, setVmsLoadError] = useState<string | null>(null);
 
   // VM detail drawer
   const [detailVmId, setDetailVmId] = useState<string | null>(null);
@@ -193,6 +196,30 @@ export function useCirrusApp() {
     });
   }, []);
 
+  // Extracted from the bootstrap effect below so a "Retry" action can
+  // re-run the same load on demand, not just once at mount.
+  const loadConnections = useCallback(() => {
+    setConnectionsError(null);
+    return getConnections()
+      .then((data) => setConnections(data))
+      .catch((err) => {
+        const msg = errorMessage(err, 'Failed to load connections');
+        setConnectionsError(msg);
+        showToast(msg, 'error');
+      });
+  }, [showToast]);
+
+  const loadUsers = useCallback(() => {
+    setUsersError(null);
+    return getUsers()
+      .then((data) => setUsers(data))
+      .catch((err) => {
+        const msg = errorMessage(err, 'Failed to load users');
+        setUsersError(msg);
+        showToast(msg, 'error');
+      });
+  }, [showToast]);
+
   // --- Once a session is confirmed, load everything the role can see ------
   useEffect(() => {
     if (!currentUser) return;
@@ -202,36 +229,34 @@ export function useCirrusApp() {
         setProviders(data);
         setFilterProviders(data.map((p) => p.id));
       })
-      .catch((err) => showToast(errorMessage(err, 'Failed to load providers')));
+      .catch((err) => showToast(errorMessage(err, 'Failed to load providers'), 'error'));
 
     getConfig()
       .then((data) => setHealthCheckIntervalSeconds(data.healthCheckIntervalSeconds))
-      .catch((err) => showToast(errorMessage(err, 'Failed to load app config')));
+      .catch((err) => showToast(errorMessage(err, 'Failed to load app config'), 'error'));
 
     // React StrictMode double-invokes effects in dev, which would otherwise
     // fire two overlapping /api/vms streams racing on the same state — an
     // AbortController lets the cleanup below cancel a stale run.
     const vmsAbort = new AbortController();
     setIsLoadingVms(true);
+    setVmsLoadError(null);
     consumeVmStream((onFrame) => getVmsStream(onFrame, vmsAbort.signal))
       .catch((err) => {
         if (err instanceof DOMException && err.name === 'AbortError') return;
-        showToast(errorMessage(err, 'Failed to load inventory'));
+        const msg = errorMessage(err, 'Failed to load inventory');
+        setVmsLoadError(msg);
+        showToast(msg, 'error');
       })
       .finally(() => setIsLoadingVms(false));
 
     if (currentUser.role === 'admin') {
-      getConnections()
-        .then(setConnections)
-        .catch((err) => showToast(errorMessage(err, 'Failed to load connections')));
-
-      getUsers()
-        .then(setUsers)
-        .catch((err) => showToast(errorMessage(err, 'Failed to load users')));
+      loadConnections();
+      loadUsers();
     }
 
     return () => vmsAbort.abort();
-  }, [currentUser, showToast, consumeVmStream]);
+  }, [currentUser, showToast, consumeVmStream, loadConnections, loadUsers]);
 
   const go = useCallback((next: '/inventory' | '/connections' | '/users') => {
     router.navigate({ to: next });
@@ -253,8 +278,11 @@ export function useCirrusApp() {
     setVmsByConnection(new Map());
     setVmErrorsByConnection(new Map());
     setVmProgress(null);
+    setVmsLoadError(null);
     setConnections([]);
+    setConnectionsError(null);
     setUsers([]);
+    setUsersError(null);
     router.navigate({ to: '/' });
   }, []);
 
@@ -310,11 +338,14 @@ export function useCirrusApp() {
   const refreshInventory = useCallback(async () => {
     if (vmProgress) return; // a stream is already in flight — ignore re-entrant clicks
     setIsLoadingVms(true);
+    setVmsLoadError(null);
     try {
       await consumeVmStream(refreshVmsStream);
       showToast('Inventory refreshed');
     } catch (err) {
-      showToast(errorMessage(err, 'Refresh failed'));
+      const msg = errorMessage(err, 'Refresh failed');
+      setVmsLoadError(msg);
+      showToast(msg, 'error');
       setVmProgress(null);
     } finally {
       setIsLoadingVms(false);
@@ -560,8 +591,8 @@ export function useCirrusApp() {
     // identity / navigation
     role, currentUser, authChecked, theme, setTheme, go, goToInventoryFromLogin, signOut,
     // data
-    providers, healthCheckIntervalSeconds, vms, vmErrors, connections, users,
-    isLoadingVms, vmProgress,
+    providers, healthCheckIntervalSeconds, vms, vmErrors, vmsLoadError, connections, connectionsError, users, usersError,
+    isLoadingVms, vmProgress, loadConnections, loadUsers,
     // vm detail
     detailVmId, openDetail, closeDetail,
     // inventory filters

@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import { formatIntervalHuman } from '../../lib/formatInterval';
 import { ConnectionCard } from './ConnectionCard';
 import { EditConnectionDrawer } from './EditConnectionDrawer';
-import { EmptyState, LinkOffIcon } from '../shared/EmptyState';
+import { AlertTriangleIcon, EmptyState, LinkOffIcon } from '../shared/EmptyState';
 import { StatCard } from '../shared/StatCard';
 import { CONN_STATUS_META, statusBgForTheme, useTheme } from '../../theme/ThemeContext';
 import type { CirrusApp } from '../../state/useCirrusApp';
@@ -47,8 +47,9 @@ export function ConnectionsScreen({ app }: { app: CirrusApp }) {
     [app.connections, providerMap, theme],
   );
 
-  const showEmpty = connectionsRows.length === 0;
-  const connectionsDisplay = showEmpty ? [] : connectionsRows;
+  const showError = !!app.connectionsError && connectionsRows.length === 0;
+  const showEmpty = !showError && connectionsRows.length === 0;
+  const connectionsDisplay = showError || showEmpty ? [] : connectionsRows;
 
   const connStats = useMemo(
     () => ({
@@ -69,6 +70,16 @@ export function ConnectionsScreen({ app }: { app: CirrusApp }) {
         <StatCard label="Issues" value={connStats.issues} color="#f43f5e" />
       </div>
 
+      {showError && (
+        <div className="card" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14, padding: '64px 20px' }}>
+          <EmptyState
+            icon={<AlertTriangleIcon />}
+            message={app.connectionsError!}
+            action={<div className="empty-action" onClick={() => app.loadConnections()}>Retry</div>}
+          />
+        </div>
+      )}
+
       {showEmpty && (
         <div className="card" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14, padding: '64px 20px' }}>
           <EmptyState
@@ -79,7 +90,7 @@ export function ConnectionsScreen({ app }: { app: CirrusApp }) {
         </div>
       )}
 
-      {!showEmpty && (
+      {!showError && !showEmpty && (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 16 }}>
           {connectionsDisplay.map((row) => (
             <ConnectionCard

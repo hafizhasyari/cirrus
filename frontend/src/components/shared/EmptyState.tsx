@@ -40,3 +40,13 @@ export function UsersOffIcon() {
     </svg>
   );
 }
+
+export function AlertTriangleIcon() {
+  return (
+    <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="var(--error-border)" strokeWidth="1.6">
+      <path d="M12 3.5l9 16h-18l9-16z" strokeLinejoin="round" />
+      <path d="M12 10v4" strokeLinecap="round" />
+      <circle cx="12" cy="17.2" r="0.6" fill="var(--error-border)" stroke="none" />
+    </svg>
+  );
+}
