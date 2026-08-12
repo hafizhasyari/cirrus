@@ -130,12 +130,12 @@ export function WizardScreen({ app }: { app: CirrusApp }) {
 
             {app.wizardResult === 'failure' && (
               <div style={{ background: 'var(--error-bg)', border: '1px solid var(--error-border)', borderRadius: 12, padding: 16, marginTop: 8 }}>
-                <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, color: '#f43f5e', fontSize: 13, fontWeight: 600, marginBottom: 10 }}>
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, color: '#f43f5e', fontSize: 13, fontWeight: 600, marginBottom: 10, minWidth: 0 }}>
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#f43f5e" strokeWidth="2.5" style={{ flexShrink: 0, marginTop: 1 }}>
                     <circle cx="12" cy="12" r="9" />
                     <path d="M15 9l-6 6M9 9l6 6" />
                   </svg>
-                  <div>{app.wizardFailureMessage || failureMessage}</div>
+                  <div style={{ overflowWrap: 'anywhere', minWidth: 0 }}>{app.wizardFailureMessage || failureMessage}</div>
                 </div>
                 <div className="ghost-btn" onClick={() => app.editRetry()}>Edit &amp; Retry</div>
               </div>
