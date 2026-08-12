@@ -103,7 +103,14 @@ export function useCirrusApp() {
   const [search, setSearch] = useState('');
   const [filterProviders, setFilterProviders] = useState<ProviderId[]>([]);
   const [filterStatuses, setFilterStatuses] = useState<VmStatus[]>(['running', 'stopped']);
-  const [filterOpen, setFilterOpen] = useState<'provider' | 'status' | null>(null);
+  // [] means "unrestricted" here, unlike filterProviders/filterStatuses which
+  // are seeded to a known full list — there's no fixed universe of accounts/
+  // regions to seed from (vms streams in incrementally), so an empty array
+  // naturally absorbs new values as they arrive instead of needing to be
+  // re-synced every time vms grows.
+  const [filterAccounts, setFilterAccounts] = useState<string[]>([]);
+  const [filterRegions, setFilterRegions] = useState<string[]>([]);
+  const [filterOpen, setFilterOpen] = useState<'provider' | 'status' | 'account' | 'region' | null>(null);
 
   // Add-connection wizard
   const [wizardStep, setWizardStep] = useState<1 | 2>(1);
@@ -262,19 +269,43 @@ export function useCirrusApp() {
     setFilterStatuses((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
   }, []);
 
+  // Materializes the implicit "all" into an explicit list (derived from the
+  // currently known vms) only at the moment the user unchecks something —
+  // see the filterAccounts/filterRegions declaration for why [] means
+  // unrestricted here instead of a pre-seeded full list.
+  const toggleAccountFilter = useCallback((id: string) => {
+    setFilterAccounts((prev) => {
+      const known = Array.from(new Set(vms.map((v) => v.account)));
+      const current = prev.length === 0 ? known : prev;
+      return current.includes(id) ? current.filter((x) => x !== id) : [...current, id];
+    });
+  }, [vms]);
+
+  const toggleRegionFilter = useCallback((id: string) => {
+    setFilterRegions((prev) => {
+      const known = Array.from(new Set(vms.map((v) => v.region)));
+      const current = prev.length === 0 ? known : prev;
+      return current.includes(id) ? current.filter((x) => x !== id) : [...current, id];
+    });
+  }, [vms]);
+
   const clearFilters = useCallback(() => {
     setFilterProviders(providers.map((p) => p.id));
     setFilterStatuses(['running', 'stopped']);
+    setFilterAccounts([]);
+    setFilterRegions([]);
     setSearch('');
   }, [providers]);
 
-  const toggleFilterOpen = useCallback((name: 'provider' | 'status') => {
+  const toggleFilterOpen = useCallback((name: 'provider' | 'status' | 'account' | 'region') => {
     setFilterOpen((prev) => (prev === name ? null : name));
   }, []);
   const closeFilterOpen = useCallback(() => setFilterOpen(null), []);
 
   const selectAllProviders = useCallback(() => setFilterProviders(providers.map((p) => p.id)), [providers]);
   const selectAllStatuses = useCallback(() => setFilterStatuses(['running', 'stopped']), []);
+  const selectAllAccounts = useCallback(() => setFilterAccounts([]), []);
+  const selectAllRegions = useCallback(() => setFilterRegions([]), []);
 
   const refreshInventory = useCallback(async () => {
     if (vmProgress) return; // a stream is already in flight — ignore re-entrant clicks
@@ -534,8 +565,9 @@ export function useCirrusApp() {
     // vm detail
     detailVmId, openDetail, closeDetail,
     // inventory filters
-    search, setSearch, filterProviders, filterStatuses, toggleProviderFilter, toggleStatusFilter, clearFilters,
-    selectAllProviders, selectAllStatuses, refreshInventory,
+    search, setSearch, filterProviders, filterStatuses, filterAccounts, filterRegions,
+    toggleProviderFilter, toggleStatusFilter, toggleAccountFilter, toggleRegionFilter, clearFilters,
+    selectAllProviders, selectAllStatuses, selectAllAccounts, selectAllRegions, refreshInventory,
     filterOpen, toggleFilterOpen, closeFilterOpen,
     // connections
     openEditConnection, closeEditConnection,
