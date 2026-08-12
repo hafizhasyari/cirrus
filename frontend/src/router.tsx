@@ -6,6 +6,7 @@ import { InventoryHeader, InventoryScreen } from './components/inventory/Invento
 import { ConnectionsHeader, ConnectionsScreen } from './components/connections/ConnectionsScreen';
 import { WizardHeader, WizardScreen } from './components/wizard/WizardScreen';
 import { UsersHeader, UsersScreen } from './components/users/UsersScreen';
+import { NotFoundScreen } from './components/shared/NotFoundScreen';
 import { useApp } from './state/AppContext';
 import type { CirrusApp } from './state/useCirrusApp';
 
@@ -137,7 +138,7 @@ const routeTree = rootRoute.addChildren([
 
 // Real app context is injected per-render via <RouterProvider context={{ app }} /> in App.tsx —
 // this placeholder is only used for typing the router before that first render.
-export const router = createRouter({ routeTree, context: { app: undefined! } });
+export const router = createRouter({ routeTree, context: { app: undefined! }, defaultNotFoundComponent: NotFoundScreen });
 
 declare module '@tanstack/react-router' {
   interface Register {
