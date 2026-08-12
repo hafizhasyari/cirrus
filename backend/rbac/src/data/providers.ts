@@ -31,7 +31,7 @@ export const FIELD_DEFS: Record<ProviderId, FieldDef[]> = {
     { key: 'userOcid', label: 'User OCID', kind: 'text' },
     { key: 'fingerprint', label: 'Fingerprint', kind: 'text' },
     { key: 'privateKey', label: 'Private Key', kind: 'textarea', secret: true },
-    { key: 'region', label: 'Region', kind: 'text' },
+    { key: 'region', label: 'Region', caption: 'Any valid OCI region works here — Cirrus automatically discovers and fetches instances from every region this tenancy is subscribed to, not just this one.', kind: 'text' },
     { key: 'passphrase', label: 'Passphrase (optional)', kind: 'text', secret: true },
   ],
   biznet: [
@@ -68,6 +68,7 @@ export const SETUP_GUIDE: Record<ProviderId, string[]> = {
     'In Identity → Users → your user → API Keys, generate a new API signing key pair',
     'Download the private key — it is only shown once',
     'Copy the tenancy OCID, user OCID, fingerprint, and region from the generated config preview',
+    'The region is still required as a starting point, but any valid region works — Cirrus automatically discovers and fetches instances from every region this tenancy is subscribed to',
   ],
   biznet: [
     'Log in to the Biznet Gio customer portal (portal.biznetgio.com)',

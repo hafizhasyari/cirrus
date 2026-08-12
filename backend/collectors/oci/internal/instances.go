@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log"
 	"sync"
 
 	"cirrus/collectorkit"
@@ -15,8 +16,10 @@ import (
 )
 
 // GenerateInstances resolves a connection's OCI signing key config, builds
-// the API clients, recurses the tenancy's compartments, and returns a real
-// Core Compute inventory (or a classified error — ErrAuthFailed / ErrUpstream).
+// the API clients, discovers every region the tenancy is subscribed to, and
+// fans out the per-compartment inventory pipeline across each of them —
+// returning a real Core Compute inventory (or a classified error —
+// ErrAuthFailed / ErrUpstream).
 func GenerateInstances(ctx context.Context, raw json.RawMessage) ([]collectorkit.Instance, error) {
 	var cfg ociConfig
 	if err := json.Unmarshal(raw, &cfg); err != nil {
@@ -32,17 +35,10 @@ func GenerateInstances(ctx context.Context, raw json.RawMessage) ([]collectorkit
 	if err != nil {
 		return nil, fmt.Errorf("%w: building identity client: %v", ErrUpstream, err)
 	}
-	computeClient, err := core.NewComputeClientWithConfigurationProvider(provider)
+
+	regions, err := discoverRegions(ctx, identityClient, cfg.TenancyOCID)
 	if err != nil {
-		return nil, fmt.Errorf("%w: building compute client: %v", ErrUpstream, err)
-	}
-	blockstorageClient, err := core.NewBlockstorageClientWithConfigurationProvider(provider)
-	if err != nil {
-		return nil, fmt.Errorf("%w: building block storage client: %v", ErrUpstream, err)
-	}
-	vcnClient, err := core.NewVirtualNetworkClientWithConfigurationProvider(provider)
-	if err != nil {
-		return nil, fmt.Errorf("%w: building virtual network client: %v", ErrUpstream, err)
+		return nil, err
 	}
 
 	compartments, err := listScanCompartments(ctx, identityClient, cfg.TenancyOCID)
@@ -53,45 +49,40 @@ func GenerateInstances(ctx context.Context, raw json.RawMessage) ([]collectorkit
 	var mu sync.Mutex
 	var allInstances []core.Instance
 	disksByInstance := make(map[string][]collectorkit.Disk)
+	specs := make(map[string]shapeSpec)
+	privateIPs := make(map[string]string)
+	publicIPs := make(map[string]*string)
 
-	g, gctx := errgroup.WithContext(ctx)
-	g.SetLimit(8)
-	for _, compartmentID := range compartments {
-		compartmentID := compartmentID
-		g.Go(func() error {
-			instances, err := listCompartmentInstances(gctx, computeClient, compartmentID)
+	rg, rgctx := errgroup.WithContext(ctx)
+	rg.SetLimit(4)
+	for _, region := range regions {
+		region := region
+		rg.Go(func() error {
+			res, err := fetchRegionInstances(rgctx, provider, compartments, region)
 			if err != nil {
-				return err
-			}
-			if len(instances) == 0 {
+				log.Printf("oci collector: region %s failed, skipping: %v", region, err)
 				return nil
 			}
 
-			disks, err := listCompartmentDisks(gctx, blockstorageClient, computeClient, compartmentID, instances)
-			if err != nil {
-				return err
-			}
-
 			mu.Lock()
-			allInstances = append(allInstances, instances...)
-			for id, d := range disks {
+			allInstances = append(allInstances, res.instances...)
+			for id, d := range res.disks {
 				disksByInstance[id] = d
+			}
+			for k, s := range res.specs {
+				specs[k] = s
+			}
+			for id, ip := range res.privateIPs {
+				privateIPs[id] = ip
+			}
+			for id, ip := range res.publicIPs {
+				publicIPs[id] = ip
 			}
 			mu.Unlock()
 			return nil
 		})
 	}
-	if err := g.Wait(); err != nil {
-		return nil, err
-	}
-
-	specs, err := lookupShapeSpecs(ctx, computeClient, allInstances)
-	if err != nil {
-		return nil, err
-	}
-
-	privateIPs, publicIPs, err := lookupInstanceIPs(ctx, computeClient, vcnClient, allInstances)
-	if err != nil {
+	if err := rg.Wait(); err != nil {
 		return nil, err
 	}
 
@@ -108,6 +99,124 @@ func GenerateInstances(ctx context.Context, raw json.RawMessage) ([]collectorkit
 		result = append(result, mapInstance(inst, spec, disksByInstance[id], privateIPs[id], publicIPs[id]))
 	}
 	return result, nil
+}
+
+// regionFetchResult holds one region's contribution to the tenancy-wide
+// inventory, merged by the caller into the shared maps.
+type regionFetchResult struct {
+	instances  []core.Instance
+	disks      map[string][]collectorkit.Disk
+	specs      map[string]shapeSpec
+	privateIPs map[string]string
+	publicIPs  map[string]*string
+}
+
+// fetchRegionInstances builds fresh, region-scoped Compute/Blockstorage/VNIC
+// clients from the shared provider — SetRegion mutates a client's Host in
+// place, so each region needs its own client rather than sharing one across
+// concurrent goroutines — and runs the per-compartment pipeline against
+// them. Instances, disks, shapes, and VNICs/IPs are all region-scoped OCI
+// resources, so all of it has to run per-region, not once globally.
+func fetchRegionInstances(ctx context.Context, provider common.ConfigurationProvider, compartments []string, region string) (regionFetchResult, error) {
+	computeClient, err := core.NewComputeClientWithConfigurationProvider(provider)
+	if err != nil {
+		return regionFetchResult{}, fmt.Errorf("%w: building compute client: %v", ErrUpstream, err)
+	}
+	computeClient.SetRegion(region)
+	blockstorageClient, err := core.NewBlockstorageClientWithConfigurationProvider(provider)
+	if err != nil {
+		return regionFetchResult{}, fmt.Errorf("%w: building block storage client: %v", ErrUpstream, err)
+	}
+	blockstorageClient.SetRegion(region)
+	vcnClient, err := core.NewVirtualNetworkClientWithConfigurationProvider(provider)
+	if err != nil {
+		return regionFetchResult{}, fmt.Errorf("%w: building virtual network client: %v", ErrUpstream, err)
+	}
+	vcnClient.SetRegion(region)
+
+	var mu sync.Mutex
+	var instances []core.Instance
+	disksByInstance := make(map[string][]collectorkit.Disk)
+
+	g, gctx := errgroup.WithContext(ctx)
+	g.SetLimit(8)
+	for _, compartmentID := range compartments {
+		compartmentID := compartmentID
+		g.Go(func() error {
+			compInstances, err := listCompartmentInstances(gctx, computeClient, compartmentID)
+			if err != nil {
+				return err
+			}
+			if len(compInstances) == 0 {
+				return nil
+			}
+
+			disks, err := listCompartmentDisks(gctx, blockstorageClient, computeClient, compartmentID, compInstances)
+			if err != nil {
+				log.Printf("oci collector: region %s compartment %s disk lookup failed, keeping instances without disk info: %v", region, compartmentID, err)
+				disks = nil
+			}
+
+			mu.Lock()
+			instances = append(instances, compInstances...)
+			for id, d := range disks {
+				disksByInstance[id] = d
+			}
+			mu.Unlock()
+			return nil
+		})
+	}
+	if err := g.Wait(); err != nil {
+		return regionFetchResult{}, err
+	}
+	if len(instances) == 0 {
+		return regionFetchResult{}, nil
+	}
+
+	specs, err := lookupShapeSpecs(ctx, computeClient, instances)
+	if err != nil {
+		log.Printf("oci collector: region %s shape lookup failed, keeping instances without full specs: %v", region, err)
+		specs = nil
+	}
+
+	privateIPs, publicIPs, err := lookupInstanceIPs(ctx, computeClient, vcnClient, instances)
+	if err != nil {
+		log.Printf("oci collector: region %s IP lookup failed, keeping instances without IPs: %v", region, err)
+		privateIPs, publicIPs = nil, nil
+	}
+
+	return regionFetchResult{
+		instances:  instances,
+		disks:      disksByInstance,
+		specs:      specs,
+		privateIPs: privateIPs,
+		publicIPs:  publicIPs,
+	}, nil
+}
+
+// discoverRegions returns every region the tenancy actually subscribes to
+// (READY only — IN_PROGRESS subscriptions aren't queryable yet), the
+// tenant-scoped equivalent of AWS's DescribeRegions/Alibaba's
+// ecs:DescribeRegions. Unlike identity.ListRegions (OCI's entire global
+// region catalog, subscribed or not), this reflects what this tenancy can
+// actually reach — and works from any region in the tenancy's realm, not
+// just its home region, so the connection's own Region field only ever
+// needs to be a valid bootstrap seed.
+func discoverRegions(ctx context.Context, client identity.IdentityClient, tenancyOCID string) ([]string, error) {
+	resp, err := client.ListRegionSubscriptions(ctx, identity.ListRegionSubscriptionsRequest{
+		TenancyId: common.String(tenancyOCID),
+	})
+	if err != nil {
+		return nil, classifyOCIErr(err)
+	}
+	var regions []string
+	for _, sub := range resp.Items {
+		if sub.Status != identity.RegionSubscriptionStatusReady || sub.RegionName == nil {
+			continue
+		}
+		regions = append(regions, *sub.RegionName)
+	}
+	return regions, nil
 }
 
 func listCompartmentInstances(ctx context.Context, client core.ComputeClient, compartmentID string) ([]core.Instance, error) {
@@ -137,13 +246,24 @@ func listCompartmentInstances(ctx context.Context, client core.ComputeClient, co
 func listCompartmentDisks(ctx context.Context, bsClient core.BlockstorageClient, computeClient core.ComputeClient, compartmentID string, instances []core.Instance) (map[string][]collectorkit.Disk, error) {
 	result := make(map[string][]collectorkit.Disk)
 
-	bootAttachments, err := listAllBootVolumeAttachments(ctx, computeClient, compartmentID)
-	if err != nil {
-		return nil, err
-	}
-	volAttachments, err := listAllVolumeAttachments(ctx, computeClient, compartmentID)
-	if err != nil {
-		return nil, err
+	// ListBootVolumeAttachments/ListVolumeAttachments both mandate
+	// availabilityDomain alongside compartmentId — scan once per distinct AD
+	// actually present among this compartment's instances rather than every
+	// AD in the region.
+	var bootAttachments []core.BootVolumeAttachment
+	var volAttachments []core.VolumeAttachment
+	for _, ad := range distinctADs(instances) {
+		bAtt, err := listAllBootVolumeAttachments(ctx, computeClient, compartmentID, ad)
+		if err != nil {
+			return nil, err
+		}
+		bootAttachments = append(bootAttachments, bAtt...)
+
+		vAtt, err := listAllVolumeAttachments(ctx, computeClient, compartmentID, ad)
+		if err != nil {
+			return nil, err
+		}
+		volAttachments = append(volAttachments, vAtt...)
 	}
 
 	bootSizeByID, err := bootVolumeSizes(ctx, bsClient, compartmentID)
@@ -173,17 +293,36 @@ func listCompartmentDisks(ctx context.Context, bsClient core.BlockstorageClient,
 		result[instanceID] = append(result[instanceID], collectorkit.Disk{Label: fmt.Sprintf("Data %d", dataIndex[instanceID]), SizeGB: size})
 	}
 
-	_ = instances // kept for signature symmetry/future per-instance filtering if ever needed
 	return result, nil
 }
 
-func listAllBootVolumeAttachments(ctx context.Context, client core.ComputeClient, compartmentID string) ([]core.BootVolumeAttachment, error) {
+// distinctADs returns the distinct, non-empty availability domains present
+// among the given instances (order not significant).
+func distinctADs(instances []core.Instance) []string {
+	seen := make(map[string]bool)
+	var out []string
+	for _, inst := range instances {
+		if inst.AvailabilityDomain == nil || *inst.AvailabilityDomain == "" {
+			continue
+		}
+		ad := *inst.AvailabilityDomain
+		if seen[ad] {
+			continue
+		}
+		seen[ad] = true
+		out = append(out, ad)
+	}
+	return out
+}
+
+func listAllBootVolumeAttachments(ctx context.Context, client core.ComputeClient, compartmentID string, availabilityDomain string) ([]core.BootVolumeAttachment, error) {
 	var out []core.BootVolumeAttachment
 	var page *string
 	for {
 		resp, err := client.ListBootVolumeAttachments(ctx, core.ListBootVolumeAttachmentsRequest{
-			CompartmentId: common.String(compartmentID),
-			Page:          page,
+			CompartmentId:      common.String(compartmentID),
+			AvailabilityDomain: common.String(availabilityDomain),
+			Page:               page,
 		})
 		if err != nil {
 			return nil, classifyOCIErr(err)
@@ -197,13 +336,14 @@ func listAllBootVolumeAttachments(ctx context.Context, client core.ComputeClient
 	return out, nil
 }
 
-func listAllVolumeAttachments(ctx context.Context, client core.ComputeClient, compartmentID string) ([]core.VolumeAttachment, error) {
+func listAllVolumeAttachments(ctx context.Context, client core.ComputeClient, compartmentID string, availabilityDomain string) ([]core.VolumeAttachment, error) {
 	var out []core.VolumeAttachment
 	var page *string
 	for {
 		resp, err := client.ListVolumeAttachments(ctx, core.ListVolumeAttachmentsRequest{
-			CompartmentId: common.String(compartmentID),
-			Page:          page,
+			CompartmentId:      common.String(compartmentID),
+			AvailabilityDomain: common.String(availabilityDomain),
+			Page:               page,
 		})
 		if err != nil {
 			return nil, classifyOCIErr(err)

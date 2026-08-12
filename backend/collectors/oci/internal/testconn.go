@@ -11,11 +11,13 @@ import (
 )
 
 // TestConnection performs the cheapest authenticated calls per PRD §7.3's
-// OCI checklist — validate the signing config, identity.list_regions (
-// tenancy-wide, confirms the signing key itself), then
+// OCI checklist — validate the signing config, identity.list_region_subscriptions
+// (tenancy-scoped, confirms the signing key itself and reports how many
+// regions this tenancy — not OCI globally — actually subscribes to), then
 // compute.list_instances with limit=1 scoped only to the root tenancy
-// compartment (not the full compartment-tree recursion the real fetch does)
-// to confirm the read-only policy is attached without paying for a full scan.
+// compartment on the connection's bootstrap region (not the full
+// compartment-tree/multi-region recursion the real fetch does) to confirm
+// the read-only policy is attached without paying for a full scan.
 func TestConnection(ctx context.Context, raw json.RawMessage) (string, error) {
 	var cfg ociConfig
 	if err := json.Unmarshal(raw, &cfg); err != nil {
@@ -31,9 +33,9 @@ func TestConnection(ctx context.Context, raw json.RawMessage) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("%w: building identity client: %v", ErrUpstream, err)
 	}
-	regionsResp, err := identityClient.ListRegions(ctx)
+	regions, err := discoverRegions(ctx, identityClient, cfg.TenancyOCID)
 	if err != nil {
-		return "", classifyOCIErr(err)
+		return "", err
 	}
 
 	computeClient, err := core.NewComputeClientWithConfigurationProvider(provider)
@@ -48,5 +50,5 @@ func TestConnection(ctx context.Context, raw json.RawMessage) (string, error) {
 		return "", classifyOCIErr(err)
 	}
 
-	return fmt.Sprintf("Signing key valid; %d region(s) visible; compute read-only policy confirmed on tenancy root", len(regionsResp.Items)), nil
+	return fmt.Sprintf("Signing key valid; %d region(s) subscribed; compute read-only policy confirmed on tenancy root", len(regions)), nil
 }
