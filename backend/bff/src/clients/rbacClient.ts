@@ -1,4 +1,4 @@
-import type { AuthenticatedUser, Connection, Provider, User } from '@cirrus/shared-types';
+import type { AppConfig, AuthenticatedUser, Connection, Provider, User } from '@cirrus/shared-types';
 import { env } from '../env.js';
 
 async function rbacFetch(path: string, init?: RequestInit & { actorUserId?: string | null }): Promise<Response> {
@@ -63,4 +63,10 @@ export async function listProviders(includeFieldDefs: boolean): Promise<Provider
   const res = await rbacFetch(`/providers${includeFieldDefs ? '?includeFieldDefs=true' : ''}`);
   if (!res.ok) throw new Error(`RBAC list providers responded ${res.status}`);
   return (await res.json()) as Provider[];
+}
+
+export async function getAppConfig(): Promise<AppConfig> {
+  const res = await rbacFetch('/config');
+  if (!res.ok) throw new Error(`RBAC get config responded ${res.status}`);
+  return (await res.json()) as AppConfig;
 }

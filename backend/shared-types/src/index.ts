@@ -174,3 +174,11 @@ export interface AuthenticatedUser {
   /** Permission scope for filtering: connection ids this user can see ([] for admin, meaning "all"). */
   connectionIds: string[];
 }
+
+/** Small global (not per-provider/per-connection) app config the frontend
+ * needs to render accurately — e.g. so the Connections screen's "re-validated
+ * automatically" copy reflects RBAC's real HEALTH_CHECK_INTERVAL_SECONDS
+ * instead of a hardcoded guess. */
+export interface AppConfig {
+  healthCheckIntervalSeconds: number;
+}

@@ -5,6 +5,7 @@ import {
   createUser,
   deleteConnection,
   deleteUser,
+  getConfig,
   getConnections,
   getMe,
   getProviders,
@@ -80,6 +81,7 @@ export function useCirrusApp() {
 
   // Data (fetch-driven — empty until the bootstrap/data effects below populate them)
   const [providers, setProviders] = useState<ProviderWithFieldDefs[]>([]);
+  const [healthCheckIntervalSeconds, setHealthCheckIntervalSeconds] = useState<number | null>(null);
   // Per-connection maps rather than a single vms/vmErrors array — GET /api/vms
   // and POST /api/vms/refresh stream one NDJSON frame per connection as its
   // fetch settles (see api/client.ts's getVmsStream/refreshVmsStream), so each
@@ -194,6 +196,10 @@ export function useCirrusApp() {
         setFilterProviders(data.map((p) => p.id));
       })
       .catch((err) => showToast(errorMessage(err, 'Failed to load providers')));
+
+    getConfig()
+      .then((data) => setHealthCheckIntervalSeconds(data.healthCheckIntervalSeconds))
+      .catch((err) => showToast(errorMessage(err, 'Failed to load app config')));
 
     // React StrictMode double-invokes effects in dev, which would otherwise
     // fire two overlapping /api/vms streams racing on the same state — an
@@ -523,7 +529,7 @@ export function useCirrusApp() {
     // identity / navigation
     role, currentUser, authChecked, theme, setTheme, go, goToInventoryFromLogin, signOut,
     // data
-    providers, vms, vmErrors, connections, users,
+    providers, healthCheckIntervalSeconds, vms, vmErrors, connections, users,
     isLoadingVms, vmProgress,
     // vm detail
     detailVmId, openDetail, closeDetail,

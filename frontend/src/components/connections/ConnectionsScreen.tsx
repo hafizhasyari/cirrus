@@ -1,4 +1,5 @@
 import { useMemo } from 'react';
+import { formatIntervalHuman } from '../../lib/formatInterval';
 import { ConnectionCard } from './ConnectionCard';
 import { EditConnectionDrawer } from './EditConnectionDrawer';
 import { EmptyState, LinkOffIcon } from '../shared/EmptyState';
@@ -99,7 +100,11 @@ export function ConnectionsScreen({ app }: { app: CirrusApp }) {
           <circle cx="12" cy="12" r="9" />
           <path d="M12 7v5l3.5 2" />
         </svg>
-        Connections are re-validated automatically every 6 hours by a background health check.
+        Connections are re-validated automatically{' '}
+        {app.healthCheckIntervalSeconds != null
+          ? `every ${formatIntervalHuman(app.healthCheckIntervalSeconds)}`
+          : 'periodically'}{' '}
+        by a background health check.
       </div>
 
       {app.editingConnectionId && <EditConnectionDrawer app={app} />}

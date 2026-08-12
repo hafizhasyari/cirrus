@@ -123,3 +123,9 @@ export interface AuthenticatedUser {
   accounts: string[];
   connectionIds: string[];
 }
+
+/** Small global app config the frontend needs to render accurately — e.g. the
+ * Connections screen's "re-validated automatically" copy. */
+export interface AppConfig {
+  healthCheckIntervalSeconds: number;
+}

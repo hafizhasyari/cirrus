@@ -4,6 +4,7 @@ import Fastify, { type FastifyError } from 'fastify';
 import { env } from './env.js';
 import { registerSessionMiddleware } from './plugins/session.js';
 import { registerAuthRoutes } from './routes/auth.js';
+import { registerConfigRoutes } from './routes/config.js';
 import { registerConnectionRoutes } from './routes/connections.js';
 import { registerGcpRoutes } from './routes/gcp.js';
 import { registerProviderRoutes } from './routes/providers.js';
@@ -50,6 +51,7 @@ await registerConnectionRoutes(app);
 await registerUserRoutes(app);
 await registerProviderRoutes(app);
 await registerGcpRoutes(app);
+await registerConfigRoutes(app);
 
 app.listen({ port: env.port, host: '0.0.0.0' }).catch((err) => {
   app.log.error(err);

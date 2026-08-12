@@ -1,4 +1,5 @@
 import type {
+  AppConfig,
   AuthenticatedUser,
   Connection,
   ProviderId,
@@ -81,6 +82,8 @@ export const refreshVmsStream = (onFrame: (frame: VmStreamFrame) => void) => str
 
 export const getProviders = (includeFieldDefs = true) =>
   request<ProviderWithFieldDefs[]>(`/api/providers?includeFieldDefs=${includeFieldDefs}`);
+
+export const getConfig = () => request<AppConfig>('/api/config');
 
 export const getConnections = () => request<Connection[]>('/api/connections');
 

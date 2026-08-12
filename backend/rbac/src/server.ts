@@ -5,6 +5,7 @@ import { registerUserRoutes } from './routes/users.js';
 import { registerConnectionRoutes } from './routes/connections.js';
 import { registerProviderRoutes } from './routes/providers.js';
 import { registerInternalRoutes } from './routes/internal.js';
+import { registerConfigRoutes } from './routes/config.js';
 import { startHealthCheckScheduler } from './scheduler.js';
 
 const app = Fastify({ logger: true });
@@ -26,6 +27,7 @@ await registerUserRoutes(app);
 await registerConnectionRoutes(app);
 await registerProviderRoutes(app);
 await registerInternalRoutes(app);
+await registerConfigRoutes(app);
 
 try {
   await app.listen({ port: env.port, host: '0.0.0.0' });
