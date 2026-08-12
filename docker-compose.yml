@@ -27,6 +27,24 @@ services:
       interval: 5s
       retries: 10
 
+  # One-shot fixup for the vault-init named volume: unlike vault-file (whose
+  # path is baked into the hashicorp/vault image and already owned by
+  # vault:vault, so Docker copies that ownership into a freshly created
+  # volume), vault-init is a path the image has never heard of — a brand new
+  # named volume mounted there comes up owned by root:root. vault's own
+  # entrypoint.sh runs entirely as the image's non-root vault user (uid
+  # 100/gid 1000; see entrypoint.sh's mlock comment for why), so it can't
+  # mkdir/write into a root-owned mountpoint itself. The stock image's
+  # docker-entrypoint.sh would normally chown paths like this, but only when
+  # invoked as `vault ...` — our command is `sh /vault/entrypoint.sh`, so that
+  # logic never fires. Chown it here instead, once, before vault starts.
+  vault-init-permissions:
+    image: hashicorp/vault:2.0.4
+    user: root
+    entrypoint: ["chown", "-R", "100:1000", "/vault/init"]
+    volumes:
+      - vault-init:/vault/init
+
   vault:
     image: hashicorp/vault:2.0.4
     restart: unless-stopped
@@ -47,6 +65,9 @@ services:
       # record (unseal keys + root token) so it no longer lives in the same
       # volume as the encrypted secret data it can unlock — see entrypoint.sh.
       - vault-init:/vault/init
+    depends_on:
+      vault-init-permissions:
+        condition: service_completed_successfully
     ports:
       - "8200:8200"
     healthcheck:
@@ -303,7 +324,12 @@ services:
       - default
       - proxy
     healthcheck:
-      test: ["CMD", "wget", "-qO-", "--spider", "http://localhost/"]
+      # 127.0.0.1, not localhost: nginx binds 0.0.0.0:80 only (IPv4), but
+      # localhost resolves to ::1 first inside this container, so wget kept
+      # hitting "connection refused" on every probe despite the site working
+      # fine — which also made Traefik (which excludes unhealthy containers
+      # from routing) drop this as a backend entirely.
+      test: ["CMD", "wget", "-qO-", "--spider", "http://127.0.0.1/"]
       interval: 5s
       retries: 10
       start_period: 5s
