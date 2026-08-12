@@ -28,3 +28,15 @@ export function LinkOffIcon() {
     </svg>
   );
 }
+
+export function UsersOffIcon() {
+  return (
+    <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" strokeWidth="1.6">
+      <circle cx="9" cy="8" r="3.2" />
+      <path d="M3.5 19c0-3 2.5-5.2 5.5-5.2s5.5 2.2 5.5 5.2" />
+      <path d="M16 8.5a3.2 3.2 0 010 6.36" />
+      <path d="M20.5 19c0-2.4-1.6-4.4-3.8-5" />
+      <path d="M3 3l18 18" />
+    </svg>
+  );
+}

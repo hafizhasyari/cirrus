@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import { UserDrawer } from './UserDrawer';
 import { StatCard } from '../shared/StatCard';
+import { EmptyState, UsersOffIcon } from '../shared/EmptyState';
 import { formatRelativeTime } from '../../lib/relativeTime';
 import type { CirrusApp } from '../../state/useCirrusApp';
 
@@ -43,6 +44,8 @@ export function UsersScreen({ app }: { app: CirrusApp }) {
     [usersRows],
   );
 
+  const showEmpty = usersRows.length === 0;
+
   return (
     <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', overflowX: 'hidden', display: 'flex', flexDirection: 'column', gap: 16 }}>
       <div className="stat-grid" style={{ flexShrink: 0 }}>
@@ -52,6 +55,14 @@ export function UsersScreen({ app }: { app: CirrusApp }) {
       </div>
 
       <div className="card" style={{ overflow: 'hidden' }}>
+      {showEmpty && (
+        <EmptyState
+          icon={<UsersOffIcon />}
+          message="No users yet"
+          action={<div className="empty-action" onClick={() => app.openInviteUser()}>+ Invite User</div>}
+        />
+      )}
+      {!showEmpty && (
       <div style={{ overflow: 'auto' }}>
         <table className="cirrus-table">
           <thead>
@@ -132,6 +143,7 @@ export function UsersScreen({ app }: { app: CirrusApp }) {
           </tbody>
         </table>
       </div>
+      )}
       </div>
 
       {app.userDrawerMode && <UserDrawer app={app} />}
