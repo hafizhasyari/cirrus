@@ -53,7 +53,7 @@ Found via a direct code audit against `PRD.md` §4–§6 and the frontend's own 
 
 ## P4 — Known feature gaps (carried from `CLAUDE.md`, worth resolving or explicitly accepting before calling this "production ready")
 
-- [ ] GCP and Alibaba Cloud collectors are unverified against a real successful *instance* fetch (both compile and fail gracefully against real credentials; GCP's lightweight `/test` path is confirmed against a real project, but no real Alibaba credential or GCP compute resource has been fetched yet).
+- [x] **GCP and Alibaba Cloud collectors are now confirmed against a real successful instance fetch** — a real GCP project (Compute Engine via WIF) and a real Alibaba Cloud RAM User AccessKey (ECS) both returned real instance data on the first attempt, no code changes needed (see `CLAUDE.md`'s Backend section).
 - [ ] AWS and Alibaba only cover EC2/ECS compute — e.g. AWS Lightsail VMs are invisible to inventory today. Either fix or explicitly document as a known limitation.
 
 ## Roadmap (explicitly not a blocker for this pass)
