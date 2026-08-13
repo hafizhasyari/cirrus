@@ -1,5 +1,6 @@
 import cookie from '@fastify/cookie';
 import cors from '@fastify/cors';
+import helmet from '@fastify/helmet';
 import httpProxy from '@fastify/http-proxy';
 import rateLimit from '@fastify/rate-limit';
 import Fastify, { type FastifyError } from 'fastify';
@@ -28,6 +29,10 @@ app.setErrorHandler((err: FastifyError, _req, reply) => {
 app.get('/health', { config: { rateLimit: false } }, async () => ({ status: 'ok' }));
 
 await app.register(cors, { origin: env.corsOrigin, credentials: true });
+// CSP is disabled here — bff is a pure JSON/proxy API, never the document a
+// browser renders as a page, so a CSP header on its responses is close to
+// meaningless. The real CSP that matters lives in frontend/nginx.conf.
+await app.register(helmet, { contentSecurityPolicy: false });
 await app.register(rateLimit, { max: env.rateLimitApiMax, timeWindow: env.rateLimitApiWindowMs });
 await app.register(cookie);
 

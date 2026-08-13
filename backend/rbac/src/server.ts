@@ -1,3 +1,4 @@
+import helmet from '@fastify/helmet';
 import Fastify, { type FastifyError } from 'fastify';
 import { env } from './env.js';
 import { registerInternalAuth } from './plugins/internalAuth.js';
@@ -21,6 +22,11 @@ app.setErrorHandler((err: FastifyError, _req, reply) => {
 });
 
 app.get('/health', async () => ({ status: 'ok' }));
+
+// CSP is disabled here — rbac is a pure JSON API, never the document a
+// browser renders as a page, so a CSP header on its responses is close to
+// meaningless. The real CSP that matters lives in frontend/nginx.conf.
+await app.register(helmet, { contentSecurityPolicy: false });
 
 registerInternalAuth(app);
 await registerUserRoutes(app);

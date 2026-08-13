@@ -1,4 +1,5 @@
 import cookie from '@fastify/cookie';
+import helmet from '@fastify/helmet';
 import rateLimit from '@fastify/rate-limit';
 import Fastify, { type FastifyError } from 'fastify';
 import { env } from './env.js';
@@ -23,6 +24,10 @@ app.setErrorHandler((err: FastifyError, _req, reply) => {
 app.get('/health', async () => ({ status: 'ok' }));
 app.get('/.well-known/jwks.json', async () => getJwks());
 
+// CSP is disabled here — auth is a pure JSON/redirect API, never the
+// document a browser renders as a page, so a CSP header on its responses is
+// close to meaningless. The real CSP that matters lives in frontend/nginx.conf.
+await app.register(helmet, { contentSecurityPolicy: false });
 await app.register(cookie, { secret: env.cookieSecret });
 await app.register(rateLimit, { global: false });
 await registerOidcRoutes(app);
