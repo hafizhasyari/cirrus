@@ -25,12 +25,12 @@ const logRedactPaths = [
   'password',
 ];
 
-const app = Fastify({ logger: { level: env.logLevel, redact: logRedactPaths } });
+const app = Fastify({ logger: { name: 'rbac', level: env.logLevel, redact: logRedactPaths } });
 
-app.setErrorHandler((err: FastifyError, _req, reply) => {
+app.setErrorHandler((err: FastifyError, req, reply) => {
   const status = err.statusCode ?? 500;
   if (status >= 500) {
-    app.log.error({ err }, 'unhandled request error');
+    req.log.error({ err }, 'unhandled request error');
     reply.status(status).send({ error: 'Internal Server Error' });
     return;
   }
