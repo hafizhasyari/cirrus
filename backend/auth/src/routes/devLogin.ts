@@ -25,7 +25,7 @@ export async function registerDevLoginRoutes(app: FastifyInstance) {
 
     const rbacRes = await fetch(`${env.rbacUrl}/internal/upsert-on-login`, {
       method: 'POST',
-      headers: { 'content-type': 'application/json', 'x-internal-secret': env.internalSharedSecret },
+      headers: { 'content-type': 'application/json', 'x-internal-secret': env.internalSharedSecret, 'x-request-id': req.id },
       body: JSON.stringify({ oid, tid, email, name: email }),
     });
 

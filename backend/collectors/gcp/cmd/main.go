@@ -56,7 +56,7 @@ func handleInstances(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ctx := r.Context()
+	ctx := collectorkit.WithRequestID(r.Context(), r)
 	select {
 	case <-ctx.Done():
 		return
@@ -106,7 +106,7 @@ func handleTest(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ctx := r.Context()
+	ctx := collectorkit.WithRequestID(r.Context(), r)
 	select {
 	case <-ctx.Done():
 		return

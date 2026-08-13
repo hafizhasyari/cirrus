@@ -52,6 +52,9 @@ func (c *RBACClient) GetConnectionConfig(ctx context.Context, connectionID strin
 		return nil, fmt.Errorf("collectorkit: building rbac request: %w", err)
 	}
 	req.Header.Set("X-Internal-Secret", c.Secret)
+	if id := requestIDFromContext(ctx); id != "" {
+		req.Header.Set("X-Request-Id", id)
+	}
 
 	res, err := c.HTTP.Do(req)
 	if err != nil {

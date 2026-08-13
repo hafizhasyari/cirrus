@@ -1,4 +1,5 @@
 import { env } from '../env.js';
+import { requestIdStorage } from './requestContext.js';
 
 // Plain fetch against Vault's KV v2 HTTP API — no client library, matching
 // this codebase's existing pattern of plain fetch for all inter-service
@@ -7,7 +8,12 @@ import { env } from '../env.js';
 // transparently before returning a connection's config).
 
 function headers(): Record<string, string> {
-  return { 'X-Vault-Token': env.vaultToken, 'Content-Type': 'application/json' };
+  const reqId = requestIdStorage.getStore();
+  return {
+    'X-Vault-Token': env.vaultToken,
+    'Content-Type': 'application/json',
+    ...(reqId ? { 'x-request-id': reqId } : {}),
+  };
 }
 
 /** Writes (fully replaces) the secret at `path` under the default `secret/` KV v2 mount. */

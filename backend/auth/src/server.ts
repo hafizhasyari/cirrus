@@ -25,7 +25,15 @@ const logRedactPaths = [
   'password',
 ];
 
-const app = Fastify({ logger: { name: 'auth', level: env.logLevel, redact: logRedactPaths }, trustProxy: true });
+const app = Fastify({
+  logger: { name: 'auth', level: env.logLevel, redact: logRedactPaths },
+  trustProxy: true,
+  // Adopts the X-Request-Id nginx mints at the edge (see frontend/nginx.conf,
+  // forwarded here by bff's httpProxy) as this request's own id, instead of
+  // generating an unrelated one — lets one user action be traced across
+  // every service's logs by one shared id.
+  requestIdHeader: 'x-request-id',
+});
 
 app.setErrorHandler((err: FastifyError, req, reply) => {
   const status = err.statusCode ?? 500;

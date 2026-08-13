@@ -1,10 +1,16 @@
 import type { VmStreamFrame } from '@cirrus/shared-types';
 import { env } from '../env.js';
+import { requestIdStorage } from '../lib/requestContext.js';
 
 async function aggregatorFetch(path: string, init?: RequestInit): Promise<Response> {
+  const reqId = requestIdStorage.getStore();
   return fetch(`${env.aggregatorUrl}${path}`, {
     ...init,
-    headers: { 'x-internal-secret': env.internalSharedSecret, ...(init?.headers as Record<string, string> | undefined) },
+    headers: {
+      'x-internal-secret': env.internalSharedSecret,
+      ...(reqId ? { 'x-request-id': reqId } : {}),
+      ...(init?.headers as Record<string, string> | undefined),
+    },
   });
 }
 

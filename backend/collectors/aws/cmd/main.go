@@ -68,7 +68,7 @@ func handleInstances(w http.ResponseWriter, r *http.Request) {
 	// handler keeps running in the background. Deriving our own deadline here
 	// makes the AWS SDK's in-flight calls actually stop instead of leaking
 	// goroutines/API calls past the point the client already gave up.
-	ctx, cancel := context.WithTimeout(r.Context(), instancesTimeout)
+	ctx, cancel := context.WithTimeout(collectorkit.WithRequestID(r.Context(), r), instancesTimeout)
 	defer cancel()
 	select {
 	case <-ctx.Done():
@@ -119,7 +119,7 @@ func handleTest(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ctx := r.Context()
+	ctx := collectorkit.WithRequestID(r.Context(), r)
 	select {
 	case <-ctx.Done():
 		return

@@ -1,5 +1,6 @@
 import type { ProviderId } from '@cirrus/shared-types';
 import { COLLECTOR_URLS } from '../env.js';
+import { requestIdStorage } from './requestContext.js';
 
 // Plain fetch against a collector's lightweight GET /test — no client
 // library, matching this codebase's existing pattern for all inter-service
@@ -32,8 +33,10 @@ export async function testConnectionViaCollector(provider: ProviderId, connectio
   const timeout = setTimeout(() => controller.abort(), TEST_COLLECTOR_TIMEOUT_MS);
 
   try {
+    const reqId = requestIdStorage.getStore();
     const res = await fetch(`${baseUrl}/test?connectionId=${encodeURIComponent(connectionId)}`, {
       signal: controller.signal,
+      headers: reqId ? { 'x-request-id': reqId } : undefined,
     });
 
     if (res.ok) {

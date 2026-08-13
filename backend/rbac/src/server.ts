@@ -1,6 +1,7 @@
 import helmet from '@fastify/helmet';
 import Fastify, { type FastifyError } from 'fastify';
 import { env } from './env.js';
+import { requestIdStorage } from './lib/requestContext.js';
 import { registerInternalAuth } from './plugins/internalAuth.js';
 import { registerUserRoutes } from './routes/users.js';
 import { registerConnectionRoutes } from './routes/connections.js';
@@ -25,7 +26,18 @@ const logRedactPaths = [
   'password',
 ];
 
-const app = Fastify({ logger: { name: 'rbac', level: env.logLevel, redact: logRedactPaths } });
+const app = Fastify({
+  logger: { name: 'rbac', level: env.logLevel, redact: logRedactPaths },
+  // Adopts the X-Request-Id nginx mints at the edge (see frontend/nginx.conf,
+  // forwarded here via bff's clients/rbacClient.ts) as this request's own
+  // id, instead of generating an unrelated one — lets one user action be
+  // traced across every service's logs by one shared id.
+  requestIdHeader: 'x-request-id',
+});
+
+app.addHook('onRequest', async (req) => {
+  requestIdStorage.enterWith(req.id);
+});
 
 app.setErrorHandler((err: FastifyError, req, reply) => {
   const status = err.statusCode ?? 500;

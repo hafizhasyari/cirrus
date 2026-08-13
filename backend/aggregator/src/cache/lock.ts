@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import type { ActiveConnection, CollectorInstance, CollectorInstancesResponse } from '@cirrus/shared-types';
 import { COLLECTOR_URLS } from '../env.js';
+import { requestIdStorage } from '../lib/requestContext.js';
 import { redis } from './redisClient.js';
 
 // PRD §6.1: Redis caches fetch results with a short TTL (2-5 min soft freshness).
@@ -57,8 +58,10 @@ async function fetchFromCollector(conn: ActiveConnection): Promise<CollectorInst
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), COLLECTOR_TIMEOUT_MS);
   try {
+    const reqId = requestIdStorage.getStore();
     const res = await fetch(`${baseUrl}/instances?connectionId=${encodeURIComponent(conn.connectionId)}`, {
       signal: controller.signal,
+      headers: reqId ? { 'x-request-id': reqId } : undefined,
     });
     if (!res.ok) {
       const body = (await res.json().catch(() => null)) as { error?: { code?: string; message?: string } } | null;

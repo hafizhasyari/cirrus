@@ -1,9 +1,12 @@
 import type { AppConfig, AuthenticatedUser, Connection, Provider, User } from '@cirrus/shared-types';
 import { env } from '../env.js';
+import { requestIdStorage } from '../lib/requestContext.js';
 
 async function rbacFetch(path: string, init?: RequestInit & { actorUserId?: string | null }): Promise<Response> {
+  const reqId = requestIdStorage.getStore();
   const headers: Record<string, string> = {
     'x-internal-secret': env.internalSharedSecret,
+    ...(reqId ? { 'x-request-id': reqId } : {}),
     ...(init?.body !== undefined ? { 'content-type': 'application/json' } : {}),
     ...(init?.headers as Record<string, string> | undefined),
   };
