@@ -29,7 +29,7 @@ Found via a direct code audit against `PRD.md` §4–§6 and the frontend's own 
 
 ## P1 — Security hardening
 
-- [ ] Add an explicit CORS policy to `bff` (`@fastify/cors` or manual) — currently absent entirely; works today only because nginx same-origin-proxies `/api`/`/auth`.
+- [x] **Explicit CORS policy on `bff` — built.** `@fastify/cors` registered in `server.ts` (`origin: env.corsOrigin, credentials: true`, first plugin registered) with a new `CORS_ORIGIN` env var (default `http://localhost:5173`, set to the real public URL in production) — see `CLAUDE.md`'s Backend section for detail.
 - [ ] Add rate limiting (`@fastify/rate-limit` or equivalent) on `auth`'s `/login`/`/dev-login` and on `bff`'s general `/api/*` — nothing throttles login attempts today.
 - [ ] Add security headers (`@fastify/helmet`) across `bff`/`auth`/`rbac`/`aggregator`, and review/add equivalent headers in `frontend/nginx.conf` (no CSP/HSTS/X-Frame-Options anywhere today).
 - [ ] Configure Fastify/pino log redaction for cookies, `Authorization` headers, and session/JWT values, and wire a `LOG_LEVEL` env var — every service currently does `Fastify({ logger: true })` with default settings, which can log sensitive values verbatim.

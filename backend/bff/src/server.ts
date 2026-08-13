@@ -1,4 +1,5 @@
 import cookie from '@fastify/cookie';
+import cors from '@fastify/cors';
 import httpProxy from '@fastify/http-proxy';
 import Fastify, { type FastifyError } from 'fastify';
 import { env } from './env.js';
@@ -25,6 +26,7 @@ app.setErrorHandler((err: FastifyError, _req, reply) => {
 
 app.get('/health', async () => ({ status: 'ok' }));
 
+await app.register(cors, { origin: env.corsOrigin, credentials: true });
 await app.register(cookie);
 
 // Proxy the OIDC dance straight through to the Auth Service so it can set/read

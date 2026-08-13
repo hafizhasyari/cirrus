@@ -296,6 +296,7 @@ services:
       SESSION_COOKIE_NAME: ${SESSION_COOKIE_NAME:-cirrus_session}
       JWT_ISSUER: ${JWT_ISSUER:-https://auth.cirrus.internal}
       JWT_AUDIENCE: ${JWT_AUDIENCE:-cirrus-bff}
+      CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:5173}
     ports:
       - "8080:8080"
     depends_on:

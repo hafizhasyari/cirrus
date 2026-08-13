@@ -11,6 +11,7 @@ export const env = {
   aggregatorUrl: required('AGGREGATOR_URL'),
   internalSharedSecret: required('INTERNAL_SHARED_SECRET'),
   cookieName: process.env.SESSION_COOKIE_NAME ?? 'cirrus_session',
+  corsOrigin: process.env.CORS_ORIGIN ?? 'http://localhost:5173',
   jwtIssuer: process.env.JWT_ISSUER ?? 'https://auth.cirrus.internal',
   jwtAudience: process.env.JWT_AUDIENCE ?? 'cirrus-bff',
 };
