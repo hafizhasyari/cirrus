@@ -9,7 +9,7 @@ export function EditConnectionDrawer({ app }: { app: CirrusApp }) {
   const conn = app.connections.find((c) => c.id === app.editingConnectionId);
   if (!conn) return null;
 
-  const providerMeta = app.providers.find((p) => p.id === conn.provider)!;
+  const providerMeta = app.providers.find((p) => p.id === conn.provider);
   const statusMeta = CONN_STATUS_META[conn.status];
   const statusColor = statusMeta.color ?? 'var(--text-muted)';
   const statusBg = statusMeta.color ? statusBgForTheme(statusMeta.color, theme) : 'var(--surface-alt)';
@@ -28,7 +28,7 @@ export function EditConnectionDrawer({ app }: { app: CirrusApp }) {
         </div>
 
         <div>
-          <div className="font-display" style={{ fontSize: 19, fontWeight: 700 }}>{providerMeta.name}</div>
+          <div className="font-display" style={{ fontSize: 19, fontWeight: 700 }}>{providerMeta?.name ?? 'Unknown provider'}</div>
           <div
             style={{
               display: 'inline-flex',

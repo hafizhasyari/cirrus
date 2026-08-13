@@ -90,6 +90,7 @@ export function useCirrusApp() {
 
   // Data (fetch-driven — empty until the bootstrap/data effects below populate them)
   const [providers, setProviders] = useState<ProviderWithFieldDefs[]>([]);
+  const [providersLoading, setProvidersLoading] = useState(true);
   const [healthCheckIntervalSeconds, setHealthCheckIntervalSeconds] = useState<number | null>(null);
   // Per-connection maps rather than a single vms/vmErrors array — GET /api/vms
   // and POST /api/vms/refresh stream one NDJSON frame per connection as its
@@ -245,7 +246,8 @@ export function useCirrusApp() {
         setProviders(data);
         setFilterProviders(data.map((p) => p.id));
       })
-      .catch((err) => showToast(errorMessage(err, 'Failed to load providers'), 'error'));
+      .catch((err) => showToast(errorMessage(err, 'Failed to load providers'), 'error'))
+      .finally(() => setProvidersLoading(false));
 
     getConfig()
       .then((data) => setHealthCheckIntervalSeconds(data.healthCheckIntervalSeconds))
@@ -649,7 +651,7 @@ export function useCirrusApp() {
     // identity / navigation
     role, currentUser, authChecked, theme, setTheme, go, goToInventoryFromLogin, signOut,
     // data
-    providers, healthCheckIntervalSeconds, vms, vmErrors, vmsLoadError, connections, connectionsError, connectionsLoading, users, usersError, usersLoading,
+    providers, providersLoading, healthCheckIntervalSeconds, vms, vmErrors, vmsLoadError, connections, connectionsError, connectionsLoading, users, usersError, usersLoading,
     isLoadingVms, vmProgress, loadConnections, loadUsers,
     // vm detail
     detailVmId, openDetail, closeDetail,

@@ -48,7 +48,11 @@ export function ConnectionsScreen({ app }: { app: CirrusApp }) {
     [app.connections, providerMap, theme],
   );
 
-  const showLoading = app.connectionsLoading && connectionsRows.length === 0;
+  // providersLoading is checked unconditionally, not just when connectionsRows
+  // is empty — otherwise a connections fetch that resolves before providers
+  // does would flip this false while providerMap is still empty, rendering
+  // every card with an undefined providerMeta.
+  const showLoading = app.providersLoading || (app.connectionsLoading && connectionsRows.length === 0);
   const showError = !showLoading && !!app.connectionsError && connectionsRows.length === 0;
   const showEmpty = !showLoading && !showError && connectionsRows.length === 0;
   const connectionsDisplay = showLoading || showError || showEmpty ? [] : connectionsRows;

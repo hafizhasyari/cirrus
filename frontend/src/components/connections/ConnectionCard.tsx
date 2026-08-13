@@ -11,7 +11,7 @@ export function ConnectionCard({
   onClick,
 }: {
   conn: Connection;
-  providerMeta: Provider;
+  providerMeta: Provider | undefined;
   statusLabel: string;
   statusColor: string;
   statusBg: string;
@@ -41,7 +41,7 @@ export function ConnectionCard({
       </div>
       <div>
         <div className="font-display" style={{ fontSize: 15, fontWeight: 700 }}>{conn.account}</div>
-        <div style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 2 }}>{providerMeta.name}</div>
+        <div style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 2 }}>{providerMeta?.name ?? 'Unknown provider'}</div>
       </div>
       <div
         className="font-mono"

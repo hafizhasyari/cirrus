@@ -7,11 +7,14 @@ export function ProviderBadge({
   size = 26,
   iconSize,
 }: {
-  provider: Provider;
+  provider: Provider | undefined;
   size?: number;
   iconSize?: number;
 }) {
   const { theme } = useTheme();
+  if (!provider) {
+    return <div className="provider-badge" style={{ width: size, height: size, background: 'var(--surface-alt)' }} />;
+  }
   const bg = providerBgForTheme(provider.bg, theme);
   return (
     <div
