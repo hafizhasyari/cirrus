@@ -491,7 +491,7 @@ phantom-ui {
   background: var(--surface);
   border-left: 1px solid var(--border);
   box-shadow: var(--shadow-card);
-  padding: 28px;
+  padding: 28px 28px calc(28px + env(safe-area-inset-bottom)) 28px;
   box-sizing: border-box;
   overflow-y: auto;
   display: flex;
@@ -510,7 +510,7 @@ phantom-ui {
 }
 @media (max-width: 640px) {
   .drawer-panel {
-    padding: 16px;
+    padding: 16px 16px calc(16px + env(safe-area-inset-bottom)) 16px;
   }
 }
 

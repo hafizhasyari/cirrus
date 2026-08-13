@@ -103,8 +103,10 @@ export function useCirrusApp() {
   const vmErrors = useMemo(() => Array.from(vmErrorsByConnection.values()), [vmErrorsByConnection]);
   const [connections, setConnections] = useState<Connection[]>([]);
   const [connectionsError, setConnectionsError] = useState<string | null>(null);
+  const [connectionsLoading, setConnectionsLoading] = useState(true);
   const [users, setUsers] = useState<User[]>([]);
   const [usersError, setUsersError] = useState<string | null>(null);
+  const [usersLoading, setUsersLoading] = useState(true);
   const [isLoadingVms, setIsLoadingVms] = useState(false);
   const [vmsLoadError, setVmsLoadError] = useState<string | null>(null);
 
@@ -218,7 +220,8 @@ export function useCirrusApp() {
         const msg = errorMessage(err, 'Failed to load connections');
         setConnectionsError(msg);
         showToast(msg, 'error');
-      });
+      })
+      .finally(() => setConnectionsLoading(false));
   }, [showToast]);
 
   const loadUsers = useCallback(() => {
@@ -229,7 +232,8 @@ export function useCirrusApp() {
         const msg = errorMessage(err, 'Failed to load users');
         setUsersError(msg);
         showToast(msg, 'error');
-      });
+      })
+      .finally(() => setUsersLoading(false));
   }, [showToast]);
 
   // --- Once a session is confirmed, load everything the role can see ------
@@ -645,7 +649,7 @@ export function useCirrusApp() {
     // identity / navigation
     role, currentUser, authChecked, theme, setTheme, go, goToInventoryFromLogin, signOut,
     // data
-    providers, healthCheckIntervalSeconds, vms, vmErrors, vmsLoadError, connections, connectionsError, users, usersError,
+    providers, healthCheckIntervalSeconds, vms, vmErrors, vmsLoadError, connections, connectionsError, connectionsLoading, users, usersError, usersLoading,
     isLoadingVms, vmProgress, loadConnections, loadUsers,
     // vm detail
     detailVmId, openDetail, closeDetail,
