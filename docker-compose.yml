@@ -18,6 +18,11 @@ services:
     image: postgres:17-alpine
     restart: unless-stopped
     logging: *default-logging
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 512M
     environment:
       POSTGRES_DB: cirrus
       POSTGRES_USER: cirrus
@@ -39,6 +44,11 @@ services:
     image: postgres:17-alpine
     restart: unless-stopped
     logging: *default-logging
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
     environment:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
       PG_BACKUP_INTERVAL_SECONDS: ${PG_BACKUP_INTERVAL_SECONDS:-86400}
@@ -55,6 +65,11 @@ services:
     image: redis:8-alpine
     restart: unless-stopped
     logging: *default-logging
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
     ports:
       - "6379:6379"
     healthcheck:
@@ -78,6 +93,11 @@ services:
     user: root
     entrypoint: ["chown", "-R", "100:1000", "/vault/init"]
     logging: *default-logging
+    deploy:
+      resources:
+        limits:
+          cpus: '0.25'
+          memory: 64M
     volumes:
       - vault-init:/vault/init
 
@@ -85,6 +105,11 @@ services:
     image: hashicorp/vault:2.0.4
     restart: unless-stopped
     logging: *default-logging
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
     environment:
       VAULT_API_ADDR: http://127.0.0.1:8200
       VAULT_ADDR: http://127.0.0.1:8200
@@ -120,6 +145,11 @@ services:
     image: alpine:3.22
     restart: unless-stopped
     logging: *default-logging
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
     environment:
       VAULT_BACKUP_INTERVAL_SECONDS: ${VAULT_BACKUP_INTERVAL_SECONDS:-86400}
       VAULT_BACKUP_RETENTION_DAYS: ${VAULT_BACKUP_RETENTION_DAYS:-7}
@@ -138,6 +168,11 @@ services:
       dockerfile: rbac/Dockerfile
     restart: unless-stopped
     logging: *default-logging
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
     environment:
       PORT: 4001
       DATABASE_URL: postgres://cirrus:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}@postgres:5432/cirrus
@@ -172,6 +207,11 @@ services:
       dockerfile: auth/Dockerfile
     restart: unless-stopped
     logging: *default-logging
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
     environment:
       PORT: 4000
       ENTRA_TENANT_ID: ${ENTRA_TENANT_ID}
@@ -209,6 +249,11 @@ services:
       dockerfile: aws/Dockerfile
     restart: unless-stopped
     logging: *default-logging
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
     environment:
       PORT: 8080
       RBAC_URL: http://rbac:4001
@@ -230,6 +275,11 @@ services:
       dockerfile: gcp/Dockerfile
     restart: unless-stopped
     logging: *default-logging
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
     environment:
       PORT: 8080
       AUTH_URL: http://auth:4000
@@ -254,6 +304,11 @@ services:
       dockerfile: alibaba/Dockerfile
     restart: unless-stopped
     logging: *default-logging
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
     environment:
       PORT: 8080
       RBAC_URL: http://rbac:4001
@@ -275,6 +330,11 @@ services:
       dockerfile: oci/Dockerfile
     restart: unless-stopped
     logging: *default-logging
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
     environment:
       PORT: 8080
       RBAC_URL: http://rbac:4001
@@ -296,6 +356,11 @@ services:
       dockerfile: biznet/Dockerfile
     restart: unless-stopped
     logging: *default-logging
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
     environment:
       PORT: 8080
       RBAC_URL: http://rbac:4001
@@ -317,6 +382,11 @@ services:
       dockerfile: aggregator/Dockerfile
     restart: unless-stopped
     logging: *default-logging
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
     environment:
       PORT: 4002
       REDIS_URL: redis://redis:6379
@@ -357,6 +427,11 @@ services:
       dockerfile: bff/Dockerfile
     restart: unless-stopped
     logging: *default-logging
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 512M
     environment:
       PORT: 8080
       AUTH_URL: http://auth:4000
@@ -391,6 +466,11 @@ services:
       dockerfile: Dockerfile
     restart: unless-stopped
     logging: *default-logging
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 128M
     ports:
       - "5173:80"
     depends_on:
