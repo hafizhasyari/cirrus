@@ -3,13 +3,35 @@
 #
 # Local dev keeps using the plain `docker compose up -d --build` (base file
 # only): Postgres/Redis/Vault stay reachable on the host for local
-# psql/redis-cli/vault CLI access, and NODE_ENV stays unset (defaults to
-# "development" in code, which keeps DEV_LOGIN_ENABLED's bypass usable).
+# psql/redis-cli/vault CLI access. NODE_ENV is NOT actually unset in that
+# mode, despite `bff`/`auth`/`rbac`/`aggregator`'s own env.ts reading
+# `process.env.NODE_ENV ?? 'development'` — each service's Dockerfile bakes
+# `ENV NODE_ENV=production` into its final image stage (see e.g.
+# backend/auth/Dockerfile), and the base docker-compose.yml never overrides
+# it, so a plain base-file-only `docker compose up` already runs those 4
+# services with NODE_ENV=production straight from the image. That fallback
+# to 'development' only ever applies to the non-Docker `npm run dev` (tsx)
+# workflow, where nothing sets NODE_ENV at all. This is exactly why
+# docker-compose.dev.yml has to explicitly set NODE_ENV=development for
+# these 4 services — it's not there just for symmetry with this file, it's
+# the only way to unset the image's baked-in production default so
+# DEV_LOGIN_ENABLED's bypass (gated on NODE_ENV !== 'production') can
+# actually activate against the Dockerized stack.
 #
 # `!reset []` (Compose Specification merge tag) is required here rather than
 # just omitting `ports:` — Compose concatenates list-type fields like `ports`
 # across -f files instead of replacing them, so an override file can't drop
 # a base file's port mapping any other way.
+#
+# Every service's host port mapping is reset here, including `frontend`:
+# Traefik (external to this repo) reaches `frontend` over the `proxy` Docker
+# network via its container labels, not via the `5173:80` host mapping, so
+# that mapping is only ever useful for bypassing Traefik and hitting the
+# host directly — not needed, and not wanted, in production. Same logic for
+# `bff`/`auth`/`rbac`/`aggregator`/the 5 collectors: they're only ever called
+# from other containers over the default Docker network, never directly from
+# a browser, so their host port mappings served no purpose in production
+# other than an unnecessary attack surface.
 services:
   postgres:
     ports: !reset []
@@ -17,16 +39,31 @@ services:
     ports: !reset []
   vault:
     ports: !reset []
-
+  frontend:
+    ports: !reset []
   bff:
+    ports: !reset []
     environment:
       NODE_ENV: production
   auth:
+    ports: !reset []
     environment:
       NODE_ENV: production
   rbac:
+    ports: !reset []
     environment:
       NODE_ENV: production
   aggregator:
+    ports: !reset []
     environment:
       NODE_ENV: production
+  collector-aws:
+    ports: !reset []
+  collector-gcp:
+    ports: !reset []
+  collector-alibaba:
+    ports: !reset []
+  collector-oci:
+    ports: !reset []
+  collector-biznet:
+    ports: !reset []
