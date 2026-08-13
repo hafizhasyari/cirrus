@@ -130,6 +130,8 @@ services:
       SESSION_TTL_SECONDS: ${SESSION_TTL_SECONDS:-43200}
       AUTH_SIGNING_KEY_JWK: ${AUTH_SIGNING_KEY_JWK:-}
       DEV_LOGIN_ENABLED: ${DEV_LOGIN_ENABLED:-false}
+      RATE_LIMIT_LOGIN_MAX: ${RATE_LIMIT_LOGIN_MAX:-20}
+      RATE_LIMIT_LOGIN_WINDOW_SECONDS: ${RATE_LIMIT_LOGIN_WINDOW_SECONDS:-900}
     ports:
       - "4000:4000"
     depends_on:
@@ -297,6 +299,8 @@ services:
       JWT_ISSUER: ${JWT_ISSUER:-https://auth.cirrus.internal}
       JWT_AUDIENCE: ${JWT_AUDIENCE:-cirrus-bff}
       CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:5173}
+      RATE_LIMIT_API_MAX: ${RATE_LIMIT_API_MAX:-300}
+      RATE_LIMIT_API_WINDOW_SECONDS: ${RATE_LIMIT_API_WINDOW_SECONDS:-60}
     ports:
       - "8080:8080"
     depends_on:

@@ -28,7 +28,9 @@ async function acquireTokenWithRetry(params: AuthorizationCodeRequest, attempts 
 }
 
 export async function registerOidcRoutes(app: FastifyInstance) {
-  app.get('/login', async (req, reply) => {
+  const loginRateLimit = { config: { rateLimit: { max: env.rateLimitLoginMax, timeWindow: env.rateLimitLoginWindowMs } } };
+
+  app.get('/login', loginRateLimit, async (req, reply) => {
     const { verifier, challenge } = await cryptoProvider.generatePkceCodes();
     const state = cryptoProvider.createNewGuid();
     const nonce = cryptoProvider.createNewGuid();

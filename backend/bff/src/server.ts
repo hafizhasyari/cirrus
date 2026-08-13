@@ -1,6 +1,7 @@
 import cookie from '@fastify/cookie';
 import cors from '@fastify/cors';
 import httpProxy from '@fastify/http-proxy';
+import rateLimit from '@fastify/rate-limit';
 import Fastify, { type FastifyError } from 'fastify';
 import { env } from './env.js';
 import { registerSessionMiddleware } from './plugins/session.js';
@@ -12,7 +13,7 @@ import { registerProviderRoutes } from './routes/providers.js';
 import { registerUserRoutes } from './routes/users.js';
 import { registerVmRoutes } from './routes/vms.js';
 
-const app = Fastify({ logger: true });
+const app = Fastify({ logger: true, trustProxy: true });
 
 app.setErrorHandler((err: FastifyError, _req, reply) => {
   const status = err.statusCode ?? 500;
@@ -24,9 +25,10 @@ app.setErrorHandler((err: FastifyError, _req, reply) => {
   reply.status(status).send({ error: err.message });
 });
 
-app.get('/health', async () => ({ status: 'ok' }));
+app.get('/health', { config: { rateLimit: false } }, async () => ({ status: 'ok' }));
 
 await app.register(cors, { origin: env.corsOrigin, credentials: true });
+await app.register(rateLimit, { max: env.rateLimitApiMax, timeWindow: env.rateLimitApiWindowMs });
 await app.register(cookie);
 
 // Proxy the OIDC dance straight through to the Auth Service so it can set/read

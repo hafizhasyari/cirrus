@@ -12,6 +12,8 @@ export const env = {
   internalSharedSecret: required('INTERNAL_SHARED_SECRET'),
   cookieName: process.env.SESSION_COOKIE_NAME ?? 'cirrus_session',
   corsOrigin: process.env.CORS_ORIGIN ?? 'http://localhost:5173',
+  rateLimitApiMax: Number(process.env.RATE_LIMIT_API_MAX ?? 300),
+  rateLimitApiWindowMs: Number(process.env.RATE_LIMIT_API_WINDOW_SECONDS ?? 60) * 1000,
   jwtIssuer: process.env.JWT_ISSUER ?? 'https://auth.cirrus.internal',
   jwtAudience: process.env.JWT_AUDIENCE ?? 'cirrus-bff',
 };

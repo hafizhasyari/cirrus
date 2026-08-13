@@ -30,7 +30,7 @@ Found via a direct code audit against `PRD.md` §4–§6 and the frontend's own 
 ## P1 — Security hardening
 
 - [x] **Explicit CORS policy on `bff` — built.** `@fastify/cors` registered in `server.ts` (`origin: env.corsOrigin, credentials: true`, first plugin registered) with a new `CORS_ORIGIN` env var (default `http://localhost:5173`, set to the real public URL in production) — see `CLAUDE.md`'s Backend section for detail.
-- [ ] Add rate limiting (`@fastify/rate-limit` or equivalent) on `auth`'s `/login`/`/dev-login` and on `bff`'s general `/api/*` — nothing throttles login attempts today.
+- [x] **Rate limiting — built.** `@fastify/rate-limit` on `auth` (per-route `global: false`, only `/login`/`/dev-login`, shared `RATE_LIMIT_LOGIN_MAX`/`RATE_LIMIT_LOGIN_WINDOW_SECONDS` budget) and on `bff` (global, `RATE_LIMIT_API_MAX`/`RATE_LIMIT_API_WINDOW_SECONDS`, `/health` exempted). Both Fastify instances also gained `trustProxy: true` — see `CLAUDE.md`'s Backend section for why that's a required companion change, not optional.
 - [ ] Add security headers (`@fastify/helmet`) across `bff`/`auth`/`rbac`/`aggregator`, and review/add equivalent headers in `frontend/nginx.conf` (no CSP/HSTS/X-Frame-Options anywhere today).
 - [ ] Configure Fastify/pino log redaction for cookies, `Authorization` headers, and session/JWT values, and wire a `LOG_LEVEL` env var — every service currently does `Fastify({ logger: true })` with default settings, which can log sensitive values verbatim.
 - [ ] Decide and document whether the fully plaintext internal service mesh (frontend↔bff↔auth/rbac/aggregator↔collectors, rbac↔vault, plus Vault's own `tls_disable = 1` in `vault/config.hcl`) is an accepted risk behind Traefik, or add internal TLS.

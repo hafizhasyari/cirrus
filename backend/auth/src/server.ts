@@ -1,4 +1,5 @@
 import cookie from '@fastify/cookie';
+import rateLimit from '@fastify/rate-limit';
 import Fastify, { type FastifyError } from 'fastify';
 import { env } from './env.js';
 import { getJwks, initSigningKey } from './jwt.js';
@@ -7,7 +8,7 @@ import { registerDevLoginRoutes } from './routes/devLogin.js';
 import { registerInternalAuth } from './plugins/internalAuth.js';
 import { registerWifRoutes } from './routes/wif.js';
 
-const app = Fastify({ logger: true });
+const app = Fastify({ logger: true, trustProxy: true });
 
 app.setErrorHandler((err: FastifyError, _req, reply) => {
   const status = err.statusCode ?? 500;
@@ -23,6 +24,7 @@ app.get('/health', async () => ({ status: 'ok' }));
 app.get('/.well-known/jwks.json', async () => getJwks());
 
 await app.register(cookie, { secret: env.cookieSecret });
+await app.register(rateLimit, { global: false });
 await registerOidcRoutes(app);
 
 await app.register(

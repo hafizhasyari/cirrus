@@ -9,8 +9,10 @@ import { redirectWithError } from '../oidc/errorRedirect.js';
 // invite/bypass RBAC: it calls the exact same upsert-on-login endpoint the
 // real OIDC callback uses, so it only "logs in" an email RBAC already
 // recognizes as invited (same 404 -> 403 guard as the real flow).
+const devLoginRateLimit = { config: { rateLimit: { max: env.rateLimitLoginMax, timeWindow: env.rateLimitLoginWindowMs } } };
+
 export async function registerDevLoginRoutes(app: FastifyInstance) {
-  app.get<{ Querystring: { email?: string } }>('/dev-login', async (req, reply) => {
+  app.get<{ Querystring: { email?: string } }>('/dev-login', devLoginRateLimit, async (req, reply) => {
     const email = req.query.email;
     if (!email) {
       return redirectWithError(reply, 'BAD_REQUEST');

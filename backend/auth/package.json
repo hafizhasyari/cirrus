@@ -12,6 +12,7 @@
     "@azure/msal-node": "^5.5.0",
     "@cirrus/shared-types": "*",
     "@fastify/cookie": "^11.1.2",
+    "@fastify/rate-limit": "^11.2.0",
     "fastify": "^5.11.2",
     "jose": "^6.2.8"
   },
