@@ -11,6 +11,7 @@ export const env = {
   redisUrl: required('REDIS_URL'),
   rbacUrl: required('RBAC_URL'),
   internalSharedSecret: required('INTERNAL_SHARED_SECRET'),
+  logLevel: process.env.LOG_LEVEL ?? 'info',
 };
 
 export const COLLECTOR_URLS: Record<ProviderId, string> = {

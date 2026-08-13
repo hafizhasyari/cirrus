@@ -16,4 +16,5 @@ export const env = {
   rateLimitApiWindowMs: Number(process.env.RATE_LIMIT_API_WINDOW_SECONDS ?? 60) * 1000,
   jwtIssuer: process.env.JWT_ISSUER ?? 'https://auth.cirrus.internal',
   jwtAudience: process.env.JWT_AUDIENCE ?? 'cirrus-bff',
+  logLevel: process.env.LOG_LEVEL ?? 'info',
 };

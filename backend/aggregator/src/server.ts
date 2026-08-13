@@ -5,7 +5,23 @@ import { env } from './env.js';
 import { registerInternalAuth } from './plugins/internalAuth.js';
 import { registerVmRoutes } from './routes/vms.js';
 
-const app = Fastify({ logger: true });
+// Precautionary — Fastify's default request/response serializer never
+// includes headers/cookies/bodies, so nothing today actually logs these
+// paths. This just keeps a future debug log (e.g. someone adding
+// req.headers to a log call) from leaking a session cookie/token by default.
+const logRedactPaths = [
+  'req.headers.cookie',
+  'req.headers.authorization',
+  'req.headers["x-internal-secret"]',
+  'res.headers["set-cookie"]',
+  'token',
+  'accessToken',
+  'sessionJwt',
+  'secret',
+  'password',
+];
+
+const app = Fastify({ logger: { level: env.logLevel, redact: logRedactPaths } });
 
 app.setErrorHandler((err: FastifyError, _req, reply) => {
   const status = err.statusCode ?? 500;

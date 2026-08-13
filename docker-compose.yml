@@ -95,6 +95,7 @@ services:
       ALIBABA_COLLECTOR_URL: http://collector-alibaba:8080
       OCI_COLLECTOR_URL: http://collector-oci:8080
       BIZNET_COLLECTOR_URL: http://collector-biznet:8080
+      LOG_LEVEL: ${LOG_LEVEL:-info}
     ports:
       - "4001:4001"
     depends_on:
@@ -132,6 +133,7 @@ services:
       DEV_LOGIN_ENABLED: ${DEV_LOGIN_ENABLED:-false}
       RATE_LIMIT_LOGIN_MAX: ${RATE_LIMIT_LOGIN_MAX:-20}
       RATE_LIMIT_LOGIN_WINDOW_SECONDS: ${RATE_LIMIT_LOGIN_WINDOW_SECONDS:-900}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
     ports:
       - "4000:4000"
     depends_on:
@@ -261,6 +263,7 @@ services:
       ALIBABA_COLLECTOR_URL: http://collector-alibaba:8080
       OCI_COLLECTOR_URL: http://collector-oci:8080
       BIZNET_COLLECTOR_URL: http://collector-biznet:8080
+      LOG_LEVEL: ${LOG_LEVEL:-info}
     ports:
       - "4002:4002"
     depends_on:
@@ -301,6 +304,7 @@ services:
       CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:5173}
       RATE_LIMIT_API_MAX: ${RATE_LIMIT_API_MAX:-300}
       RATE_LIMIT_API_WINDOW_SECONDS: ${RATE_LIMIT_API_WINDOW_SECONDS:-60}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
     ports:
       - "8080:8080"
     depends_on:

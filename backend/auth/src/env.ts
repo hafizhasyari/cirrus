@@ -31,4 +31,5 @@ export const env = {
   devLoginSuppressedByNodeEnv: (process.env.DEV_LOGIN_ENABLED ?? 'false') === 'true' && (process.env.NODE_ENV ?? 'development') === 'production',
   rateLimitLoginMax: Number(process.env.RATE_LIMIT_LOGIN_MAX ?? 20),
   rateLimitLoginWindowMs: Number(process.env.RATE_LIMIT_LOGIN_WINDOW_SECONDS ?? 900) * 1000,
+  logLevel: process.env.LOG_LEVEL ?? 'info',
 };

@@ -18,6 +18,7 @@ export const env = {
   // (scheduler.ts) re-validates every stored connection. Stored in seconds
   // in the env var (matches SESSION_TTL_SECONDS's house style). 0 disables it.
   healthCheckIntervalMs: Number(process.env.HEALTH_CHECK_INTERVAL_SECONDS ?? 21_600) * 1000,
+  logLevel: process.env.LOG_LEVEL ?? 'info',
 };
 
 export const COLLECTOR_URLS: Record<ProviderId, string> = {
