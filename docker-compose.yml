@@ -1,9 +1,23 @@
 name: cirrus
 
+# Applied to every service below via `logging: *default-logging` — caps each
+# container's own json-file log at 10MB x 3 files (~30MB) instead of the
+# default unbounded growth. One shared anchor rather than duplicating this
+# block 16 times: unlike the app-code duplication convention elsewhere in
+# this repo (deliberate, to keep each service's own bootstrap independent),
+# this is one YAML file with no per-service tuning called for, so a shared
+# anchor only reduces the odds one service gets missed on a future edit.
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
 services:
   postgres:
     image: postgres:17-alpine
     restart: unless-stopped
+    logging: *default-logging
     environment:
       POSTGRES_DB: cirrus
       POSTGRES_USER: cirrus
@@ -24,6 +38,7 @@ services:
   postgres-backup:
     image: postgres:17-alpine
     restart: unless-stopped
+    logging: *default-logging
     environment:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
       PG_BACKUP_INTERVAL_SECONDS: ${PG_BACKUP_INTERVAL_SECONDS:-86400}
@@ -39,6 +54,7 @@ services:
   redis:
     image: redis:8-alpine
     restart: unless-stopped
+    logging: *default-logging
     ports:
       - "6379:6379"
     healthcheck:
@@ -61,12 +77,14 @@ services:
     image: hashicorp/vault:2.0.4
     user: root
     entrypoint: ["chown", "-R", "100:1000", "/vault/init"]
+    logging: *default-logging
     volumes:
       - vault-init:/vault/init
 
   vault:
     image: hashicorp/vault:2.0.4
     restart: unless-stopped
+    logging: *default-logging
     environment:
       VAULT_API_ADDR: http://127.0.0.1:8200
       VAULT_ADDR: http://127.0.0.1:8200
@@ -101,6 +119,7 @@ services:
   vault-backup:
     image: alpine:3.22
     restart: unless-stopped
+    logging: *default-logging
     environment:
       VAULT_BACKUP_INTERVAL_SECONDS: ${VAULT_BACKUP_INTERVAL_SECONDS:-86400}
       VAULT_BACKUP_RETENTION_DAYS: ${VAULT_BACKUP_RETENTION_DAYS:-7}
@@ -118,6 +137,7 @@ services:
       context: ./backend
       dockerfile: rbac/Dockerfile
     restart: unless-stopped
+    logging: *default-logging
     environment:
       PORT: 4001
       DATABASE_URL: postgres://cirrus:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}@postgres:5432/cirrus
@@ -151,6 +171,7 @@ services:
       context: ./backend
       dockerfile: auth/Dockerfile
     restart: unless-stopped
+    logging: *default-logging
     environment:
       PORT: 4000
       ENTRA_TENANT_ID: ${ENTRA_TENANT_ID}
@@ -187,6 +208,7 @@ services:
       context: ./backend/collectors
       dockerfile: aws/Dockerfile
     restart: unless-stopped
+    logging: *default-logging
     environment:
       PORT: 8080
       RBAC_URL: http://rbac:4001
@@ -207,6 +229,7 @@ services:
       context: ./backend/collectors
       dockerfile: gcp/Dockerfile
     restart: unless-stopped
+    logging: *default-logging
     environment:
       PORT: 8080
       AUTH_URL: http://auth:4000
@@ -230,6 +253,7 @@ services:
       context: ./backend/collectors
       dockerfile: alibaba/Dockerfile
     restart: unless-stopped
+    logging: *default-logging
     environment:
       PORT: 8080
       RBAC_URL: http://rbac:4001
@@ -250,6 +274,7 @@ services:
       context: ./backend/collectors
       dockerfile: oci/Dockerfile
     restart: unless-stopped
+    logging: *default-logging
     environment:
       PORT: 8080
       RBAC_URL: http://rbac:4001
@@ -270,6 +295,7 @@ services:
       context: ./backend/collectors
       dockerfile: biznet/Dockerfile
     restart: unless-stopped
+    logging: *default-logging
     environment:
       PORT: 8080
       RBAC_URL: http://rbac:4001
@@ -290,6 +316,7 @@ services:
       context: ./backend
       dockerfile: aggregator/Dockerfile
     restart: unless-stopped
+    logging: *default-logging
     environment:
       PORT: 4002
       REDIS_URL: redis://redis:6379
@@ -329,6 +356,7 @@ services:
       context: ./backend
       dockerfile: bff/Dockerfile
     restart: unless-stopped
+    logging: *default-logging
     environment:
       PORT: 8080
       AUTH_URL: http://auth:4000
@@ -362,6 +390,7 @@ services:
       context: ./frontend
       dockerfile: Dockerfile
     restart: unless-stopped
+    logging: *default-logging
     ports:
       - "5173:80"
     depends_on:
