@@ -1,7 +1,9 @@
 import type { FastifyInstance } from 'fastify';
+import { randomUUID } from 'node:crypto';
 import { db } from './db/client.js';
 import { cloudConnections } from './db/schema.js';
 import { runConnectionCheck } from './lib/connectionCheck.js';
+import { requestIdStorage } from './lib/requestContext.js';
 import { env } from './env.js';
 
 // Bounds how many connections are checked concurrently in one pass — keeps
@@ -24,7 +26,11 @@ export async function runHealthCheckPass(app: FastifyInstance): Promise<void> {
   for (let i = 0; i < rows.length; i += CONCURRENCY_LIMIT) {
     const batch = rows.slice(i, i + CONCURRENCY_LIMIT);
     const results = await Promise.allSettled(
-      batch.map((conn) => runConnectionCheck(conn, { actorUserId: null, source: 'scheduled' })),
+      batch.map((conn) =>
+        requestIdStorage.run(randomUUID(), () =>
+          runConnectionCheck(conn, { actorUserId: null, source: 'scheduled' }),
+        ),
+      ),
     );
     results.forEach((r, idx) => {
       const conn = batch[idx];
