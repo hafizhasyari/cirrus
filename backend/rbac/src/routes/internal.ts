@@ -7,6 +7,14 @@ import { cloudConnections, userCloudAccounts, users } from '../db/schema.js';
 import { toAuthenticatedUser } from '../lib/userDto.js';
 import { writeAudit } from '../lib/audit.js';
 import { readSecret } from '../lib/vault.js';
+import { getTestOverride } from '../lib/testOverrides.js';
+import { FIELD_DEFS } from '../data/providers.js';
+
+// Must match frontend/src/lib/formValidation.ts's MASKED_PLACEHOLDER — the
+// sentinel the edit-connection drawer prefills an untouched secret field
+// with, so a test override for that field means "use the real stored
+// secret," not a literal credential to test.
+const MASKED_PLACEHOLDER = '••••••••••••••••••••';
 
 const upsertOnLoginSchema = z.object({
   oid: z.string().min(1),
@@ -103,7 +111,7 @@ export async function registerInternalRoutes(app: FastifyInstance) {
   // (accessKeyId/secretAccessKey, projectId/poolId/providerId/
   // saEmail, ...) — the collector resolves this itself, the Aggregator
   // never sees or forwards credential material.
-  app.get<{ Params: { id: string } }>('/internal/connections/:id', async (req, reply) => {
+  app.get<{ Params: { id: string }; Querystring: { testToken?: string } }>('/internal/connections/:id', async (req, reply) => {
     const [row] = await db.select().from(cloudConnections).where(eq(cloudConnections.id, req.params.id));
     if (!row) {
       reply.code(404);
@@ -117,6 +125,21 @@ export async function registerInternalRoutes(app: FastifyInstance) {
     if (row.secretRef) {
       const secret = await readSecret(row.secretRef);
       if (secret) config = { ...config, ...secret };
+    }
+
+    // A manual /test call testing currently-typed-but-unsaved values (see
+    // lib/testOverrides.ts) — token-scoped so no other caller (in
+    // particular the scheduler's own periodic health-check pass, which
+    // resolves config via this exact endpoint) can ever pick up an
+    // override that wasn't meant for it, even for the same connectionId.
+    const override = req.query.testToken ? getTestOverride(row.id) : null;
+    if (override && override.token === req.query.testToken) {
+      const secretKeys = new Set(FIELD_DEFS[row.provider].filter((f) => f.secret).map((f) => f.key));
+      config = { ...config };
+      for (const [key, value] of Object.entries(override.config)) {
+        if (secretKeys.has(key) && value === MASKED_PLACEHOLDER) continue;
+        config[key] = value;
+      }
     }
 
     const result: ConnectionConfigResponse = {

@@ -118,6 +118,7 @@ func handleTest(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
+	testToken := r.URL.Query().Get("testToken")
 
 	ctx := collectorkit.WithRequestID(r.Context(), r)
 	select {
@@ -126,7 +127,7 @@ func handleTest(w http.ResponseWriter, r *http.Request) {
 	default:
 	}
 
-	cfg, err := rbacClient.GetConnectionConfig(ctx, connectionID)
+	cfg, err := rbacClient.GetConnectionConfig(ctx, connectionID, testToken)
 	if err != nil {
 		if errors.Is(err, collectorkit.ErrConnectionNotFound) {
 			collectorkit.WriteJSON(w, http.StatusBadGateway, collectorkit.ErrorResponse{

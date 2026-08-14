@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	neturl "net/url"
 	"time"
 )
 
@@ -46,8 +47,16 @@ func NewRBACClient(baseURL, secret string) *RBACClient {
 }
 
 // GetConnectionConfig calls GET {BaseURL}/internal/connections/{connectionID}.
-func (c *RBACClient) GetConnectionConfig(ctx context.Context, connectionID string) (*ConnectionConfig, error) {
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, c.BaseURL+"/internal/connections/"+connectionID, nil)
+// The optional testToken (used only by /test's ephemeral, currently-typed-
+// but-unsaved config path — see rbac's lib/testOverrides.ts) is a variadic
+// so every existing call site (the full /instances fetch, which never has
+// one) is unaffected.
+func (c *RBACClient) GetConnectionConfig(ctx context.Context, connectionID string, testToken ...string) (*ConnectionConfig, error) {
+	url := c.BaseURL + "/internal/connections/" + connectionID
+	if len(testToken) > 0 && testToken[0] != "" {
+		url += "?testToken=" + neturl.QueryEscape(testToken[0])
+	}
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
 		return nil, fmt.Errorf("collectorkit: building rbac request: %w", err)
 	}

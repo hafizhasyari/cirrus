@@ -12,6 +12,8 @@ export interface RunConnectionCheckOptions {
   actorUserId?: string | null;
   /** Distinguishes an automated pass from a human-initiated click in the audit trail. */
   source: 'manual' | 'scheduled';
+  /** Set only when testing currently-typed-but-unsaved values (see lib/testOverrides.ts); never set by the scheduler. */
+  testToken?: string;
 }
 
 export interface RunConnectionCheckResult {
@@ -28,7 +30,7 @@ export async function runConnectionCheck(
   conn: ConnectionRow,
   opts: RunConnectionCheckOptions,
 ): Promise<RunConnectionCheckResult> {
-  const outcome = await testConnectionViaCollector(conn.provider, conn.id);
+  const outcome = await testConnectionViaCollector(conn.provider, conn.id, opts.testToken);
   const success = outcome.ok;
   const message = outcome.message || FAILURE_MSG[conn.provider];
 

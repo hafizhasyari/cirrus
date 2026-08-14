@@ -502,26 +502,48 @@ export function useCirrusApp() {
     setEditFormErrors((prev) => clearFieldError(prev, key));
   }, []);
 
-  const runEditTest = useCallback(async () => {
+  // Shared by Save Changes and Test Connection: validates the drawer's
+  // current form state and, if valid, persists it (preserving a real stored
+  // secret when a secret field is left blank/masked, since the backend
+  // replaces the whole config column rather than merging). Returns the
+  // updated connection, or null if validation failed (errors already set).
+  const persistEditFormIfValid = useCallback(async (): Promise<Connection | null> => {
     const id = editingConnectionIdRef.current;
-    if (!id) return;
-    setEditTesting(true);
-    setEditTested(false);
-    try {
-      const result = await testConnection(id);
-      setEditTested(result.result === 'success');
-      setConnections((prev) =>
-        prev.map((c) => (c.id === id ? { ...c, status: result.result === 'success' ? 'active' : 'error' } : c)),
-      );
-      if (result.result === 'failure') showToast(result.message);
-    } catch (err) {
-      showToast(errorMessage(err, 'Test failed'));
-    } finally {
-      setEditTesting(false);
+    if (!id) return null;
+    const conn = connections.find((c) => c.id === id);
+    const defs = providers.find((p) => p.id === conn?.provider)?.fieldDefs ?? [];
+    const errors = validateConnectionFields(editFormRef.current.account, editFieldValuesRef.current, defs, {
+      allowMaskedSecret: true,
+    });
+    if (Object.keys(errors).length > 0) {
+      setEditFormErrors(errors);
+      return null;
     }
-  }, [editingConnectionIdRef, showToast]);
+    setEditFormErrors({});
+    // Only send config if every field was genuinely (re)entered — secret
+    // fields are prefilled blank/masked (never round-tripped to the
+    // frontend), so a partial submit would otherwise overwrite real stored
+    // credentials with blanks/bullets (the backend replaces the whole
+    // config column, it doesn't merge).
+    const entries = Object.entries(editFieldValuesRef.current);
+    const allProvided = entries.length > 0 && entries.every(([, v]) => v && v !== MASKED_PLACEHOLDER);
+    const updated = await updateConnection(id, {
+      account: editFormRef.current.account,
+      ...(allProvided ? { config: editFieldValuesRef.current } : {}),
+    });
+    setConnections((prev) => prev.map((c) => (c.id === id ? updated : c)));
+    return updated;
+  }, [editingConnectionIdRef, editFieldValuesRef, editFormRef, connections, providers]);
 
-  const saveEditConnection = useCallback(async () => {
+  // Deliberately does NOT call persistEditFormIfValid — Test Connection must
+  // never write to Postgres/Vault (a real incident: deliberately breaking a
+  // secret to see the failure UI, then closing without Save Changes, used
+  // to leave the broken value permanently persisted). Instead it sends the
+  // currently-typed values straight to POST /test, which the backend tests
+  // ephemerally (an in-memory, token-scoped override — see
+  // rbac/src/lib/testOverrides.ts) without ever persisting them; only Save
+  // Changes (persistEditFormIfValid) is allowed to call updateConnection.
+  const runEditTest = useCallback(async () => {
     const id = editingConnectionIdRef.current;
     if (!id) return;
     const conn = connections.find((c) => c.id === id);
@@ -534,25 +556,32 @@ export function useCirrusApp() {
       return;
     }
     setEditFormErrors({});
-    // Only send config if every field was genuinely (re)entered — secret
-    // fields are prefilled blank/masked (never round-tripped to the
-    // frontend), so a partial submit would otherwise overwrite real stored
-    // credentials with blanks/bullets (the backend replaces the whole
-    // config column, it doesn't merge).
-    const entries = Object.entries(editFieldValuesRef.current);
-    const allProvided = entries.length > 0 && entries.every(([, v]) => v && v !== MASKED_PLACEHOLDER);
+    setEditTesting(true);
+    setEditTested(false);
     try {
-      const updated = await updateConnection(id, {
-        account: editFormRef.current.account,
-        ...(allProvided ? { config: editFieldValuesRef.current } : {}),
-      });
-      setConnections((prev) => prev.map((c) => (c.id === id ? updated : c)));
+      const result = await testConnection(id, editFieldValuesRef.current);
+      setEditTested(result.result === 'success');
+      setConnections((prev) =>
+        prev.map((c) => (c.id === id ? { ...c, status: result.result === 'success' ? 'active' : 'error' } : c)),
+      );
+      if (result.result === 'failure') showToast(result.message);
+    } catch (err) {
+      showToast(errorMessage(err, 'Test failed'));
+    } finally {
+      setEditTesting(false);
+    }
+  }, [editingConnectionIdRef, editFieldValuesRef, editFormRef, connections, providers, showToast]);
+
+  const saveEditConnection = useCallback(async () => {
+    try {
+      const updated = await persistEditFormIfValid();
+      if (!updated) return;
       setEditingConnectionId(null);
       showToast('Connection updated');
     } catch (err) {
       showToast(errorMessage(err, 'Update failed'));
     }
-  }, [editingConnectionIdRef, editFieldValuesRef, editFormRef, showToast, connections, providers]);
+  }, [persistEditFormIfValid, showToast]);
 
   const removeEditConnection = useCallback(async () => {
     const id = editingConnectionIdRef.current;

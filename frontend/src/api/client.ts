@@ -101,9 +101,10 @@ export const updateConnection = (
 
 export const deleteConnection = (id: string) => request<void>(`/api/connections/${id}`, { method: 'DELETE' });
 
-export const testConnection = (id: string) =>
+export const testConnection = (id: string, config?: Record<string, unknown>) =>
   request<{ result: 'success' } | { result: 'failure'; message: string }>(`/api/connections/${id}/test`, {
     method: 'POST',
+    ...(config ? { body: JSON.stringify({ config }) } : {}),
   });
 
 export const getUsers = () => request<User[]>('/api/users');

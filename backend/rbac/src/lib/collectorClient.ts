@@ -27,14 +27,19 @@ interface ErrorResponseBody {
  * validation of one connection's credentials — PRD §7.3's "cheapest
  * authenticated call" per provider, not the full inventory fetch.
  */
-export async function testConnectionViaCollector(provider: ProviderId, connectionId: string): Promise<CollectorTestOutcome> {
+export async function testConnectionViaCollector(
+  provider: ProviderId,
+  connectionId: string,
+  testToken?: string,
+): Promise<CollectorTestOutcome> {
   const baseUrl = COLLECTOR_URLS[provider];
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), TEST_COLLECTOR_TIMEOUT_MS);
 
   try {
     const reqId = requestIdStorage.getStore();
-    const res = await fetch(`${baseUrl}/test?connectionId=${encodeURIComponent(connectionId)}`, {
+    const url = `${baseUrl}/test?connectionId=${encodeURIComponent(connectionId)}${testToken ? `&testToken=${encodeURIComponent(testToken)}` : ''}`;
+    const res = await fetch(url, {
       signal: controller.signal,
       headers: reqId ? { 'x-request-id': reqId } : undefined,
     });

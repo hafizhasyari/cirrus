@@ -1,4 +1,5 @@
 import type { FastifyInstance } from 'fastify';
+import { randomUUID } from 'node:crypto';
 import { eq, inArray } from 'drizzle-orm';
 import { z } from 'zod';
 import type { Connection, ProviderId } from '@cirrus/shared-types';
@@ -7,6 +8,7 @@ import { cloudConnections, users } from '../db/schema.js';
 import { writeAudit } from '../lib/audit.js';
 import { deleteSecret, writeSecret } from '../lib/vault.js';
 import { runConnectionCheck } from '../lib/connectionCheck.js';
+import { setTestOverride, clearTestOverride } from '../lib/testOverrides.js';
 import { FIELD_DEFS } from '../data/providers.js';
 
 const createSchema = z.object({
@@ -21,6 +23,16 @@ const updateSchema = z.object({
   identifier: z.string().min(1).optional(),
   config: z.record(z.string(), z.unknown()).optional(),
 });
+
+// Optional — when present, /connections/:id/test validates these
+// currently-typed-but-unsaved values instead of whatever is already
+// persisted, without ever writing them to Postgres/Vault (see
+// lib/testOverrides.ts).
+const testSchema = z
+  .object({
+    config: z.record(z.string(), z.unknown()).optional(),
+  })
+  .optional();
 
 type ConnectionRow = typeof cloudConnections.$inferSelect;
 
@@ -166,9 +178,20 @@ export async function registerConnectionRoutes(app: FastifyInstance) {
       return { error: { code: 'NOT_FOUND', message: 'connection not found' } };
     }
 
+    const body = testSchema.parse(req.body);
     const actorUserId = (req.headers['x-actor-user-id'] as string) ?? null;
-    const result = await runConnectionCheck(conn, { actorUserId, source: 'manual' });
 
-    return result.success ? { result: 'success' as const } : { result: 'failure' as const, message: result.message };
+    let testToken: string | undefined;
+    if (body?.config) {
+      testToken = randomUUID();
+      setTestOverride(conn.id, testToken, body.config);
+    }
+
+    try {
+      const result = await runConnectionCheck(conn, { actorUserId, source: 'manual', testToken });
+      return result.success ? { result: 'success' as const } : { result: 'failure' as const, message: result.message };
+    } finally {
+      if (testToken) clearTestOverride(conn.id);
+    }
   });
 }
