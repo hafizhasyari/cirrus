@@ -16,6 +16,8 @@ export interface Disk {
 
 export type VmStatus = 'running' | 'stopped';
 
+export type VmSortColumn = 'name' | 'provider' | 'account' | 'region' | 'status' | 'type' | 'cpu' | 'memory' | 'disk' | 'ip';
+
 export interface Vm {
   id: string;
   name: string;

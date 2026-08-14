@@ -2,7 +2,7 @@ import { ProviderBadge } from '../shared/ProviderBadge';
 import { ServiceBadge } from '../shared/ServiceBadge';
 import { StaleBadge } from '../shared/StaleBadge';
 import { StatusDot } from '../shared/StatusDot';
-import type { Provider, Vm } from '../../types';
+import type { Provider, Vm, VmSortColumn } from '../../types';
 
 export interface VmRowView extends Vm {
   providerMeta: Provider;
@@ -14,22 +14,51 @@ export interface VmRowView extends Vm {
   privateIpDisplay: string;
 }
 
-export function VmTable({ rows, onRowClick }: { rows: VmRowView[]; onRowClick: (id: string) => void }) {
+const COLUMNS: { key: VmSortColumn; label: string }[] = [
+  { key: 'name', label: 'Name' },
+  { key: 'provider', label: 'Provider' },
+  { key: 'account', label: 'Account' },
+  { key: 'region', label: 'Region' },
+  { key: 'status', label: 'Status' },
+  { key: 'type', label: 'Type' },
+  { key: 'cpu', label: 'CPU' },
+  { key: 'memory', label: 'Memory' },
+  { key: 'disk', label: 'Disk' },
+  { key: 'ip', label: 'IP' },
+];
+
+export function VmTable({
+  rows,
+  sortColumn,
+  sortDirection,
+  onSort,
+  onRowClick,
+}: {
+  rows: VmRowView[];
+  sortColumn: VmSortColumn | null;
+  sortDirection: 'asc' | 'desc';
+  onSort: (column: VmSortColumn) => void;
+  onRowClick: (id: string) => void;
+}) {
   return (
     <div style={{ flex: 1, minHeight: 0, overflow: 'auto' }}>
       <table className="cirrus-table">
         <thead>
           <tr>
-            <th className="th">Name</th>
-            <th className="th">Provider</th>
-            <th className="th">Account</th>
-            <th className="th">Region</th>
-            <th className="th">Status</th>
-            <th className="th">Type</th>
-            <th className="th">CPU</th>
-            <th className="th">Memory</th>
-            <th className="th">Disk</th>
-            <th className="th">IP</th>
+            {COLUMNS.map((col) => (
+              <th
+                key={col.key}
+                className="th th-sortable"
+                data-sorted={sortColumn === col.key}
+                data-direction={sortColumn === col.key ? sortDirection : undefined}
+                onClick={() => onSort(col.key)}
+              >
+                {col.label}
+                <svg className="th-sort-caret" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+                  <path d="M6 9l6 6 6-6" />
+                </svg>
+              </th>
+            ))}
           </tr>
         </thead>
         <tbody>

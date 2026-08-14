@@ -8,7 +8,41 @@ import { AlertTriangleIcon, EmptyState, SearchOffIcon } from '../shared/EmptySta
 import { StatCard } from '../shared/StatCard';
 import { STATUS_META } from '../../theme/ThemeContext';
 import type { CirrusApp } from '../../state/useCirrusApp';
-import type { ProviderId, VmStatus } from '../../types';
+import type { ProviderId, Vm, VmSortColumn, VmStatus } from '../../types';
+
+const STATUS_SORT_RANK: Record<VmStatus, number> = { running: 0, stopped: 1 };
+
+/** Always returns "ascending" ordering — the caller flips sign for desc. */
+function compareVms(a: Vm, b: Vm, column: VmSortColumn, providerMap: Record<string, { name: string }>): number {
+  switch (column) {
+    case 'name':
+      return a.name.localeCompare(b.name);
+    case 'provider':
+      return (providerMap[a.provider]?.name ?? '').localeCompare(providerMap[b.provider]?.name ?? '');
+    case 'account':
+      return a.account.localeCompare(b.account);
+    case 'region':
+      return a.region.localeCompare(b.region);
+    case 'status':
+      return STATUS_SORT_RANK[a.status] - STATUS_SORT_RANK[b.status];
+    case 'type':
+      return a.type.localeCompare(b.type);
+    case 'cpu':
+      return a.cpu - b.cpu;
+    case 'memory':
+      return a.memory - b.memory;
+    case 'disk': {
+      const sum = (v: Vm) => v.disks.reduce((total, d) => total + d.sizeGB, 0);
+      return sum(a) - sum(b);
+    }
+    case 'ip':
+      if (!a.privateIp) return 1;
+      if (!b.privateIp) return -1;
+      return a.privateIp.localeCompare(b.privateIp);
+    default:
+      return 0;
+  }
+}
 
 export function InventoryHeader({ app }: { app: CirrusApp }) {
   return (
@@ -65,7 +99,7 @@ export function InventoryScreen({ app }: { app: CirrusApp }) {
   const {
     providers, vms, vmErrors, connections, search,
     filterProviders, filterStatuses, filterAccounts, filterRegions, filterOpen,
-    isLoadingVms, detailVmId,
+    isLoadingVms, detailVmId, sortColumn, sortDirection, toggleSort,
   } = app;
 
   const [outageDismissed, setOutageDismissed] = useState(false);
@@ -198,7 +232,12 @@ export function InventoryScreen({ app }: { app: CirrusApp }) {
   // connection's VMs have arrived, later frames (initial load or refresh)
   // update rows in place instead of hiding the table again.
   const showSkeleton = isLoadingVms && vms.length === 0;
-  const displayVms = filtered;
+  const sorted = useMemo(() => {
+    if (!sortColumn) return filtered;
+    const dir = sortDirection === 'asc' ? 1 : -1;
+    return [...filtered].sort((a, b) => dir * compareVms(a, b, sortColumn, providerMap));
+  }, [filtered, sortColumn, sortDirection, providerMap]);
+  const displayVms = sorted;
   // A total fetch failure (rejected before any NDJSON frame arrived) leaves
   // vms empty just like a genuinely empty account — distinguish the two so
   // the "no VMs match your filters" copy/action isn't shown for a load error.
@@ -317,7 +356,15 @@ export function InventoryScreen({ app }: { app: CirrusApp }) {
             action={<div className="empty-action" onClick={emptyActionFn}>{emptyActionLabel}</div>}
           />
         )}
-        {showTable && <VmTable rows={rows} onRowClick={(id) => app.openDetail(id)} />}
+        {showTable && (
+          <VmTable
+            rows={rows}
+            sortColumn={sortColumn}
+            sortDirection={sortDirection}
+            onSort={toggleSort}
+            onRowClick={(id) => app.openDetail(id)}
+          />
+        )}
       </div>
 
       <div style={{ fontSize: 11.5, color: 'var(--text-muted)', flexShrink: 0 }}>

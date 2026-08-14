@@ -185,6 +185,30 @@ body {
   border-bottom: 1px solid var(--border);
   background: var(--surface-alt);
 }
+.th-sortable {
+  cursor: pointer;
+  user-select: none;
+  white-space: nowrap;
+}
+.th-sortable:hover {
+  color: var(--text-secondary);
+  background: var(--surface-hover);
+}
+.th-sort-caret {
+  margin-left: 4px;
+  opacity: 0.35;
+  vertical-align: middle;
+  transition: transform 0.15s ease, opacity 0.15s ease;
+}
+.th-sortable[data-sorted='true'] {
+  color: var(--accent);
+}
+.th-sortable[data-sorted='true'] .th-sort-caret {
+  opacity: 1;
+}
+.th-sortable[data-sorted='true'][data-direction='asc'] .th-sort-caret {
+  transform: rotate(180deg);
+}
 .td {
   padding: 13px 18px;
   border-bottom: 1px solid var(--border);

@@ -30,6 +30,7 @@ import type {
   User,
   Vm,
   VmFetchError,
+  VmSortColumn,
   VmStatus,
   VmStreamFrame,
   WizardFormValues,
@@ -128,6 +129,12 @@ export function useCirrusApp() {
   const [filterAccounts, setFilterAccounts] = useState<string[] | null>(null);
   const [filterRegions, setFilterRegions] = useState<string[] | null>(null);
   const [filterOpen, setFilterOpen] = useState<'provider' | 'status' | 'account' | 'region' | null>(null);
+
+  // Inventory sort — a view preference, deliberately independent of the
+  // filter state above: it isn't reset by clearFilters, and persists across
+  // refreshInventory/navigation exactly like search/filterProviders already do.
+  const [sortColumn, setSortColumn] = useState<VmSortColumn | null>(null);
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
 
   // Add-connection wizard
   const [wizardStep, setWizardStep] = useState<1 | 2>(1);
@@ -351,6 +358,20 @@ export function useCirrusApp() {
     setFilterOpen((prev) => (prev === name ? null : name));
   }, []);
   const closeFilterOpen = useCallback(() => setFilterOpen(null), []);
+
+  // Clicking an unsorted column sorts it ascending; clicking the active
+  // column flips its direction; clicking a different column always starts
+  // that column at ascending (never remembers a per-column direction).
+  const toggleSort = useCallback((column: VmSortColumn) => {
+    setSortColumn((prev) => {
+      if (prev !== column) {
+        setSortDirection('asc');
+        return column;
+      }
+      setSortDirection((d) => (d === 'asc' ? 'desc' : 'asc'));
+      return column;
+    });
+  }, []);
 
   const selectAllProviders = useCallback(() => setFilterProviders(providers.map((p) => p.id)), [providers]);
   const selectAllStatuses = useCallback(() => setFilterStatuses(['running', 'stopped']), []);
@@ -698,6 +719,7 @@ export function useCirrusApp() {
     selectAllProviders, selectAllStatuses, selectAllAccounts, selectAllRegions,
     unselectAllProviders, unselectAllStatuses, unselectAllAccounts, unselectAllRegions, refreshInventory,
     filterOpen, toggleFilterOpen, closeFilterOpen,
+    sortColumn, sortDirection, toggleSort,
     // connections
     openEditConnection, closeEditConnection,
     editingConnectionId, editForm, editFieldValues, editTesting, editTested, editFormErrors,
