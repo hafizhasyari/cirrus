@@ -78,6 +78,9 @@ export interface FieldDef {
    * informational on the frontend — `kind: 'textarea'` already drives the
    * masked-input rendering these fields need. */
   secret?: boolean;
+  /** True if the field may be left blank — e.g. OCI's passphrase. Absent or
+   * false means the field is required. */
+  optional?: boolean;
 }
 
 export type WizardResult = 'success' | 'failure' | null;

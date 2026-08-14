@@ -75,13 +75,13 @@ export function WizardScreen({ app }: { app: CirrusApp }) {
             <div style={{ marginBottom: 16 }}>
               <div className="section-label" style={{ marginBottom: 8 }}>Account / project name</div>
               <input
-                className="field-input font-plain"
+                className={`field-input font-plain${app.wizardFormErrors.account ? ' has-error' : ''}`}
                 value={app.wizardAccount}
                 onChange={(e) => app.updateWizardAccount(e.target.value)}
                 placeholder="e.g. prod-infra-01"
               />
               {app.wizardFormErrors.account && (
-                <div style={{ fontSize: 11, color: 'var(--error-border)', marginTop: 5 }}>{app.wizardFormErrors.account}</div>
+                <div className="field-error">{app.wizardFormErrors.account}</div>
               )}
             </div>
 

@@ -34,6 +34,7 @@ export function validateConnectionFields(
     if (def.kind === 'generated') continue;
     const value = values[def.key];
     if (opts?.allowMaskedSecret && def.secret && value === MASKED_PLACEHOLDER) continue;
+    if (def.optional) continue;
     if (isBlank(value)) errors[def.key] = `${def.label} is required`;
   }
 

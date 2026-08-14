@@ -51,12 +51,12 @@ export function EditConnectionDrawer({ app }: { app: CirrusApp }) {
         <div>
           <div className="section-label" style={{ marginBottom: 8 }}>Account name</div>
           <input
-            className="field-input font-plain"
+            className={`field-input font-plain${app.editFormErrors.account ? ' has-error' : ''}`}
             value={app.editForm.account}
             onChange={(e) => app.updateEditAccount(e.target.value)}
           />
           {app.editFormErrors.account && (
-            <div style={{ fontSize: 11, color: 'var(--error-border)', marginTop: 5 }}>{app.editFormErrors.account}</div>
+            <div className="field-error">{app.editFormErrors.account}</div>
           )}
         </div>
 

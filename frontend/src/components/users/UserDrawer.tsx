@@ -21,25 +21,25 @@ export function UserDrawer({ app }: { app: CirrusApp }) {
         <div>
           <div className="section-label" style={{ marginBottom: 8 }}>Full name</div>
           <input
-            className="field-input font-plain"
+            className={`field-input font-plain${app.userFormErrors.name ? ' has-error' : ''}`}
             value={app.userForm.name}
             onChange={(e) => app.updateUserField('name', e.target.value)}
             placeholder="e.g. Andi Wijaya"
           />
           {app.userFormErrors.name && (
-            <div style={{ fontSize: 11, color: 'var(--error-border)', marginTop: 5 }}>{app.userFormErrors.name}</div>
+            <div className="field-error">{app.userFormErrors.name}</div>
           )}
         </div>
         <div>
           <div className="section-label" style={{ marginBottom: 8 }}>Email</div>
           <input
-            className="field-input font-plain"
+            className={`field-input font-plain${app.userFormErrors.email ? ' has-error' : ''}`}
             value={app.userForm.email}
             onChange={(e) => app.updateUserField('email', e.target.value)}
             placeholder="name@example.com"
           />
           {app.userFormErrors.email && (
-            <div style={{ fontSize: 11, color: 'var(--error-border)', marginTop: 5 }}>{app.userFormErrors.email}</div>
+            <div className="field-error">{app.userFormErrors.email}</div>
           )}
         </div>
         <div>

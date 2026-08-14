@@ -32,7 +32,7 @@ export const FIELD_DEFS: Record<ProviderId, FieldDef[]> = {
     { key: 'fingerprint', label: 'Fingerprint', kind: 'text' },
     { key: 'privateKey', label: 'Private Key', kind: 'textarea', secret: true },
     { key: 'region', label: 'Region', caption: 'Any valid OCI region works here — Cirrus automatically discovers and fetches instances from every region this tenancy is subscribed to, not just this one.', kind: 'text' },
-    { key: 'passphrase', label: 'Passphrase (optional)', kind: 'text', secret: true },
+    { key: 'passphrase', label: 'Passphrase (optional)', kind: 'text', secret: true, optional: true },
   ],
   biznet: [
     { key: 'xToken', label: 'x-token', kind: 'textarea', secret: true },

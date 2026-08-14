@@ -101,6 +101,9 @@ export interface FieldDef {
    * secretAccessKey. Absent or false for non-secret identifiers (accessKeyId,
    * projectId, etc.). */
   secret?: boolean;
+  /** True if the field may be left blank — e.g. OCI's passphrase. Absent or
+   * false means the field is required. */
+  optional?: boolean;
 }
 
 // ---------------------------------------------------------------------------
