@@ -37,14 +37,29 @@ export function FilterDropdown({
       </div>
       {open && (
         <div className="dropdown-panel" onClick={(e) => e.stopPropagation()}>
-          {options.map((opt) => (
-            <div key={opt.id} className="dropdown-row" onClick={() => onToggleOption(opt.id)}>
-              <CheckboxBox checked={opt.checked} color={opt.color} />
-              <span style={{ width: 7, height: 7, borderRadius: '50%', background: opt.color, flexShrink: 0 }} />
-              <span style={{ fontSize: 12.5, color: 'var(--text-secondary)', flex: 1 }}>{opt.label}</span>
-              <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{opt.count}</span>
-            </div>
-          ))}
+          <div className="dropdown-rows">
+            {options.map((opt) => (
+              <div key={opt.id} className="dropdown-row" onClick={() => onToggleOption(opt.id)}>
+                <CheckboxBox checked={opt.checked} color={opt.color} />
+                <span style={{ width: 7, height: 7, borderRadius: '50%', background: opt.color, flexShrink: 0 }} />
+                <span
+                  title={opt.label}
+                  style={{
+                    fontSize: 12.5,
+                    color: 'var(--text-secondary)',
+                    flex: 1,
+                    minWidth: 0,
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  {opt.label}
+                </span>
+                <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{opt.count}</span>
+              </div>
+            ))}
+          </div>
           <div className="dropdown-footer">
             <span style={{ cursor: 'pointer' }} onClick={onSelectAll}>Select all</span>
             <span style={{ cursor: 'pointer', color: 'var(--text-muted)' }} onClick={onDone}>Done</span>
