@@ -410,6 +410,11 @@ body {
   color: var(--accent);
   font-weight: 600;
 }
+.dropdown-footer-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
 .filter-backdrop {
   position: fixed;
   inset: 0;

@@ -113,39 +113,49 @@ export function InventoryScreen({ app }: { app: CirrusApp }) {
 
   // Unlike provider/status, there's no fixed universe of accounts/regions —
   // the option list is whatever distinct values are currently in vms, and
-  // filterAccounts/filterRegions being [] means "unrestricted" rather than
-  // "seeded to the full list" (see useCirrusApp.ts). So checked has to
-  // treat an empty filter array as everything checked, not nothing.
+  // filterAccounts/filterRegions being null means "unrestricted" rather than
+  // "seeded to the full list" (see useCirrusApp.ts). [] is a distinct state
+  // meaning the user explicitly selected zero (via Unselect all). So checked
+  // has to treat a null filter as everything checked, not an empty array.
+  // An account/region always belongs to a single provider connection, so its
+  // dot color can borrow that provider's brand color (same as providerFilterList)
+  // instead of a flat accent — looked up from any vm sharing that account/region.
   const accountFilterList = useMemo(() => {
     const known = Array.from(new Set(vms.map((v) => v.account))).sort((a, b) => a.localeCompare(b));
-    return known.map((id) => ({
-      id,
-      label: id,
-      color: 'var(--accent)',
-      checked: filterAccounts.length === 0 || filterAccounts.includes(id),
-      count: vms.filter((v) => v.account === id).length,
-    }));
-  }, [vms, filterAccounts]);
+    return known.map((id) => {
+      const owner = vms.find((v) => v.account === id);
+      return {
+        id,
+        label: id,
+        color: (owner && providerMap[owner.provider]?.color) || 'var(--accent)',
+        checked: filterAccounts === null || filterAccounts.includes(id),
+        count: vms.filter((v) => v.account === id).length,
+      };
+    });
+  }, [vms, filterAccounts, providerMap]);
 
   const regionFilterList = useMemo(() => {
     const known = Array.from(new Set(vms.map((v) => v.region))).sort((a, b) => a.localeCompare(b));
-    return known.map((id) => ({
-      id,
-      label: id,
-      color: 'var(--accent)',
-      checked: filterRegions.length === 0 || filterRegions.includes(id),
-      count: vms.filter((v) => v.region === id).length,
-    }));
-  }, [vms, filterRegions]);
+    return known.map((id) => {
+      const owner = vms.find((v) => v.region === id);
+      return {
+        id,
+        label: id,
+        color: (owner && providerMap[owner.provider]?.color) || 'var(--accent)',
+        checked: filterRegions === null || filterRegions.includes(id),
+        count: vms.filter((v) => v.region === id).length,
+      };
+    });
+  }, [vms, filterRegions, providerMap]);
 
   const providerHasSelection = filterProviders.length < providers.length;
   const statusHasSelection = filterStatuses.length < 2;
-  const accountHasSelection = filterAccounts.length > 0;
-  const regionHasSelection = filterRegions.length > 0;
+  const accountHasSelection = filterAccounts !== null;
+  const regionHasSelection = filterRegions !== null;
   const providerTriggerLabel = providerHasSelection ? `Provider · ${filterProviders.length}` : 'Provider';
   const statusTriggerLabel = statusHasSelection ? `Status · ${filterStatuses.length}` : 'Status';
-  const accountTriggerLabel = accountHasSelection ? `Account · ${filterAccounts.length}` : 'Account';
-  const regionTriggerLabel = regionHasSelection ? `Region · ${filterRegions.length}` : 'Region';
+  const accountTriggerLabel = accountHasSelection ? `Account · ${filterAccounts?.length ?? 0}` : 'Account';
+  const regionTriggerLabel = regionHasSelection ? `Region · ${filterRegions?.length ?? 0}` : 'Region';
 
   const filtered = useMemo(() => {
     const searchLower = search.trim().toLowerCase();
@@ -153,8 +163,8 @@ export function InventoryScreen({ app }: { app: CirrusApp }) {
       (v) =>
         filterProviders.includes(v.provider) &&
         filterStatuses.includes(v.status) &&
-        (filterAccounts.length === 0 || filterAccounts.includes(v.account)) &&
-        (filterRegions.length === 0 || filterRegions.includes(v.region)) &&
+        (filterAccounts === null || filterAccounts.includes(v.account)) &&
+        (filterRegions === null || filterRegions.includes(v.region)) &&
         (searchLower === '' || v.name.toLowerCase().includes(searchLower) || v.id.toLowerCase().includes(searchLower)),
     );
   }, [vms, filterProviders, filterStatuses, filterAccounts, filterRegions, search]);
@@ -162,8 +172,8 @@ export function InventoryScreen({ app }: { app: CirrusApp }) {
   const hasActiveFilters =
     filterProviders.length < providers.length ||
     filterStatuses.length < 2 ||
-    filterAccounts.length > 0 ||
-    filterRegions.length > 0 ||
+    filterAccounts !== null ||
+    filterRegions !== null ||
     search !== '';
   const activeChips = useMemo(() => {
     const chips: { key: string; label: string; clear: () => void }[] = [];
@@ -173,10 +183,10 @@ export function InventoryScreen({ app }: { app: CirrusApp }) {
     if (filterStatuses.length < 2) {
       chips.push({ key: 'st', label: `Status (${filterStatuses.length})`, clear: () => app.selectAllStatuses() });
     }
-    if (filterAccounts.length > 0) {
+    if (filterAccounts !== null) {
       chips.push({ key: 'ac', label: `Account (${filterAccounts.length})`, clear: () => app.selectAllAccounts() });
     }
-    if (filterRegions.length > 0) {
+    if (filterRegions !== null) {
       chips.push({ key: 're', label: `Region (${filterRegions.length})`, clear: () => app.selectAllRegions() });
     }
     if (search !== '') chips.push({ key: 'se', label: `"${search}"`, clear: () => app.setSearch('') });
@@ -238,6 +248,7 @@ export function InventoryScreen({ app }: { app: CirrusApp }) {
           onToggleOpen={() => app.toggleFilterOpen('provider')}
           onToggleOption={(id) => app.toggleProviderFilter(id as ProviderId)}
           onSelectAll={() => app.selectAllProviders()}
+          onUnselectAll={() => app.unselectAllProviders()}
           onDone={() => app.closeFilterOpen()}
         />
         <FilterDropdown
@@ -248,6 +259,7 @@ export function InventoryScreen({ app }: { app: CirrusApp }) {
           onToggleOpen={() => app.toggleFilterOpen('status')}
           onToggleOption={(id) => app.toggleStatusFilter(id as VmStatus)}
           onSelectAll={() => app.selectAllStatuses()}
+          onUnselectAll={() => app.unselectAllStatuses()}
           onDone={() => app.closeFilterOpen()}
         />
         <FilterDropdown
@@ -258,6 +270,7 @@ export function InventoryScreen({ app }: { app: CirrusApp }) {
           onToggleOpen={() => app.toggleFilterOpen('account')}
           onToggleOption={(id) => app.toggleAccountFilter(id)}
           onSelectAll={() => app.selectAllAccounts()}
+          onUnselectAll={() => app.unselectAllAccounts()}
           onDone={() => app.closeFilterOpen()}
         />
         <FilterDropdown
@@ -268,6 +281,7 @@ export function InventoryScreen({ app }: { app: CirrusApp }) {
           onToggleOpen={() => app.toggleFilterOpen('region')}
           onToggleOption={(id) => app.toggleRegionFilter(id)}
           onSelectAll={() => app.selectAllRegions()}
+          onUnselectAll={() => app.unselectAllRegions()}
           onDone={() => app.closeFilterOpen()}
         />
       </div>

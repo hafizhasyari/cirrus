@@ -16,6 +16,7 @@ export function FilterDropdown({
   onToggleOpen,
   onToggleOption,
   onSelectAll,
+  onUnselectAll,
   onDone,
 }: {
   triggerLabel: string;
@@ -25,6 +26,7 @@ export function FilterDropdown({
   onToggleOpen: () => void;
   onToggleOption: (id: string) => void;
   onSelectAll: () => void;
+  onUnselectAll: () => void;
   onDone: () => void;
 }) {
   return (
@@ -61,7 +63,10 @@ export function FilterDropdown({
             ))}
           </div>
           <div className="dropdown-footer">
-            <span style={{ cursor: 'pointer' }} onClick={onSelectAll}>Select all</span>
+            <div className="dropdown-footer-actions">
+              <span style={{ cursor: 'pointer' }} onClick={onSelectAll}>Select all</span>
+              <span style={{ cursor: 'pointer', color: '#f43f5e' }} onClick={onUnselectAll}>Unselect all</span>
+            </div>
             <span style={{ cursor: 'pointer', color: 'var(--text-muted)' }} onClick={onDone}>Done</span>
           </div>
         </div>
