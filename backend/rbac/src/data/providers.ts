@@ -43,6 +43,8 @@ export const SETUP_GUIDE: Record<ProviderId, string[]> = {
   aws: [
     'In IAM → Users → Create user, add a new user for Cirrus (e.g. cirrus-readonly) — skip console access, this only needs programmatic access',
     'Attach the AmazonEC2ReadOnlyAccess policy directly to the user',
+    'If this account also runs VMs on AWS Lightsail (not just EC2): AWS has no dedicated Lightsail-read-only managed policy, so in IAM → Policies → Create policy → JSON tab, paste the policy JSON from the card on the right, then name it (e.g. CirrusLightsailReadOnly) and create it',
+    'Attach that new policy to the same Cirrus user too (open the user → Permissions tab → Add permissions → Attach policies directly) — without it, Lightsail instances simply won\'t appear in inventory, but EC2 will keep working either way',
     'Open the user → Security credentials tab → Create access key, and choose "Third-party service" as the use case',
     'Copy the Access Key ID and Secret Access Key below now — the secret is only ever shown once',
   ],

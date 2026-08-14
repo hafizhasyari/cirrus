@@ -34,5 +34,6 @@ export function normalizeInstance(
     launched: instance.launchedAt.slice(0, 10),
     connectionId: conn.connectionId,
     ...(stale ? { stale: true } : {}),
+    ...(instance.service ? { service: instance.service } : {}),
   };
 }

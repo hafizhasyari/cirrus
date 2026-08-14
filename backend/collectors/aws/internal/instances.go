@@ -60,6 +60,14 @@ func FetchInstances(ctx context.Context, raw json.RawMessage) ([]collectorkit.In
 	}
 	ec2Base := ec2.NewFromConfig(base)
 
+	// Kicked off now, joined at the very end — Lightsail's own region
+	// discovery + fan-out runs the entire time the EC2 sweep below runs, so
+	// it doesn't add to the wall-clock budget on top of EC2's.
+	lightsailCh := make(chan []collectorkit.Instance, 1)
+	go func() {
+		lightsailCh <- fetchLightsailInstances(ctx, base)
+	}()
+
 	// DescribeRegions doubles as the earliest possible credential-rejection
 	// signal — matches RBAC's own advertised AWS test-connection checklist.
 	regionsOut, err := ec2Base.DescribeRegions(ctx, &ec2.DescribeRegionsInput{})
@@ -150,6 +158,9 @@ func FetchInstances(ctx context.Context, raw json.RawMessage) ([]collectorkit.In
 		}
 		result = append(result, mapInstance(inst, region, memByType, disksByInstance[id]))
 	}
+
+	result = append(result, <-lightsailCh...)
+
 	return result, nil
 }
 

@@ -17,17 +17,21 @@ type Disk struct {
 // vs type, memoryGB vs memory, launchedAt ISO datetime vs launched date) —
 // the Aggregator normalizes between the two; collectors stay provider-raw.
 type Instance struct {
-	ID           string            `json:"id"`
-	Name         string            `json:"name"`
-	Region       string            `json:"region"`
-	Status       string            `json:"status"` // "running" | "stopped" | "terminated"
-	InstanceType string            `json:"instanceType"`
-	CPU          int               `json:"cpu"`
-	MemoryGB     float64           `json:"memoryGB"`
-	Disks        []Disk            `json:"disks"`
-	PrivateIP    string            `json:"privateIp"`
-	PublicIP     *string           `json:"publicIp"`
-	LaunchedAt   string            `json:"launchedAt"`
+	ID           string  `json:"id"`
+	Name         string  `json:"name"`
+	Region       string  `json:"region"`
+	Status       string  `json:"status"` // "running" | "stopped" | "terminated"
+	InstanceType string  `json:"instanceType"`
+	CPU          int     `json:"cpu"`
+	MemoryGB     float64 `json:"memoryGB"`
+	Disks        []Disk  `json:"disks"`
+	PrivateIP    string  `json:"privateIp"`
+	PublicIP     *string `json:"publicIp"`
+	LaunchedAt   string  `json:"launchedAt"`
+	// Service distinguishes a sub-service within one provider — e.g. AWS
+	// Lightsail vs. EC2. Omitted for every other case (EC2, and every other
+	// provider) today.
+	Service string `json:"service,omitempty"`
 }
 
 // InstancesResponse is the GET /instances success envelope.

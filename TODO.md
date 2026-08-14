@@ -54,7 +54,8 @@ Found via a direct code audit against `PRD.md` §4–§6 and the frontend's own 
 ## P4 — Known feature gaps (carried from `CLAUDE.md`, worth resolving or explicitly accepting before calling this "production ready")
 
 - [x] **GCP and Alibaba Cloud collectors are now confirmed against a real successful instance fetch** — a real GCP project (Compute Engine via WIF) and a real Alibaba Cloud RAM User AccessKey (ECS) both returned real instance data on the first attempt, no code changes needed (see `CLAUDE.md`'s Backend section).
-- [ ] AWS and Alibaba only cover EC2/ECS compute — e.g. AWS Lightsail VMs are invisible to inventory today. Either fix or explicitly document as a known limitation.
+- [x] **AWS Lightsail VMs are now visible in inventory** — `collector-aws` calls the Lightsail API too (see `CLAUDE.md`'s Backend section for detail), extending the existing collector rather than adding a new provider. Scoped to AWS only, per what was actually asked for.
+- [x] **Alibaba's equivalent gap — assessed, not applicable.** Alibaba Cloud does have a Lightsail-style product (Simple Application Server / SWAS, its own `swas-open` API namespace, separate from ECS) that would have the same invisible-to-inventory gap — but the company doesn't use SWAS, only ECS, so no collector work is needed here.
 
 ## Roadmap (explicitly not a blocker for this pass)
 

@@ -25,6 +25,20 @@ export function WizardScreen({ app }: { app: CirrusApp }) {
   const failureMessage = wizardProviderMeta?.failureMessage ?? '';
   const wizardIdle = !app.wizardTesting && !app.wizardResult;
   const gcpPrincipalId = `principalSet://iam.googleapis.com/projects/${app.wizardForm.projectId || '<Project Number>'}/locations/global/workloadIdentityPools/${app.wizardForm.poolId || '<Pool ID>'}/*`;
+  const awsLightsailPolicyJson = JSON.stringify(
+    {
+      Version: '2012-10-17',
+      Statement: [
+        {
+          Effect: 'Allow',
+          Action: ['lightsail:GetRegions', 'lightsail:GetInstances'],
+          Resource: '*',
+        },
+      ],
+    },
+    null,
+    2,
+  );
 
   return (
     <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', overflowX: 'hidden' }}>
@@ -62,7 +76,7 @@ export function WizardScreen({ app }: { app: CirrusApp }) {
       )}
 
       {step2 && wizardProviderMeta && (
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 24, alignItems: 'flex-start', maxWidth: wizardProviderMeta.id === 'gcp' ? 1180 : 900 }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 24, alignItems: 'flex-start', maxWidth: wizardProviderMeta.id === 'gcp' || wizardProviderMeta.id === 'aws' ? 1180 : 900 }}>
           <div className="card" style={{ flex: 1, minWidth: 300, padding: 24, boxSizing: 'border-box' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 20 }}>
               <ProviderBadge provider={wizardProviderMeta} size={30} iconSize={15} />
@@ -193,6 +207,23 @@ export function WizardScreen({ app }: { app: CirrusApp }) {
                 style={{ width: '100%', justifyContent: 'center' }}
                 onClick={() => {
                   navigator.clipboard.writeText(gcpPrincipalId);
+                  app.showToast('Copied to clipboard');
+                }}
+              >
+                Copy
+              </div>
+            </div>
+          )}
+
+          {wizardProviderMeta.id === 'aws' && (
+            <div className="card" style={{ width: 'min(260px, 100%)', flexShrink: 0, padding: 20, boxSizing: 'border-box' }}>
+              <div className="section-label" style={{ marginBottom: 8 }}>Lightsail policy JSON (optional)</div>
+              <div className="generated-field" style={{ whiteSpace: 'pre', overflowX: 'auto', marginBottom: 8 }}>{awsLightsailPolicyJson}</div>
+              <div
+                className="ghost-btn"
+                style={{ width: '100%', justifyContent: 'center' }}
+                onClick={() => {
+                  navigator.clipboard.writeText(awsLightsailPolicyJson);
                   app.showToast('Copied to clipboard');
                 }}
               >

@@ -6,6 +6,7 @@ import (
 	"cirrus/collectorkit"
 
 	ec2types "github.com/aws/aws-sdk-go-v2/service/ec2/types"
+	lightsailtypes "github.com/aws/aws-sdk-go-v2/service/lightsail/types"
 )
 
 // mapStatus maps AWS's instance-state vocabulary onto our 3-bucket one.
@@ -102,4 +103,87 @@ func volumeLabel(index int) string {
 		return "Root"
 	}
 	return fmt.Sprintf("Data %d", index)
+}
+
+// mapLightsailInstance maps a Lightsail instance into our shared shape.
+// Unlike EC2, Lightsail's own response already embeds hardware/disk info —
+// no separate volumes lookup needed. Lightsail reuses EC2's exact
+// pending/running/shutting-down/stopped/stopping/terminated state
+// vocabulary (it runs on EC2 infrastructure under the hood), so mapStatus is
+// reused directly rather than duplicated.
+func mapLightsailInstance(inst lightsailtypes.Instance, region string) collectorkit.Instance {
+	id := ""
+	if inst.Arn != nil {
+		id = *inst.Arn
+	}
+
+	name := "unnamed"
+	if inst.Name != nil && *inst.Name != "" {
+		name = *inst.Name
+	}
+
+	instanceType := ""
+	if inst.BundleId != nil {
+		instanceType = *inst.BundleId
+	}
+
+	cpu := 0
+	memoryGB := 0.0
+	var disks []collectorkit.Disk
+	if inst.Hardware != nil {
+		if inst.Hardware.CpuCount != nil {
+			cpu = int(*inst.Hardware.CpuCount)
+		}
+		if inst.Hardware.RamSizeInGb != nil {
+			memoryGB = float64(*inst.Hardware.RamSizeInGb)
+		}
+		for _, d := range inst.Hardware.Disks {
+			label := "Disk"
+			if d.Name != nil && *d.Name != "" {
+				label = *d.Name
+			}
+			size := 0
+			if d.SizeInGb != nil {
+				size = int(*d.SizeInGb)
+			}
+			disks = append(disks, collectorkit.Disk{Label: label, SizeGB: size})
+		}
+	}
+	if len(disks) == 0 {
+		disks = []collectorkit.Disk{}
+	}
+
+	privateIP := ""
+	if inst.PrivateIpAddress != nil {
+		privateIP = *inst.PrivateIpAddress
+	}
+	var publicIP *string
+	if inst.PublicIpAddress != nil {
+		publicIP = inst.PublicIpAddress
+	}
+
+	launchedAt := ""
+	if inst.CreatedAt != nil {
+		launchedAt = inst.CreatedAt.UTC().Format("2006-01-02T15:04:05Z")
+	}
+
+	status := "stopped"
+	if inst.State != nil && inst.State.Name != nil {
+		status = mapStatus(ec2types.InstanceStateName(*inst.State.Name))
+	}
+
+	return collectorkit.Instance{
+		ID:           id,
+		Name:         name,
+		Region:       region,
+		Status:       status,
+		InstanceType: instanceType,
+		CPU:          cpu,
+		MemoryGB:     memoryGB,
+		Disks:        disks,
+		PrivateIP:    privateIP,
+		PublicIP:     publicIP,
+		LaunchedAt:   launchedAt,
+		Service:      "lightsail",
+	}
 }

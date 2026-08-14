@@ -1,4 +1,5 @@
 import { ProviderBadge } from '../shared/ProviderBadge';
+import { ServiceBadge } from '../shared/ServiceBadge';
 import { StaleBadge } from '../shared/StaleBadge';
 import { StatusDot } from '../shared/StatusDot';
 import type { Provider, Vm } from '../../types';
@@ -40,6 +41,11 @@ export function VmTable({ rows, onRowClick }: { rows: VmRowView[]; onRowClick: (
               <td className="td" style={{ whiteSpace: 'nowrap' }}>
                 <ProviderBadge provider={vm.providerMeta} size={26} />
                 <span style={{ fontSize: 12, color: 'var(--text-secondary)', marginLeft: 6 }}>{vm.providerMeta.name}</span>
+                {vm.service && (
+                  <span style={{ marginLeft: 6 }}>
+                    <ServiceBadge service={vm.service} />
+                  </span>
+                )}
               </td>
               <td className="td">{vm.account}</td>
               <td className="td font-mono">{vm.region}</td>

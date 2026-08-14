@@ -37,6 +37,9 @@ export interface Vm {
   /** True when this record is a last-known-good cache fallback served because
    * the provider's live fetch just failed (collector down/timed out/etc.). */
   stale?: boolean;
+  /** Sub-service within `provider` — e.g. AWS's `'lightsail'` vs. plain EC2
+   * (omitted). Omitted for every other case today. */
+  service?: string;
 }
 
 /** One provider/connection's fetch failure, from `GET /api/vms`'s `errors` array. */
@@ -124,6 +127,9 @@ export interface CollectorInstance {
   privateIp: string;
   publicIp: string | null;
   launchedAt: string; // ISO datetime
+  /** Sub-service within the provider — e.g. AWS's `'lightsail'` vs. plain
+   * EC2 (omitted). Omitted for every other case today. */
+  service?: string;
 }
 
 export interface CollectorInstancesResponse {

@@ -1,4 +1,5 @@
 import { ProviderBadge } from '../shared/ProviderBadge';
+import { ServiceBadge } from '../shared/ServiceBadge';
 import { StatusDot } from '../shared/StatusDot';
 import type { Provider, Vm } from '../../types';
 
@@ -39,6 +40,7 @@ export function VmDetailDrawer({
           <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12.5, color: 'var(--text-secondary)', marginTop: 10 }}>
             <StatusDot color={statusColor} />
             {statusLabel}
+            {vm.service && <ServiceBadge service={vm.service} />}
           </div>
         </div>
 
