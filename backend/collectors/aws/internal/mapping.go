@@ -98,11 +98,15 @@ func mapInstance(
 	}
 }
 
-func volumeLabel(index int) string {
-	if index == 0 {
-		return "Root"
+func volumeLabel(isRoot bool, dataIndex int, device string) string {
+	role := "Root"
+	if !isRoot {
+		role = fmt.Sprintf("Data %d", dataIndex)
 	}
-	return fmt.Sprintf("Data %d", index)
+	if device == "" {
+		return role
+	}
+	return fmt.Sprintf("%s (%s)", role, device)
 }
 
 // mapLightsailInstance maps a Lightsail instance into our shared shape.

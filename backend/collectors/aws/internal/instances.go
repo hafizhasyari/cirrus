@@ -114,10 +114,18 @@ func FetchInstances(ctx context.Context, raw json.RawMessage) ([]collectorkit.In
 				return nil
 			}
 
+			rootDeviceByInstance := make(map[string]string)
+			for _, inst := range instances {
+				if inst.InstanceId == nil || inst.RootDeviceName == nil {
+					continue
+				}
+				rootDeviceByInstance[*inst.InstanceId] = *inst.RootDeviceName
+			}
+
 			// A timed-out volumes lookup only costs disk info for this region —
 			// the instances themselves were already found and must not be
 			// dropped just because their disk sizes couldn't be fetched in time.
-			disks, err := describeVolumesByInstance(regionCtx, client, instanceIDs(instances))
+			disks, err := describeVolumesByInstance(regionCtx, client, instanceIDs(instances), rootDeviceByInstance)
 			if err != nil {
 				if errors.Is(regionCtx.Err(), context.DeadlineExceeded) {
 					log.Printf("aws collector: region %s timed out fetching volumes, keeping instances without disk info", region)
@@ -179,13 +187,26 @@ func describeAllInstances(ctx context.Context, client *ec2.Client) ([]ec2types.I
 	return out, nil
 }
 
-func describeVolumesByInstance(ctx context.Context, client *ec2.Client, ids []string) (map[string][]collectorkit.Disk, error) {
+// volumeAttachment carries what describeVolumesByInstance needs from one
+// EBS volume's attachment: its size (already fetched) and the real device
+// name it's attached as (e.g. /dev/sda1) — previously discarded, now used
+// as the disk label's provider-native identifier.
+type volumeAttachment struct {
+	SizeGB int32
+	Device string
+}
+
+// describeVolumesByInstance resolves each instance's EBS volumes and labels
+// exactly one as "Root", matched against the instance's own reported
+// RootDeviceName rather than assumed from DescribeVolumes' return order —
+// that order is not documented or guaranteed to put the boot volume first.
+func describeVolumesByInstance(ctx context.Context, client *ec2.Client, ids []string, rootDeviceByInstance map[string]string) (map[string][]collectorkit.Disk, error) {
 	result := make(map[string][]collectorkit.Disk)
 	if len(ids) == 0 {
 		return result, nil
 	}
 
-	sizesByInstance := make(map[string][]int32)
+	attachmentsByInstance := make(map[string][]volumeAttachment)
 	paginator := ec2.NewDescribeVolumesPaginator(client, &ec2.DescribeVolumesInput{
 		Filters: []ec2types.Filter{
 			{Name: aws.String("attachment.instance-id"), Values: ids},
@@ -205,15 +226,45 @@ func describeVolumesByInstance(ctx context.Context, client *ec2.Client, ids []st
 				if att.InstanceId == nil {
 					continue
 				}
-				sizesByInstance[*att.InstanceId] = append(sizesByInstance[*att.InstanceId], size)
+				device := ""
+				if att.Device != nil {
+					device = *att.Device
+				}
+				attachmentsByInstance[*att.InstanceId] = append(attachmentsByInstance[*att.InstanceId], volumeAttachment{SizeGB: size, Device: device})
 			}
 		}
 	}
 
-	for id, sizes := range sizesByInstance {
-		disks := make([]collectorkit.Disk, 0, len(sizes))
-		for i, size := range sizes {
-			disks = append(disks, collectorkit.Disk{Label: volumeLabel(i), SizeGB: int(size)})
+	for id, attachments := range attachmentsByInstance {
+		rootDevice := rootDeviceByInstance[id]
+
+		rootIdx := -1
+		for i, a := range attachments {
+			if rootDevice != "" && a.Device == rootDevice {
+				rootIdx = i
+				break
+			}
+		}
+		if rootIdx == -1 {
+			// No attachment matched the instance's reported root device
+			// (root device name unknown, or an older Xen-based instance
+			// where the kernel-visible device can legitimately differ from
+			// what EC2 reports) — fall back to the first attachment
+			// DescribeVolumes happened to return, the same best-effort
+			// guess this collector always made before RootDeviceName was
+			// used, rather than leaving the instance with no Root label.
+			rootIdx = 0
+		}
+
+		disks := make([]collectorkit.Disk, 0, len(attachments))
+		disks = append(disks, collectorkit.Disk{Label: volumeLabel(true, 0, attachments[rootIdx].Device), SizeGB: int(attachments[rootIdx].SizeGB)})
+		dataIndex := 0
+		for i, a := range attachments {
+			if i == rootIdx {
+				continue
+			}
+			dataIndex++
+			disks = append(disks, collectorkit.Disk{Label: volumeLabel(false, dataIndex, a.Device), SizeGB: int(a.SizeGB)})
 		}
 		result[id] = disks
 	}

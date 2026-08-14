@@ -20,17 +20,18 @@ func main() {
 	metrics := collectorkit.NewMetrics(providerName)
 
 	mux := http.NewServeMux()
-	// Now fans out across every enabled region (DescribeRegions + per-region
-	// DescribeInstances, see internal/instances.go), not just one — needs
-	// more than the old single-region 10s budget, though still less than
-	// AWS's 45s since each Alibaba region only makes one paginated
-	// DescribeInstances call, no extra DescribeVolumes/DescribeInstanceTypes
-	// round-trips. Each region is separately bounded by the SDK's own
-	// ReadTimeout/ConnectTimeout (regionFetchTimeoutMs in instances.go) since
-	// Alibaba's tea-generated SDK methods don't accept a Go context at all —
-	// unlike AWS, deriving a cancellable context here wouldn't actually stop
-	// an in-flight call, so this handler doesn't bother.
-	mux.Handle("GET /instances", metrics.Wrap(collectorkit.WithTimeout(http.HandlerFunc(handleInstances), 30*time.Second), "instances"))
+	// Fans out across every enabled region (DescribeRegions + per-region
+	// DescribeInstances + DescribeDisks, see internal/instances.go). Each
+	// region now makes two sequential paginated calls rather than one
+	// (DescribeDisks was added to fetch real per-disk labels), so the
+	// budget is raised to 45s to match AWS's own budget for the same
+	// 2-call-per-region shape. Each region is separately bounded by the
+	// SDK's own ReadTimeout/ConnectTimeout (regionFetchTimeoutMs in
+	// instances.go) since Alibaba's tea-generated SDK methods don't accept
+	// a Go context at all — unlike AWS, deriving a cancellable context here
+	// wouldn't actually stop an in-flight call, so this handler doesn't
+	// bother.
+	mux.Handle("GET /instances", metrics.Wrap(collectorkit.WithTimeout(http.HandlerFunc(handleInstances), 45*time.Second), "instances"))
 	// The lightweight connection test is AssumeRole + one identity call only.
 	mux.Handle("GET /test", metrics.Wrap(collectorkit.WithTimeout(http.HandlerFunc(handleTest), 10*time.Second), "test"))
 	mux.Handle("GET /metrics", metrics.Handler())

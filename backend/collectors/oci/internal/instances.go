@@ -266,11 +266,11 @@ func listCompartmentDisks(ctx context.Context, bsClient core.BlockstorageClient,
 		volAttachments = append(volAttachments, vAtt...)
 	}
 
-	bootSizeByID, err := bootVolumeSizes(ctx, bsClient, compartmentID)
+	bootInfoByID, err := bootVolumeInfos(ctx, bsClient, compartmentID)
 	if err != nil {
 		return nil, err
 	}
-	volSizeByID, err := volumeSizes(ctx, bsClient, compartmentID)
+	volInfoByID, err := volumeInfos(ctx, bsClient, compartmentID)
 	if err != nil {
 		return nil, err
 	}
@@ -279,8 +279,8 @@ func listCompartmentDisks(ctx context.Context, bsClient core.BlockstorageClient,
 		if att.InstanceId == nil || att.BootVolumeId == nil {
 			continue
 		}
-		size := bootSizeByID[*att.BootVolumeId]
-		result[*att.InstanceId] = append(result[*att.InstanceId], collectorkit.Disk{Label: "Boot", SizeGB: size})
+		info := bootInfoByID[*att.BootVolumeId]
+		result[*att.InstanceId] = append(result[*att.InstanceId], collectorkit.Disk{Label: diskLabel("Root", info.DisplayName), SizeGB: info.SizeGB})
 	}
 	dataIndex := map[string]int{}
 	for _, att := range volAttachments {
@@ -289,11 +289,28 @@ func listCompartmentDisks(ctx context.Context, bsClient core.BlockstorageClient,
 		}
 		instanceID := *att.GetInstanceId()
 		dataIndex[instanceID]++
-		size := volSizeByID[*att.GetVolumeId()]
-		result[instanceID] = append(result[instanceID], collectorkit.Disk{Label: fmt.Sprintf("Data %d", dataIndex[instanceID]), SizeGB: size})
+		info := volInfoByID[*att.GetVolumeId()]
+
+		identifier := info.DisplayName
+		if identifier == "" && att.GetDevice() != nil {
+			identifier = *att.GetDevice()
+		}
+		role := fmt.Sprintf("Data %d", dataIndex[instanceID])
+		result[instanceID] = append(result[instanceID], collectorkit.Disk{Label: diskLabel(role, identifier), SizeGB: info.SizeGB})
 	}
 
 	return result, nil
+}
+
+// diskLabel appends a provider-native identifier (a volume's DisplayName or
+// device path) to a disk's role label, e.g. "Root (my-instance-boot)" —
+// falling back to the bare role when no identifier is available, never
+// emitting empty parens.
+func diskLabel(role, identifier string) string {
+	if identifier == "" {
+		return role
+	}
+	return fmt.Sprintf("%s (%s)", role, identifier)
 }
 
 // distinctADs returns the distinct, non-empty availability domains present
@@ -357,8 +374,16 @@ func listAllVolumeAttachments(ctx context.Context, client core.ComputeClient, co
 	return out, nil
 }
 
-func bootVolumeSizes(ctx context.Context, client core.BlockstorageClient, compartmentID string) (map[string]int, error) {
-	result := make(map[string]int)
+// diskInfo carries what listCompartmentDisks needs from a boot/block Volume
+// resource: its size and its DisplayName — the real, user-visible
+// identifier OCI's console itself shows, previously fetched but discarded.
+type diskInfo struct {
+	SizeGB      int
+	DisplayName string
+}
+
+func bootVolumeInfos(ctx context.Context, client core.BlockstorageClient, compartmentID string) (map[string]diskInfo, error) {
+	result := make(map[string]diskInfo)
 	var page *string
 	for {
 		resp, err := client.ListBootVolumes(ctx, core.ListBootVolumesRequest{
@@ -369,9 +394,14 @@ func bootVolumeSizes(ctx context.Context, client core.BlockstorageClient, compar
 			return nil, classifyOCIErr(err)
 		}
 		for _, v := range resp.Items {
-			if v.Id != nil && v.SizeInGBs != nil {
-				result[*v.Id] = int(*v.SizeInGBs)
+			if v.Id == nil || v.SizeInGBs == nil {
+				continue
 			}
+			info := diskInfo{SizeGB: int(*v.SizeInGBs)}
+			if v.DisplayName != nil {
+				info.DisplayName = *v.DisplayName
+			}
+			result[*v.Id] = info
 		}
 		if resp.OpcNextPage == nil {
 			break
@@ -381,8 +411,8 @@ func bootVolumeSizes(ctx context.Context, client core.BlockstorageClient, compar
 	return result, nil
 }
 
-func volumeSizes(ctx context.Context, client core.BlockstorageClient, compartmentID string) (map[string]int, error) {
-	result := make(map[string]int)
+func volumeInfos(ctx context.Context, client core.BlockstorageClient, compartmentID string) (map[string]diskInfo, error) {
+	result := make(map[string]diskInfo)
 	var page *string
 	for {
 		resp, err := client.ListVolumes(ctx, core.ListVolumesRequest{
@@ -393,9 +423,14 @@ func volumeSizes(ctx context.Context, client core.BlockstorageClient, compartmen
 			return nil, classifyOCIErr(err)
 		}
 		for _, v := range resp.Items {
-			if v.Id != nil && v.SizeInGBs != nil {
-				result[*v.Id] = int(*v.SizeInGBs)
+			if v.Id == nil || v.SizeInGBs == nil {
+				continue
 			}
+			info := diskInfo{SizeGB: int(*v.SizeInGBs)}
+			if v.DisplayName != nil {
+				info.DisplayName = *v.DisplayName
+			}
+			result[*v.Id] = info
 		}
 		if resp.OpcNextPage == nil {
 			break

@@ -1,6 +1,8 @@
 package internal
 
 import (
+	"fmt"
+
 	ecs20140526 "github.com/alibabacloud-go/ecs-20140526/v7/client"
 	"github.com/alibabacloud-go/tea/tea"
 	"cirrus/collectorkit"
@@ -20,11 +22,10 @@ func mapStatus(status string) string {
 
 // mapInstance maps one ECS DescribeInstances result. CPU/Memory/IPs/creation
 // time all come directly off the instance (unlike AWS, no extra
-// DescribeInstanceTypes/DescribeVolumes calls needed) — disk sizes are not
-// returned by DescribeInstances at all; a real per-disk size would need a
-// separate DescribeDisks call, left as a known follow-up (flagged, not
-// silently guessed) rather than adding an extra API round-trip in this pass.
-func mapInstance(inst *ecs20140526.DescribeInstancesResponseBodyInstancesInstance, region string) collectorkit.Instance {
+// DescribeInstanceTypes call needed); disk info comes from a separate
+// region-wide DescribeDisks call (see describeAllDisks/groupDisksByInstance
+// in instances.go), grouped by InstanceId and passed in by the caller.
+func mapInstance(inst *ecs20140526.DescribeInstancesResponseBodyInstancesInstance, region string, disks []collectorkit.Disk) collectorkit.Instance {
 	id := tea.StringValue(inst.InstanceId)
 	name := tea.StringValue(inst.InstanceName)
 	if name == "" {
@@ -50,6 +51,10 @@ func mapInstance(inst *ecs20140526.DescribeInstancesResponseBodyInstancesInstanc
 		}
 	}
 
+	if disks == nil {
+		disks = []collectorkit.Disk{}
+	}
+
 	return collectorkit.Instance{
 		ID:           id,
 		Name:         name,
@@ -58,9 +63,71 @@ func mapInstance(inst *ecs20140526.DescribeInstancesResponseBodyInstancesInstanc
 		InstanceType: tea.StringValue(inst.InstanceType),
 		CPU:          int(tea.Int32Value(inst.Cpu)),
 		MemoryGB:     float64(tea.Int32Value(inst.Memory)) / 1024,
-		Disks:        []collectorkit.Disk{},
+		Disks:        disks,
 		PrivateIP:    privateIP,
 		PublicIP:     publicIP,
 		LaunchedAt:   tea.StringValue(inst.CreationTime),
 	}
+}
+
+// groupDisksByInstance turns a region's flat DescribeDisks result into a
+// per-instance, role-ordered disk list. Two passes (system disks first,
+// then data disks) give a deterministic Root-before-Data-N order per
+// instance regardless of DescribeDisks' own (unspecified) return order.
+// Unlike AWS/GCP, which infer the boot disk from index/a boot flag,
+// Alibaba's own API directly reports each disk's Type ("system"/"data") —
+// no positional guessing needed.
+func groupDisksByInstance(disks []*ecs20140526.DescribeDisksResponseBodyDisksDisk) map[string][]collectorkit.Disk {
+	result := make(map[string][]collectorkit.Disk)
+
+	for _, d := range disks {
+		if tea.StringValue(d.Type) != "system" {
+			continue
+		}
+		instanceID := tea.StringValue(d.InstanceId)
+		if instanceID == "" {
+			continue
+		}
+		result[instanceID] = append(result[instanceID], collectorkit.Disk{
+			Label:  diskLabel("Root", diskIdentifier(d)),
+			SizeGB: int(tea.Int32Value(d.Size)),
+		})
+	}
+
+	dataIndex := make(map[string]int)
+	for _, d := range disks {
+		if tea.StringValue(d.Type) == "system" {
+			continue
+		}
+		instanceID := tea.StringValue(d.InstanceId)
+		if instanceID == "" {
+			continue
+		}
+		dataIndex[instanceID]++
+		result[instanceID] = append(result[instanceID], collectorkit.Disk{
+			Label:  diskLabel(fmt.Sprintf("Data %d", dataIndex[instanceID]), diskIdentifier(d)),
+			SizeGB: int(tea.Int32Value(d.Size)),
+		})
+	}
+
+	return result
+}
+
+// diskIdentifier prefers the user-assigned DiskName (often blank) over the
+// OS device path (e.g. /dev/xvda), which is always present.
+func diskIdentifier(d *ecs20140526.DescribeDisksResponseBodyDisksDisk) string {
+	if name := tea.StringValue(d.DiskName); name != "" {
+		return name
+	}
+	return tea.StringValue(d.Device)
+}
+
+// diskLabel appends a provider-native identifier to a disk's role label,
+// e.g. "Root (/dev/xvda)" — falling back to the bare role when no
+// identifier is available, never emitting empty parens.
+func diskLabel(role, identifier string) string {
+	if identifier == "" {
+		return role
+	}
+	return fmt.Sprintf("%s (%s)", role, identifier)
 }

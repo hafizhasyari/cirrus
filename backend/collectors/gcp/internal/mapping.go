@@ -67,10 +67,25 @@ func mapInstance(inst *computepb.Instance, specByZoneType map[string]machineSpec
 	disks := make([]collectorkit.Disk, 0, len(inst.GetDisks()))
 	dataIndex := 0
 	for _, d := range inst.GetDisks() {
-		label := "Root"
+		role := "Root"
 		if !d.GetBoot() {
 			dataIndex++
-			label = fmt.Sprintf("Data %d", dataIndex)
+			role = fmt.Sprintf("Data %d", dataIndex)
+		}
+
+		// Source is the actual, console-visible Persistent Disk resource
+		// name (a URL, e.g. .../disks/my-app-disk-1) — preferred over
+		// DeviceName, which is only the OS-visible name and defaults to a
+		// generic "persistent-disk-x" if never explicitly set. DeviceName
+		// is still a useful fallback for disks with no backing named
+		// resource (e.g. local SSD/scratch disks have no Source URL).
+		identifier := lastPathSegment(d.GetSource())
+		if identifier == "" {
+			identifier = d.GetDeviceName()
+		}
+		label := role
+		if identifier != "" {
+			label = fmt.Sprintf("%s (%s)", role, identifier)
 		}
 		disks = append(disks, collectorkit.Disk{Label: label, SizeGB: int(d.GetDiskSizeGb())})
 	}

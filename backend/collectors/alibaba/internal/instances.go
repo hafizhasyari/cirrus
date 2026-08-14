@@ -101,6 +101,33 @@ func describeAllInstances(client *ecs20140526.Client, region string) ([]*ecs2014
 	return all, nil
 }
 
+// describeAllDisks pages through DescribeDisks for one region, region-wide
+// (no per-instance filter) — each returned disk carries its own InstanceId,
+// joined back to instances by the caller, mirroring how describeAllInstances
+// itself is grouped by region.
+func describeAllDisks(client *ecs20140526.Client, region string) ([]*ecs20140526.DescribeDisksResponseBodyDisksDisk, error) {
+	var all []*ecs20140526.DescribeDisksResponseBodyDisksDisk
+	for page := int32(1); ; page++ {
+		resp, err := client.DescribeDisks(&ecs20140526.DescribeDisksRequest{
+			RegionId:   tea.String(region),
+			PageSize:   tea.Int32(100),
+			PageNumber: tea.Int32(page),
+		})
+		if err != nil {
+			return nil, err
+		}
+		if resp.Body == nil || resp.Body.Disks == nil {
+			break
+		}
+		disks := resp.Body.Disks.Disk
+		all = append(all, disks...)
+		if len(disks) < 100 {
+			break
+		}
+	}
+	return all, nil
+}
+
 // FetchInstances resolves a connection's own static AccessKey/Secret,
 // discovers every region the account can access, and returns a real ECS
 // inventory across every enabled region (or a classified error —
@@ -140,6 +167,7 @@ func FetchInstances(ctx context.Context, raw json.RawMessage) ([]collectorkit.In
 	var mu sync.Mutex
 	var all []*ecs20140526.DescribeInstancesResponseBodyInstancesInstance
 	regionByInstance := make(map[string]string)
+	disksByInstance := make(map[string][]collectorkit.Disk)
 
 	var g errgroup.Group
 	for _, region := range regions {
@@ -160,6 +188,23 @@ func FetchInstances(ctx context.Context, raw json.RawMessage) ([]collectorkit.In
 				return classifyAlibabaErr(err)
 			}
 
+			// A DescribeDisks failure — timeout or anything else — only
+			// costs disk info for this region; the instances themselves
+			// were already found and must not be dropped. This differs
+			// from describeAllInstances' own error handling just above
+			// (which still fails the whole fetch on a non-timeout error)
+			// because DescribeDisks is a brand-new call this pass adds: an
+			// existing connection's RAM policy predates it, so a fresh
+			// AccessDenied here is the expected first-contact experience
+			// for every existing connection until its policy is updated,
+			// not a signal worth failing the whole region over.
+			disks, err := describeAllDisks(client, region)
+			if err != nil {
+				log.Printf("alibaba collector: region %s disk lookup failed, keeping instances without disk info: %v", region, err)
+				disks = nil
+			}
+			byInstance := groupDisksByInstance(disks)
+
 			mu.Lock()
 			for _, inst := range insts {
 				if inst.InstanceId != nil {
@@ -167,6 +212,9 @@ func FetchInstances(ctx context.Context, raw json.RawMessage) ([]collectorkit.In
 				}
 			}
 			all = append(all, insts...)
+			for id, d := range byInstance {
+				disksByInstance[id] = d
+			}
 			mu.Unlock()
 			return nil
 		})
@@ -178,10 +226,12 @@ func FetchInstances(ctx context.Context, raw json.RawMessage) ([]collectorkit.In
 	result := make([]collectorkit.Instance, 0, len(all))
 	for _, inst := range all {
 		region := ""
+		id := ""
 		if inst.InstanceId != nil {
-			region = regionByInstance[*inst.InstanceId]
+			id = *inst.InstanceId
+			region = regionByInstance[id]
 		}
-		result = append(result, mapInstance(inst, region))
+		result = append(result, mapInstance(inst, region, disksByInstance[id]))
 	}
 	return result, nil
 }
