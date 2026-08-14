@@ -6,7 +6,7 @@ import type { FieldDef, Provider, ProviderId } from '@cirrus/shared-types';
 export const PROVIDERS: Provider[] = [
   { id: 'aws', name: 'AWS', mono: 'AWS', color: '#f0a13c', bg: 'rgba(240,161,60,0.12)', authLabel: 'IAM User Access Key' },
   { id: 'gcp', name: 'Google Cloud', mono: 'GCP', color: '#5b9bf7', bg: 'rgba(91,155,247,0.12)', authLabel: 'Workload Identity Federation' },
-  { id: 'alibaba', name: 'Alibaba Cloud', mono: 'AL', color: '#ff8b5a', bg: 'rgba(255,139,90,0.12)', authLabel: 'Static Access Key (RAM User)' },
+  { id: 'alibaba', name: 'Alibaba Cloud', mono: 'AL', color: '#ff6a00', bg: 'rgba(255,106,0,0.12)', authLabel: 'Static Access Key (RAM User)' },
   { id: 'oci', name: 'Oracle Cloud', mono: 'OCI', color: '#ef6b6b', bg: 'rgba(239,107,107,0.12)', authLabel: 'API Signing Key' },
   { id: 'biznet', name: 'Biznet Gio Cloud', mono: 'BG', color: '#3ecf8e', bg: 'rgba(62,207,142,0.12)', authLabel: 'Static token (x-token)' },
 ];
