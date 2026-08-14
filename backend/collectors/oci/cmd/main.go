@@ -23,7 +23,7 @@ func main() {
 	// + per-instance GetVnic doesn't fit in the old 5s stub-era budget.
 	mux.Handle("GET /instances", collectorkit.WithTimeout(http.HandlerFunc(handleInstances), 20*time.Second))
 	// The lightweight connection test skips compartment recursion entirely.
-	mux.Handle("GET /test", collectorkit.WithTimeout(http.HandlerFunc(handleTest), 6*time.Second))
+	mux.Handle("GET /test", collectorkit.WithTimeout(http.HandlerFunc(handleTest), 10*time.Second))
 	mux.HandleFunc("GET /healthz", collectorkit.HealthHandler)
 
 	port := os.Getenv("PORT")

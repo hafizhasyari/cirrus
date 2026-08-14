@@ -31,7 +31,7 @@ func main() {
 	// an in-flight call, so this handler doesn't bother.
 	mux.Handle("GET /instances", collectorkit.WithTimeout(http.HandlerFunc(handleInstances), 30*time.Second))
 	// The lightweight connection test is AssumeRole + one identity call only.
-	mux.Handle("GET /test", collectorkit.WithTimeout(http.HandlerFunc(handleTest), 6*time.Second))
+	mux.Handle("GET /test", collectorkit.WithTimeout(http.HandlerFunc(handleTest), 10*time.Second))
 	mux.HandleFunc("GET /healthz", collectorkit.HealthHandler)
 
 	port := os.Getenv("PORT")

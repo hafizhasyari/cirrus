@@ -23,7 +23,7 @@ func main() {
 	// per-VM vm-details calls doesn't fit in the old 5s stub-era budget.
 	mux.Handle("GET /instances", collectorkit.WithTimeout(http.HandlerFunc(handleInstances), 15*time.Second))
 	// The lightweight connection test is a single unauthenticated-shape GET.
-	mux.Handle("GET /test", collectorkit.WithTimeout(http.HandlerFunc(handleTest), 5*time.Second))
+	mux.Handle("GET /test", collectorkit.WithTimeout(http.HandlerFunc(handleTest), 10*time.Second))
 	mux.HandleFunc("GET /healthz", collectorkit.HealthHandler)
 
 	port := os.Getenv("PORT")

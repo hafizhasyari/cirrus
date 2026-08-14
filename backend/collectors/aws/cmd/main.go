@@ -32,7 +32,7 @@ func main() {
 	mux.Handle("GET /instances", collectorkit.WithTimeout(http.HandlerFunc(handleInstances), instancesTimeout))
 	// The lightweight connection test is just two single-call APIs, no region
 	// fan-out — a much smaller budget than the full fetch.
-	mux.Handle("GET /test", collectorkit.WithTimeout(http.HandlerFunc(handleTest), 8*time.Second))
+	mux.Handle("GET /test", collectorkit.WithTimeout(http.HandlerFunc(handleTest), 10*time.Second))
 	mux.HandleFunc("GET /healthz", collectorkit.HealthHandler)
 
 	port := os.Getenv("PORT")

@@ -333,7 +333,12 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '0.5'
+          # 1.0, not the other collectors' 0.5 — OCI's /test check does real
+          # work (region-subscription discovery + a tenancy-root instance
+          # list against Oracle's own API), and a concurrent manual test +
+          # scheduled health-check pass once starved it of CPU past its
+          # /test deadline. See CLAUDE.md.
+          cpus: '1.0'
           memory: 256M
     environment:
       PORT: 8080
