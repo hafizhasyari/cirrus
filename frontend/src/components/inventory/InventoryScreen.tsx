@@ -208,6 +208,7 @@ export function InventoryScreen({ app }: { app: CirrusApp }) {
           cpuDisplay: `${v.cpu} ${v.provider === 'oci' ? 'OCPU' : 'vCPU'}`,
           memoryDisplay: `${v.memory} GB`,
           publicIpDisplay: v.publicIp || '—',
+          privateIpDisplay: v.privateIp || '—',
         };
       }),
     [displayVms, providerMap],
@@ -318,6 +319,7 @@ export function InventoryScreen({ app }: { app: CirrusApp }) {
           cpuDisplay={`${detailSrc.cpu} ${detailSrc.provider === 'oci' ? 'OCPU' : 'vCPU'}`}
           memoryDisplay={`${detailSrc.memory} GB`}
           publicIpDisplay={detailSrc.publicIp || '—'}
+          privateIpDisplay={detailSrc.privateIp || '—'}
           onClose={() => app.closeDetail()}
         />
       )}

@@ -11,6 +11,7 @@ export interface VmRowView extends Vm {
   cpuDisplay: string;
   memoryDisplay: string;
   publicIpDisplay: string;
+  privateIpDisplay: string;
 }
 
 export function VmTable({ rows, onRowClick }: { rows: VmRowView[]; onRowClick: (id: string) => void }) {
@@ -65,7 +66,7 @@ export function VmTable({ rows, onRowClick }: { rows: VmRowView[]; onRowClick: (
                 ))}
               </td>
               <td className="td font-mono" style={{ whiteSpace: 'nowrap' }}>
-                {vm.privateIp}
+                {vm.privateIpDisplay}
                 <div style={{ color: 'var(--text-muted)' }}>{vm.publicIpDisplay}</div>
               </td>
             </tr>

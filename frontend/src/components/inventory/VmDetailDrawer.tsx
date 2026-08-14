@@ -11,6 +11,7 @@ export function VmDetailDrawer({
   cpuDisplay,
   memoryDisplay,
   publicIpDisplay,
+  privateIpDisplay,
   onClose,
 }: {
   vm: Vm;
@@ -20,6 +21,7 @@ export function VmDetailDrawer({
   cpuDisplay: string;
   memoryDisplay: string;
   publicIpDisplay: string;
+  privateIpDisplay: string;
   onClose: () => void;
 }) {
   return (
@@ -70,7 +72,7 @@ export function VmDetailDrawer({
         <div>
           <div className="section-label" style={{ marginBottom: 10 }}>Network</div>
           <div className="drawer-grid-2col">
-            <Field label="Private IP" value={vm.privateIp} mono />
+            <Field label="Private IP" value={privateIpDisplay} mono />
             <Field label="Public IP" value={publicIpDisplay} mono />
           </div>
         </div>
