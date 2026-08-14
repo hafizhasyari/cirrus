@@ -483,7 +483,7 @@ func lookupShapeSpecs(ctx context.Context, client core.ComputeClient, instances 
 			}
 			spec := shapeSpec{}
 			if s.Ocpus != nil {
-				spec.CPU = int(*s.Ocpus * 2)
+				spec.CPU = int(*s.Ocpus)
 			}
 			if s.MemoryInGBs != nil {
 				spec.MemoryGB = float64(*s.MemoryInGBs)

@@ -35,18 +35,21 @@ type shapeSpec struct {
 }
 
 // specFromShapeConfig reads CPU/memory directly off the instance when
-// populated (confirmed reliable for Flex shapes) — CPU core count reports
-// Vcpus if present, else Ocpus*2 (judgment call: 1 OCPU ~= 2 x86 vCPUs).
+// populated (confirmed reliable for Flex shapes) — CPU always prefers OCI's
+// own authoritative Ocpus count, matching what the frontend labels this
+// field as for OCI ("OCPU"). Vcpus is an alternate unit some instances also
+// report (x86 thread count, ~2x the OCPU count) and is only used as a
+// last-resort approximation when Ocpus itself is absent.
 func specFromShapeConfig(cfg *core.InstanceShapeConfig) (shapeSpec, bool) {
 	if cfg == nil {
 		return shapeSpec{}, false
 	}
 	spec := shapeSpec{}
 	switch {
-	case cfg.Vcpus != nil:
-		spec.CPU = *cfg.Vcpus
 	case cfg.Ocpus != nil:
-		spec.CPU = int(*cfg.Ocpus * 2)
+		spec.CPU = int(*cfg.Ocpus)
+	case cfg.Vcpus != nil:
+		spec.CPU = *cfg.Vcpus / 2
 	}
 	if cfg.MemoryInGBs != nil {
 		spec.MemoryGB = float64(*cfg.MemoryInGBs)
