@@ -41,8 +41,8 @@ Found via a direct code audit against `PRD.md` §4–§6 and the frontend's own 
 ## P2 — Reliability & observability
 
 - [x] Build the periodic connection health-check job that PRD §6.1 calls for (recommended every 6h) — see the P0.5 bullet above for what shipped.
-- [ ] Add basic metrics/uptime visibility (even minimal — container-level monitoring, or a `/metrics` endpoint on the Fastify services) — nothing exists today beyond `/healthz`/`/health` liveness checks.
-- [ ] Add alerting on collector/connection outages rather than relying on an Admin visually noticing a red status or an `OutageBanner`.
+- [x] **Basic metrics/uptime visibility — built.** Every backend service (`bff`/`auth`/`rbac`/`aggregator` via `prom-client`, all 5 Go collectors via `client_golang`) now exposes a Prometheus-format `GET /metrics` — generic HTTP request count/duration everywhere, plus `rbac`-specific `cirrus_connections_by_status`/`cirrus_connection_check_total` for actual connection-uptime visibility, not just HTTP traffic shape. A new `prometheus` service (`docker-compose.yml`, config in `prometheus/prometheus.yml`) scrapes all 9 targets — see `CLAUDE.md`'s Backend section for detail.
+- [x] **Alerting on collector/connection outages — built.** `backend/rbac/src/lib/telegramAlert.ts` sends a Telegram message on a connection's status transition (error ↔ active), triggered only from the scheduled health-check pass (`scheduler.ts`), never the manual `/test` route — see `CLAUDE.md`'s Backend section for why. Silently no-ops unless `TELEGRAM_BOT_TOKEN`/`TELEGRAM_CHAT_ID` are set.
 
 ## P3 — CI/CD & testing
 

@@ -4,6 +4,7 @@ import { cloudConnections } from '../db/schema.js';
 import { writeAudit } from './audit.js';
 import { testConnectionViaCollector, type CollectorTestOutcome } from './collectorClient.js';
 import { FAILURE_MSG } from '../data/providers.js';
+import { connectionCheckTotal } from './metrics.js';
 
 export type ConnectionRow = typeof cloudConnections.$inferSelect;
 
@@ -52,6 +53,12 @@ export async function runConnectionCheck(
     metadata: success
       ? { result: 'success', source: opts.source }
       : { result: 'failure', code: outcome.code, source: opts.source },
+  });
+
+  connectionCheckTotal.inc({
+    provider: conn.provider,
+    source: opts.source,
+    result: success ? 'success' : 'failure',
   });
 
   return { success, message, code: outcome.code };

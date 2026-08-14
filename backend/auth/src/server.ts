@@ -4,6 +4,7 @@ import rateLimit from '@fastify/rate-limit';
 import Fastify, { type FastifyError } from 'fastify';
 import { env } from './env.js';
 import { getJwks, initSigningKey } from './jwt.js';
+import { httpRequestDurationSeconds, httpRequestsTotal, register } from './lib/metrics.js';
 import { registerOidcRoutes } from './oidc/callback.js';
 import { registerDevLoginRoutes } from './routes/devLogin.js';
 import { registerInternalAuth } from './plugins/internalAuth.js';
@@ -47,6 +48,22 @@ app.setErrorHandler((err: FastifyError, req, reply) => {
 
 app.get('/health', async () => ({ status: 'ok' }));
 app.get('/.well-known/jwks.json', async () => getJwks());
+
+// Declared at the top level, outside the /internal-prefixed sub-plugin below
+// (registerInternalAuth's hook is scoped to that sub-plugin's encapsulation
+// context — see plugins/internalAuth.ts — so this route is unaffected by
+// it), same as /health above. Never exposed externally regardless —
+// frontend/nginx.conf never proxies /auth/metrics and auth has no public
+// route of its own.
+app.addHook('onResponse', async (req, reply) => {
+  const route = req.routeOptions?.url ?? req.url;
+  httpRequestsTotal.inc({ method: req.method, route, status_code: String(reply.statusCode) });
+  httpRequestDurationSeconds.observe({ method: req.method, route }, reply.elapsedTime / 1000);
+});
+app.get('/metrics', { config: { rateLimit: false } }, async (_req, reply) => {
+  reply.header('Content-Type', register.contentType);
+  return register.metrics();
+});
 
 // CSP is disabled here — auth is a pure JSON/redirect API, never the
 // document a browser renders as a page, so a CSP header on its responses is

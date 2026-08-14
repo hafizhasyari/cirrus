@@ -180,6 +180,10 @@ services:
       SEED_ADMIN_EMAIL: ${SEED_ADMIN_EMAIL:-admin@example.com}
       SEED_ADMIN_NAME: ${SEED_ADMIN_NAME:-Administrator}
       HEALTH_CHECK_INTERVAL_SECONDS: ${HEALTH_CHECK_INTERVAL_SECONDS:-21600}
+      # Optional — outage alerting (lib/telegramAlert.ts) silently no-ops
+      # unless both are set. See .env.example for how to get a bot token/chat id.
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-}
+      TELEGRAM_CHAT_ID: ${TELEGRAM_CHAT_ID:-}
       VAULT_ADDR: http://vault:8200
       VAULT_TOKEN: ${VAULT_TOKEN:?VAULT_TOKEN is required}
       AWS_COLLECTOR_URL: http://collector-aws:8080
@@ -465,6 +469,27 @@ services:
       retries: 10
       start_period: 10s
 
+  # Scrapes /metrics off every backend service (see prometheus/prometheus.yml)
+  # — PRD/TODO's "basic metrics/uptime visibility" P2 item. Internal-only:
+  # its own port is published for local dev convenience (curl/browse the
+  # expression UI directly) but cleared in docker-compose.prod.yml like
+  # postgres/redis/vault, since this is an admin observability tool, not
+  # something meant to be Traefik-routed or publicly reachable.
+  prometheus:
+    image: prom/prometheus:v3.7.3
+    restart: unless-stopped
+    logging: *default-logging
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    ports:
+      - "9090:9090"
+
   frontend:
     build:
       context: ./frontend
@@ -509,6 +534,7 @@ volumes:
   pgdata:
   vault-file:
   vault-init:
+  prometheus-data:
 
 networks:
   proxy:

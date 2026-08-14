@@ -1,7 +1,7 @@
 import type { FastifyInstance } from 'fastify';
 import { env } from '../env.js';
 
-const PUBLIC_PATHS = new Set(['/health']);
+const PUBLIC_PATHS = new Set(['/health', '/metrics']);
 
 export function registerInternalAuth(app: FastifyInstance) {
   app.addHook('onRequest', async (req, reply) => {

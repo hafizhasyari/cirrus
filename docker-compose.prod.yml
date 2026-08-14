@@ -67,3 +67,5 @@ services:
     ports: !reset []
   collector-biznet:
     ports: !reset []
+  prometheus:
+    ports: !reset []

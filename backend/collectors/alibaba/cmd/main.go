@@ -17,6 +17,7 @@ var rbacClient *collectorkit.RBACClient
 
 func main() {
 	rbacClient = collectorkit.NewRBACClient(requireEnv("RBAC_URL"), requireEnv("INTERNAL_SHARED_SECRET"))
+	metrics := collectorkit.NewMetrics(providerName)
 
 	mux := http.NewServeMux()
 	// Now fans out across every enabled region (DescribeRegions + per-region
@@ -29,9 +30,10 @@ func main() {
 	// Alibaba's tea-generated SDK methods don't accept a Go context at all —
 	// unlike AWS, deriving a cancellable context here wouldn't actually stop
 	// an in-flight call, so this handler doesn't bother.
-	mux.Handle("GET /instances", collectorkit.WithTimeout(http.HandlerFunc(handleInstances), 30*time.Second))
+	mux.Handle("GET /instances", metrics.Wrap(collectorkit.WithTimeout(http.HandlerFunc(handleInstances), 30*time.Second), "instances"))
 	// The lightweight connection test is AssumeRole + one identity call only.
-	mux.Handle("GET /test", collectorkit.WithTimeout(http.HandlerFunc(handleTest), 10*time.Second))
+	mux.Handle("GET /test", metrics.Wrap(collectorkit.WithTimeout(http.HandlerFunc(handleTest), 10*time.Second), "test"))
+	mux.Handle("GET /metrics", metrics.Handler())
 	mux.HandleFunc("GET /healthz", collectorkit.HealthHandler)
 
 	port := os.Getenv("PORT")

@@ -19,6 +19,10 @@ export const env = {
   // in the env var (matches SESSION_TTL_SECONDS's house style). 0 disables it.
   healthCheckIntervalMs: Number(process.env.HEALTH_CHECK_INTERVAL_SECONDS ?? 21_600) * 1000,
   logLevel: process.env.LOG_LEVEL ?? 'info',
+  // Optional — outage alerting (lib/telegramAlert.ts) silently no-ops unless
+  // both are set, same "works without it" precedent as ENTRA_*.
+  telegramBotToken: process.env.TELEGRAM_BOT_TOKEN,
+  telegramChatId: process.env.TELEGRAM_CHAT_ID,
 };
 
 export const COLLECTOR_URLS: Record<ProviderId, string> = {

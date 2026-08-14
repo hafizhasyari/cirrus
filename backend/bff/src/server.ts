@@ -5,6 +5,7 @@ import httpProxy from '@fastify/http-proxy';
 import rateLimit from '@fastify/rate-limit';
 import Fastify, { type FastifyError } from 'fastify';
 import { env } from './env.js';
+import { httpRequestDurationSeconds, httpRequestsTotal, register } from './lib/metrics.js';
 import { requestIdStorage } from './lib/requestContext.js';
 import { registerSessionMiddleware } from './plugins/session.js';
 import { registerAuthRoutes } from './routes/auth.js';
@@ -55,6 +56,20 @@ app.setErrorHandler((err: FastifyError, req, reply) => {
 });
 
 app.get('/health', { config: { rateLimit: false } }, async () => ({ status: 'ok' }));
+
+// Never exposed externally — frontend/nginx.conf only proxies /api/,
+// /api/vms, /auth/, and /, never /metrics, and bff's host port is cleared
+// entirely in docker-compose.prod.yml. Safe to leave unauthenticated the
+// same way /health already is.
+app.addHook('onResponse', async (req, reply) => {
+  const route = req.routeOptions?.url ?? req.url;
+  httpRequestsTotal.inc({ method: req.method, route, status_code: String(reply.statusCode) });
+  httpRequestDurationSeconds.observe({ method: req.method, route }, reply.elapsedTime / 1000);
+});
+app.get('/metrics', { config: { rateLimit: false } }, async (_req, reply) => {
+  reply.header('Content-Type', register.contentType);
+  return register.metrics();
+});
 
 await app.register(cors, { origin: env.corsOrigin, credentials: true });
 // CSP is disabled here — bff is a pure JSON/proxy API, never the document a
