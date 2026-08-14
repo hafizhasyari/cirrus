@@ -193,6 +193,8 @@ func mapInstance(listRaw, detailRaw json.RawMessage) collectorkit.Instance {
 		Disks:        disks,
 		PrivateIP:    extractFieldAny([]string{"private_ip", "ip_private", "internal_ip"}, extraDetails, source),
 		PublicIP:     publicIP,
-		LaunchedAt:   extractField(source, "created_at", "createdat", "created", "order_date"),
+		// date_created confirmed live (e.g. "2023-06-26"), top-level like product_name/
+		// category_name — not nested in extra_details like most other fields.
+		LaunchedAt: extractFieldAny([]string{"date_created", "created_at", "createdat", "created", "order_date"}, extraDetails, source),
 	}
 }

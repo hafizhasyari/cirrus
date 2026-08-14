@@ -12,6 +12,7 @@ export function VmDetailDrawer({
   memoryDisplay,
   publicIpDisplay,
   privateIpDisplay,
+  launchedDisplay,
   onClose,
 }: {
   vm: Vm;
@@ -22,6 +23,7 @@ export function VmDetailDrawer({
   memoryDisplay: string;
   publicIpDisplay: string;
   privateIpDisplay: string;
+  launchedDisplay: string;
   onClose: () => void;
 }) {
   return (
@@ -53,7 +55,7 @@ export function VmDetailDrawer({
             <Field label="CPU / Memory" value={`${cpuDisplay} · ${memoryDisplay}`} mono />
             <Field label="Region" value={vm.region} mono />
             <Field label="Account / project" value={vm.account} />
-            <Field label="Launched" value={vm.launched} />
+            <Field label="Launched" value={launchedDisplay} />
           </div>
         </div>
 

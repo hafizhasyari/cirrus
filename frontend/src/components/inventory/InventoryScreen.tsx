@@ -320,6 +320,7 @@ export function InventoryScreen({ app }: { app: CirrusApp }) {
           memoryDisplay={`${detailSrc.memory} GB`}
           publicIpDisplay={detailSrc.publicIp || '—'}
           privateIpDisplay={detailSrc.privateIp || '—'}
+          launchedDisplay={detailSrc.launched || '—'}
           onClose={() => app.closeDetail()}
         />
       )}
