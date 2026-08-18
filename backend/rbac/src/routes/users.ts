@@ -44,6 +44,11 @@ async function setAssignedConnections(userId: string, connectionIds: string[]) {
   }
 }
 
+async function countAdmins(): Promise<number> {
+  const rows = await db.select({ id: users.id }).from(users).where(eq(users.role, 'admin'));
+  return rows.length;
+}
+
 export async function registerUserRoutes(app: FastifyInstance) {
   app.get('/users', async () => {
     const rows = await db.select().from(users);
@@ -87,6 +92,14 @@ export async function registerUserRoutes(app: FastifyInstance) {
     const body = updateSchema.parse(req.body);
     const { name, email, role, accountConnectionIds } = body;
 
+    if (role === 'viewer') {
+      const [target] = await db.select().from(users).where(eq(users.id, req.params.id));
+      if (target?.role === 'admin' && (await countAdmins()) <= 1) {
+        reply.code(409);
+        return { error: { code: 'LAST_ADMIN', message: 'Cannot demote the last remaining admin.' } };
+      }
+    }
+
     const [updated] = await db
       .update(users)
       .set({
@@ -119,6 +132,16 @@ export async function registerUserRoutes(app: FastifyInstance) {
     if (actorUserId === req.params.id) {
       reply.code(400);
       return { error: { code: 'CANNOT_REMOVE_SELF', message: 'You cannot remove your own account.' } };
+    }
+
+    const [target] = await db.select().from(users).where(eq(users.id, req.params.id));
+    if (!target) {
+      reply.code(404);
+      return { error: { code: 'NOT_FOUND', message: 'user not found' } };
+    }
+    if (target.role === 'admin' && (await countAdmins()) <= 1) {
+      reply.code(409);
+      return { error: { code: 'LAST_ADMIN', message: 'Cannot remove the last remaining admin.' } };
     }
 
     const [deleted] = await db.delete(users).where(eq(users.id, req.params.id)).returning();

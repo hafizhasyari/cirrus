@@ -7,6 +7,13 @@ export function UserDrawer({ app }: { app: CirrusApp }) {
   const isEdit = app.userDrawerMode === 'edit';
   const isAdminRole = app.userForm.role === 'admin';
   const isSelf = isEdit && app.currentUser?.id === app.editingUserId;
+  const editingUser = isEdit ? app.users.find((u) => u.id === app.editingUserId) : undefined;
+  const adminCount = app.users.filter((u) => u.role === 'admin').length;
+  // Based on the target's currently-saved role, not the in-progress form
+  // selection — otherwise tentatively picking "Admin" for a Viewer (a
+  // promotion, always safe) would incorrectly flip this on and disable the
+  // Viewer pill mid-edit, before the user ever gets to save.
+  const isLastAdmin = isEdit && editingUser?.role === 'admin' && adminCount <= 1;
 
   return (
     <div className="drawer-overlay" onClick={() => app.closeUserDrawer()}>
@@ -50,8 +57,20 @@ export function UserDrawer({ app }: { app: CirrusApp }) {
           <div className="section-label" style={{ marginBottom: 8 }}>Role</div>
           <div style={{ display: 'flex', gap: 6 }}>
             <div className="pill" data-active={isAdminRole} style={{ flex: 1, justifyContent: 'center' }} onClick={() => app.setUserFormRole('admin')}>Admin</div>
-            <div className="pill" data-active={!isAdminRole} style={{ flex: 1, justifyContent: 'center' }} onClick={() => app.setUserFormRole('viewer')}>Viewer</div>
+            <div
+              className="pill"
+              data-active={!isAdminRole}
+              style={{ flex: 1, justifyContent: 'center', opacity: isLastAdmin ? 0.5 : 1, cursor: isLastAdmin ? 'not-allowed' : 'pointer' }}
+              onClick={() => { if (!isLastAdmin) app.setUserFormRole('viewer'); }}
+            >
+              Viewer
+            </div>
           </div>
+          {isLastAdmin && (
+            <div style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 6 }}>
+              This is the only admin — promote another user before demoting this one.
+            </div>
+          )}
         </div>
 
         {!isAdminRole && (
@@ -103,7 +122,7 @@ export function UserDrawer({ app }: { app: CirrusApp }) {
         <div style={{ flex: 1 }} />
 
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderTop: '1px solid var(--border)', paddingTop: 16 }}>
-          {isEdit && !isSelf ? (
+          {isEdit && !isSelf && !isLastAdmin ? (
             <div style={{ fontSize: 12.5, fontWeight: 600, color: '#f43f5e', cursor: 'pointer' }} onClick={() => setConfirmingRemove(true)}>
               Remove User
             </div>
