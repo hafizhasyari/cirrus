@@ -363,6 +363,9 @@ export function InventoryScreen({ app }: { app: CirrusApp }) {
             sortDirection={sortDirection}
             onSort={toggleSort}
             onRowClick={(id) => app.openDetail(id)}
+            columnWidthOverrides={app.columnWidthOverrides}
+            onResizeColumn={app.resizeColumn}
+            onResetColumnWidth={app.resetColumnWidth}
           />
         )}
       </div>

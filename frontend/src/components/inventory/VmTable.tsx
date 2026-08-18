@@ -1,3 +1,4 @@
+import { useColumnResize } from '../../lib/columnResize';
 import { ProviderBadge } from '../shared/ProviderBadge';
 import { ServiceBadge } from '../shared/ServiceBadge';
 import { StaleBadge } from '../shared/StaleBadge';
@@ -27,25 +28,47 @@ const COLUMNS: { key: VmSortColumn; label: string }[] = [
   { key: 'ip', label: 'IP' },
 ];
 
+export const COLUMN_KEYS: VmSortColumn[] = COLUMNS.map((c) => c.key);
+
+const FLUID_COLUMN_WIDTH = `${100 / COLUMNS.length}%`;
+
 export function VmTable({
   rows,
   sortColumn,
   sortDirection,
   onSort,
   onRowClick,
+  columnWidthOverrides,
+  onResizeColumn,
+  onResetColumnWidth,
 }: {
   rows: VmRowView[];
   sortColumn: VmSortColumn | null;
   sortDirection: 'asc' | 'desc';
   onSort: (column: VmSortColumn) => void;
   onRowClick: (id: string) => void;
+  columnWidthOverrides: Partial<Record<VmSortColumn, number>>;
+  onResizeColumn: (column: VmSortColumn, width: number) => void;
+  onResetColumnWidth: (column: VmSortColumn) => void;
 }) {
+  const startResize = useColumnResize(onResizeColumn);
+
   return (
     <div style={{ flex: 1, minHeight: 0, overflow: 'auto' }}>
       <table className="cirrus-table">
+        <colgroup>
+          {COLUMNS.map((col) => (
+            <col key={col.key} style={{ width: columnWidthOverrides[col.key] ?? FLUID_COLUMN_WIDTH }} />
+          ))}
+          {/* Absorbs whatever width is left over once the 10 real columns
+              take their explicit widths, so the table fills its container
+              instead of leaving a dead gap — see table-layout: fixed's
+              column-width algorithm. */}
+          <col key="spacer" />
+        </colgroup>
         <thead>
           <tr>
-            {COLUMNS.map((col) => (
+            {COLUMNS.map((col, index) => (
               <th
                 key={col.key}
                 className="th th-sortable"
@@ -53,12 +76,26 @@ export function VmTable({
                 data-direction={sortColumn === col.key ? sortDirection : undefined}
                 onClick={() => onSort(col.key)}
               >
-                {col.label}
-                <svg className="th-sort-caret" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
-                  <path d="M6 9l6 6 6-6" />
-                </svg>
+                <div className="th-inner">
+                  <span className="th-label">{col.label}</span>
+                  <svg className="th-sort-caret" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+                    <path d="M6 9l6 6 6-6" />
+                  </svg>
+                </div>
+                {index < COLUMNS.length - 1 && (
+                  <span
+                    className="th-resize-handle"
+                    onMouseDown={(e) => startResize(e, col.key)}
+                    onClick={(e) => e.stopPropagation()}
+                    onDoubleClick={(e) => {
+                      e.stopPropagation();
+                      onResetColumnWidth(col.key);
+                    }}
+                  />
+                )}
               </th>
             ))}
+            <th className="th" />
           </tr>
         </thead>
         <tbody>
@@ -98,6 +135,7 @@ export function VmTable({
                 {vm.privateIpDisplay}
                 <div style={{ color: 'var(--text-muted)' }}>{vm.publicIpDisplay}</div>
               </td>
+              <td className="td" />
             </tr>
           ))}
         </tbody>

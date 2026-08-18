@@ -3,8 +3,20 @@ import { UserDrawer } from './UserDrawer';
 import { UserRowSkeleton } from './UserRowSkeleton';
 import { StatCard } from '../shared/StatCard';
 import { AlertTriangleIcon, EmptyState, UsersOffIcon } from '../shared/EmptyState';
+import { useColumnResize } from '../../lib/columnResize';
 import { formatRelativeTime } from '../../lib/relativeTime';
 import type { CirrusApp } from '../../state/useCirrusApp';
+import type { UserColumnKey } from '../../types';
+
+const USER_COLUMNS: { key: UserColumnKey; label: string }[] = [
+  { key: 'user', label: 'User' },
+  { key: 'role', label: 'Role' },
+  { key: 'lastLogin', label: 'Last login' },
+];
+
+export const USER_COLUMN_KEYS: UserColumnKey[] = USER_COLUMNS.map((c) => c.key);
+
+const FLUID_COLUMN_WIDTH = `${100 / USER_COLUMNS.length}%`;
 
 export function UsersHeader({ app }: { app: CirrusApp }) {
   return (
@@ -49,6 +61,8 @@ export function UsersScreen({ app }: { app: CirrusApp }) {
   const showError = !showLoading && !!app.usersError && usersRows.length === 0;
   const showEmpty = !showLoading && !showError && usersRows.length === 0;
 
+  const startResize = useColumnResize(app.resizeUserColumn);
+
   return (
     <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', overflowX: 'hidden', display: 'flex', flexDirection: 'column', gap: 16 }}>
       <div className="stat-grid" style={{ flexShrink: 0 }}>
@@ -57,7 +71,7 @@ export function UsersScreen({ app }: { app: CirrusApp }) {
         <StatCard label="Viewers" value={userStats.viewers} />
       </div>
 
-      <div className="card" style={{ overflow: 'hidden' }}>
+      <div className="card" style={{ overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
       {showLoading && (
         <div style={{ overflow: 'auto' }}>
           <UserRowSkeleton />
@@ -78,13 +92,31 @@ export function UsersScreen({ app }: { app: CirrusApp }) {
         />
       )}
       {!showLoading && !showError && !showEmpty && (
-      <div style={{ overflow: 'auto' }}>
+      <div style={{ overflow: 'auto', flex: 1, minHeight: 0 }}>
         <table className="cirrus-table">
+          <colgroup>
+            {USER_COLUMNS.map((col) => (
+              <col key={col.key} style={{ width: app.userColumnWidthOverrides[col.key] ?? FLUID_COLUMN_WIDTH }} />
+            ))}
+            <col key="spacer" />
+          </colgroup>
           <thead>
             <tr>
-              <th className="th">User</th>
-              <th className="th">Role</th>
-              <th className="th">Last login</th>
+              {USER_COLUMNS.map((col, index) => (
+                <th key={col.key} className="th">
+                  <div className="th-inner">
+                    <span className="th-label">{col.label}</span>
+                  </div>
+                  {index < USER_COLUMNS.length - 1 && (
+                    <span
+                      className="th-resize-handle"
+                      onMouseDown={(e) => startResize(e, col.key)}
+                      onDoubleClick={() => app.resetUserColumnWidth(col.key)}
+                    />
+                  )}
+                </th>
+              ))}
+              <th className="th" />
             </tr>
           </thead>
           <tbody>
@@ -153,6 +185,7 @@ export function UsersScreen({ app }: { app: CirrusApp }) {
                     formatRelativeTime(row.user.lastLogin)
                   )}
                 </td>
+                <td className="td" />
               </tr>
             ))}
           </tbody>
