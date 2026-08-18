@@ -117,7 +117,7 @@ function useLatestRef<T>(value: T) {
 }
 
 function errorMessage(err: unknown, fallback: string): string {
-  return err instanceof ApiError ? err.message : fallback;
+  return err instanceof ApiError && err.message ? err.message : fallback;
 }
 
 /** Drops `key` from a field-errors map if present, returning the same
@@ -731,7 +731,7 @@ export function useCirrusApp() {
       setEditingConnectionId(null);
       showToast('Connection removed');
     } catch (err) {
-      showToast(errorMessage(err, 'Remove failed'));
+      showToast(errorMessage(err, 'Remove failed'), 'error');
     }
   }, [editingConnectionIdRef, showToast]);
 
@@ -811,7 +811,7 @@ export function useCirrusApp() {
       setUserDrawerMode(null);
       showToast('User removed');
     } catch (err) {
-      showToast(errorMessage(err, 'Remove failed'));
+      showToast(errorMessage(err, 'Remove failed'), 'error');
     }
   }, [editingUserIdRef, showToast]);
 

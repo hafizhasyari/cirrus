@@ -1,11 +1,14 @@
+import { useState } from 'react';
 import { ProviderBadge } from '../shared/ProviderBadge';
 import { CredentialFieldRow } from '../shared/CredentialField';
+import { ConfirmDialog } from '../shared/ConfirmDialog';
 import { CONN_STATUS_META, statusBgForTheme, useTheme } from '../../theme/ThemeContext';
 import { formatRelativeTime } from '../../lib/relativeTime';
 import type { CirrusApp } from '../../state/useCirrusApp';
 
 export function EditConnectionDrawer({ app }: { app: CirrusApp }) {
   const { theme } = useTheme();
+  const [confirmingRemove, setConfirmingRemove] = useState(false);
   const conn = app.connections.find((c) => c.id === app.editingConnectionId);
   if (!conn) return null;
 
@@ -109,12 +112,24 @@ export function EditConnectionDrawer({ app }: { app: CirrusApp }) {
         <div style={{ flex: 1 }} />
 
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderTop: '1px solid var(--border)', paddingTop: 16 }}>
-          <div style={{ fontSize: 12.5, fontWeight: 600, color: '#f43f5e', cursor: 'pointer' }} onClick={() => app.removeEditConnection()}>
+          <div style={{ fontSize: 12.5, fontWeight: 600, color: '#f43f5e', cursor: 'pointer' }} onClick={() => setConfirmingRemove(true)}>
             Remove Connection
           </div>
           <div className="primary-btn" onClick={() => app.saveEditConnection()}>Save Changes</div>
         </div>
       </div>
+
+      <ConfirmDialog
+        open={confirmingRemove}
+        title="Remove this connection?"
+        message="This action cannot be undone."
+        confirmLabel="Remove Connection"
+        onCancel={() => setConfirmingRemove(false)}
+        onConfirm={() => {
+          setConfirmingRemove(false);
+          app.removeEditConnection();
+        }}
+      />
     </div>
   );
 }

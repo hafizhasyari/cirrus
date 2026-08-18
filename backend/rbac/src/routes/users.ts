@@ -115,12 +115,17 @@ export async function registerUserRoutes(app: FastifyInstance) {
   });
 
   app.delete<{ Params: { id: string } }>('/users/:id', async (req, reply) => {
+    const actorUserId = (req.headers['x-actor-user-id'] as string) ?? null;
+    if (actorUserId === req.params.id) {
+      reply.code(400);
+      return { error: { code: 'CANNOT_REMOVE_SELF', message: 'You cannot remove your own account.' } };
+    }
+
     const [deleted] = await db.delete(users).where(eq(users.id, req.params.id)).returning();
     if (!deleted) {
       reply.code(404);
       return { error: { code: 'NOT_FOUND', message: 'user not found' } };
     }
-    const actorUserId = (req.headers['x-actor-user-id'] as string) ?? null;
     await writeAudit({ actorUserId, action: 'user_remove', targetType: 'user', targetId: deleted.id, metadata: { email: deleted.email } });
     reply.code(204);
   });

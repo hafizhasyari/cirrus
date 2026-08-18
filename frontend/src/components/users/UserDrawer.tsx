@@ -1,8 +1,12 @@
+import { useState } from 'react';
 import type { CirrusApp } from '../../state/useCirrusApp';
+import { ConfirmDialog } from '../shared/ConfirmDialog';
 
 export function UserDrawer({ app }: { app: CirrusApp }) {
+  const [confirmingRemove, setConfirmingRemove] = useState(false);
   const isEdit = app.userDrawerMode === 'edit';
   const isAdminRole = app.userForm.role === 'admin';
+  const isSelf = isEdit && app.currentUser?.id === app.editingUserId;
 
   return (
     <div className="drawer-overlay" onClick={() => app.closeUserDrawer()}>
@@ -99,8 +103,8 @@ export function UserDrawer({ app }: { app: CirrusApp }) {
         <div style={{ flex: 1 }} />
 
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderTop: '1px solid var(--border)', paddingTop: 16 }}>
-          {isEdit ? (
-            <div style={{ fontSize: 12.5, fontWeight: 600, color: '#f43f5e', cursor: 'pointer' }} onClick={() => app.removeUser()}>
+          {isEdit && !isSelf ? (
+            <div style={{ fontSize: 12.5, fontWeight: 600, color: '#f43f5e', cursor: 'pointer' }} onClick={() => setConfirmingRemove(true)}>
               Remove User
             </div>
           ) : (
@@ -111,6 +115,18 @@ export function UserDrawer({ app }: { app: CirrusApp }) {
           </div>
         </div>
       </div>
+
+      <ConfirmDialog
+        open={confirmingRemove}
+        title="Remove this user?"
+        message="This action cannot be undone."
+        confirmLabel="Remove User"
+        onCancel={() => setConfirmingRemove(false)}
+        onConfirm={() => {
+          setConfirmingRemove(false);
+          app.removeUser();
+        }}
+      />
     </div>
   );
 }

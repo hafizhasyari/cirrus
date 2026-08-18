@@ -44,10 +44,10 @@ app.setErrorHandler((err: FastifyError, req, reply) => {
   const status = err.statusCode ?? 500;
   if (status >= 500) {
     req.log.error({ err }, 'unhandled request error');
-    reply.status(status).send({ error: 'Internal Server Error' });
+    reply.status(status).send({ error: { code: 'INTERNAL_ERROR', message: 'Internal Server Error' } });
     return;
   }
-  reply.status(status).send({ error: err.message });
+  reply.status(status).send({ error: { code: err.code ?? 'BAD_REQUEST', message: err.message } });
 });
 
 app.get('/health', async () => ({ status: 'ok' }));

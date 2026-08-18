@@ -51,7 +51,7 @@ export const cloudConnections = pgTable('cloud_connections', {
   status: connectionStatusEnum('status').notNull().default('pending'),
   lastCheckedAt: timestamp('last_checked_at', { withTimezone: true }),
   lastCheckMessage: text('last_check_message'),
-  addedByUserId: uuid('added_by_user_id').references(() => users.id),
+  addedByUserId: uuid('added_by_user_id').references(() => users.id, { onDelete: 'set null' }),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 });
@@ -65,7 +65,7 @@ export const userCloudAccounts = pgTable('user_cloud_accounts', {
 
 export const auditLog = pgTable('audit_log', {
   id: uuid('id').primaryKey().defaultRandom(),
-  actorUserId: uuid('actor_user_id').references(() => users.id),
+  actorUserId: uuid('actor_user_id').references(() => users.id, { onDelete: 'set null' }),
   action: text('action').notNull(),
   targetType: text('target_type').notNull(),
   targetId: uuid('target_id'),
