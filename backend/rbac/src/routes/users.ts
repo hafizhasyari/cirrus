@@ -5,6 +5,7 @@ import { db } from '../db/client.js';
 import { cloudConnections, userCloudAccounts, users } from '../db/schema.js';
 import { toUserDto } from '../lib/userDto.js';
 import { writeAudit } from '../lib/audit.js';
+import { sendInviteEmail } from '../lib/resendClient.js';
 
 const inviteSchema = z.object({
   name: z.string().min(1),
@@ -70,6 +71,12 @@ export async function registerUserRoutes(app: FastifyInstance) {
 
     const actorUserId = (req.headers['x-actor-user-id'] as string) ?? null;
     await writeAudit({ actorUserId, action: 'user_invite', targetType: 'user', targetId: created.id, metadata: { email: body.email, role: body.role } });
+
+    try {
+      await sendInviteEmail({ to: created.email, name: created.name, role: created.role });
+    } catch (err) {
+      req.log.warn({ err, userId: created.id, email: created.email }, 'failed to send invite email');
+    }
 
     const assigned = await assignedConnectionsFor([created.id]);
     reply.code(201);

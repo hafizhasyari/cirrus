@@ -184,6 +184,12 @@ services:
       # unless both are set. See .env.example for how to get a bot token/chat id.
       TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-}
       TELEGRAM_CHAT_ID: ${TELEGRAM_CHAT_ID:-}
+      # Optional — invite emails (lib/resendClient.ts) silently no-op unless
+      # RESEND_API_KEY is set. See .env.example for the domain-verification
+      # requirement on RESEND_FROM_EMAIL.
+      RESEND_API_KEY: ${RESEND_API_KEY:-}
+      RESEND_FROM_EMAIL: ${RESEND_FROM_EMAIL:-Cirrus <notification@cirrus.example.com>}
+      APP_URL: ${APP_URL:-http://localhost:5173}
       VAULT_ADDR: http://vault:8200
       VAULT_TOKEN: ${VAULT_TOKEN:?VAULT_TOKEN is required}
       AWS_COLLECTOR_URL: http://collector-aws:8080
