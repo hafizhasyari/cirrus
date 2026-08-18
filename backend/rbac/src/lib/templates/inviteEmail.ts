@@ -65,7 +65,7 @@ This is an automated message from Cirrus. If you weren't expecting this, you can
                 <table role="presentation" cellpadding="0" cellspacing="0">
                   <tr>
                     <td style="vertical-align:middle;padding-right:10px;">
-                      <img src="${CIRRUS_LOGO_URL}" width="28" height="28" alt="" style="display:block;" />
+                      <img src="${CIRRUS_LOGO_URL}" width="28" height="28" alt="Cirrus" style="display:block;" />
                     </td>
                     <td style="vertical-align:middle;">
                       <span style="font-family:'Bricolage Grotesque',-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;font-size:18px;font-weight:700;color:#1f2937;">Cirrus</span>
