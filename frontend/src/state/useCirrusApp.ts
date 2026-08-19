@@ -20,9 +20,6 @@ import {
 import { computeIdentifier } from '../lib/connectionIdentifier';
 import { MASKED_PLACEHOLDER, validateConnectionFields, validateUserForm } from '../lib/formValidation';
 import { router } from '../router';
-import { COLUMN_KEYS } from '../components/inventory/VmTable';
-import { USER_COLUMN_KEYS } from '../components/users/UsersScreen';
-import { MIN_COLUMN_WIDTH } from '../lib/columnResize';
 import type {
   AuthenticatedUser,
   Connection,
@@ -31,7 +28,6 @@ import type {
   Role,
   Theme,
   User,
-  UserColumnKey,
   Vm,
   VmFetchError,
   VmSortColumn,
@@ -57,54 +53,6 @@ const THEME_STORAGE_KEY = 'cirrus-theme';
 function getInitialTheme(): Theme {
   const stored = localStorage.getItem(THEME_STORAGE_KEY);
   return stored === 'light' || stored === 'dark' ? stored : 'light';
-}
-
-// A fresh key, not a reuse of the old full-width-map one — a stored value
-// here means "user manually froze this column to a pixel width"; absence
-// means "still fluid" (see COLUMNS/FLUID_COLUMN_WIDTH in VmTable.tsx).
-// Reusing the old key (which always held a full 10-key map) would wrongly
-// resurrect pre-existing default values as deliberate manual overrides.
-const COLUMN_WIDTH_OVERRIDES_STORAGE_KEY = 'cirrus-column-width-overrides';
-
-function getInitialColumnWidthOverrides(): Partial<Record<VmSortColumn, number>> {
-  const result: Partial<Record<VmSortColumn, number>> = {};
-  try {
-    const stored = localStorage.getItem(COLUMN_WIDTH_OVERRIDES_STORAGE_KEY);
-    if (!stored) return result;
-    const parsed = JSON.parse(stored);
-    for (const key of COLUMN_KEYS) {
-      if (typeof parsed[key] === 'number' && parsed[key] >= MIN_COLUMN_WIDTH) {
-        result[key] = parsed[key];
-      }
-    }
-  } catch {
-    // malformed/stale localStorage value — fall back to all-fluid
-  }
-  return result;
-}
-
-// A fresh key, not a reuse of an old full-width-map one — a stored value
-// here means "user manually froze this column to a pixel width"; absence
-// means "still fluid" (see USER_COLUMNS in UsersScreen.tsx). Reusing an old
-// key that used to always hold a full 3-key map would wrongly resurrect
-// pre-existing default values as if they were deliberate manual overrides.
-const USER_COLUMN_WIDTH_OVERRIDES_STORAGE_KEY = 'cirrus-user-column-width-overrides';
-
-function getInitialUserColumnWidthOverrides(): Partial<Record<UserColumnKey, number>> {
-  const result: Partial<Record<UserColumnKey, number>> = {};
-  try {
-    const stored = localStorage.getItem(USER_COLUMN_WIDTH_OVERRIDES_STORAGE_KEY);
-    if (!stored) return result;
-    const parsed = JSON.parse(stored);
-    for (const key of USER_COLUMN_KEYS) {
-      if (typeof parsed[key] === 'number' && parsed[key] >= MIN_COLUMN_WIDTH) {
-        result[key] = parsed[key];
-      }
-    }
-  } catch {
-    // malformed/stale localStorage value — fall back to all-fluid
-  }
-  return result;
 }
 
 /** Keeps a ref in sync with the latest value of state on every render, so
@@ -187,64 +135,6 @@ export function useCirrusApp() {
   // refreshInventory/navigation exactly like search/filterProviders already do.
   const [sortColumn, setSortColumn] = useState<VmSortColumn | null>('name');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
-
-  // Inventory column widths — unlike sort, this persists to localStorage
-  // (same getInitialX/useEffect pattern as theme above) since a user
-  // resizing a column expects that choice to stick around, not reset on
-  // every reload the way sort deliberately does. A *partial* map: a column
-  // with no entry renders at a fluid percentage share instead (see
-  // COLUMNS/FLUID_COLUMN_WIDTH in VmTable.tsx) — only a column the user has
-  // actually dragged freezes to a fixed pixel value.
-  const [columnWidthOverrides, setColumnWidthOverrides] =
-    useState<Partial<Record<VmSortColumn, number>>>(getInitialColumnWidthOverrides);
-
-  useEffect(() => {
-    localStorage.setItem(COLUMN_WIDTH_OVERRIDES_STORAGE_KEY, JSON.stringify(columnWidthOverrides));
-  }, [columnWidthOverrides]);
-
-  const resizeColumn = useCallback((column: VmSortColumn, width: number) => {
-    setColumnWidthOverrides((prev) => ({ ...prev, [column]: width }));
-  }, []);
-
-  // "Reset" means un-freezing back to the fluid percentage share, not
-  // snapping to a stored default pixel number — there is no meaningful
-  // fixed default anymore, the true default is fluid.
-  const resetColumnWidth = useCallback((column: VmSortColumn) => {
-    setColumnWidthOverrides((prev) => {
-      const next = { ...prev };
-      delete next[column];
-      return next;
-    });
-  }, []);
-
-  // Users & Roles table column widths — unlike Inventory's columnWidths
-  // (always a full map of fixed pixel values), this is a *partial* map of
-  // manual overrides only. A column with no entry here renders at a fluid
-  // percentage share instead (see USER_COLUMNS/FLUID_COLUMN_WIDTH in
-  // UsersScreen.tsx) so it stays visually aligned with the equally-sized
-  // stat cards above it at any viewport width — only a column the user has
-  // actually dragged freezes to a fixed pixel value.
-  const [userColumnWidthOverrides, setUserColumnWidthOverrides] =
-    useState<Partial<Record<UserColumnKey, number>>>(getInitialUserColumnWidthOverrides);
-
-  useEffect(() => {
-    localStorage.setItem(USER_COLUMN_WIDTH_OVERRIDES_STORAGE_KEY, JSON.stringify(userColumnWidthOverrides));
-  }, [userColumnWidthOverrides]);
-
-  const resizeUserColumn = useCallback((column: UserColumnKey, width: number) => {
-    setUserColumnWidthOverrides((prev) => ({ ...prev, [column]: width }));
-  }, []);
-
-  // "Reset" means un-freezing back to the fluid percentage share, not
-  // snapping to a stored default pixel number — there is no meaningful
-  // fixed default anymore, the true default is fluid.
-  const resetUserColumnWidth = useCallback((column: UserColumnKey) => {
-    setUserColumnWidthOverrides((prev) => {
-      const next = { ...prev };
-      delete next[column];
-      return next;
-    });
-  }, []);
 
   // Add-connection wizard
   const [wizardStep, setWizardStep] = useState<1 | 2>(1);
@@ -830,7 +720,6 @@ export function useCirrusApp() {
     unselectAllProviders, unselectAllStatuses, unselectAllAccounts, unselectAllRegions, refreshInventory,
     filterOpen, toggleFilterOpen, closeFilterOpen,
     sortColumn, sortDirection, toggleSort,
-    columnWidthOverrides, resizeColumn, resetColumnWidth,
     // connections
     openEditConnection, closeEditConnection,
     editingConnectionId, editForm, editFieldValues, editTesting, editTested, editFormErrors,
@@ -842,7 +731,6 @@ export function useCirrusApp() {
     // users
     userDrawerMode, editingUserId, userForm, userFormErrors, openEditUser, openInviteUser, closeUserDrawer,
     updateUserField, setUserFormRole, toggleUserFormConnection, saveUser, removeUser,
-    userColumnWidthOverrides, resizeUserColumn, resetUserColumnWidth,
     // toast
     toast, showToast,
   };

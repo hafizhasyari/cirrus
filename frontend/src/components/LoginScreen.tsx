@@ -1,6 +1,38 @@
+import { useEffect } from 'react';
+import { useNavigate, useSearch } from '@tanstack/react-router';
 import type { Theme } from '../types';
 import { useMediaQuery } from '../lib/useMediaQuery';
 import { MOBILE_QUERY } from '../lib/responsive';
+import { useApp } from '../state/AppContext';
+
+// Codes redirected from the auth service (backend/auth/src/oidc/errorRedirect.ts)
+// when /auth/callback or /auth/dev-login can't complete the login flow.
+const AUTH_ERROR_MESSAGES: Record<string, string> = {
+  INVALID_FLOW: 'Your login session expired or is invalid. Click Continue with Microsoft to try again.',
+  STATE_MISMATCH: "Login couldn't be verified. Click Continue with Microsoft to try again.",
+  NETWORK_ERROR: 'Could not reach Microsoft. Check your connection and try again.',
+  OAUTH_ERROR: 'Login was cancelled or denied by Microsoft.',
+  NOT_INVITED: 'This Microsoft account has not been invited to Cirrus. Contact an Admin for access.',
+  MISSING_CLAIMS: 'Login failed due to incomplete account data. Try again or contact an Admin.',
+  RBAC_UNAVAILABLE: 'The service is temporarily unavailable. Please try again shortly.',
+  BAD_REQUEST: 'Invalid login request.',
+};
+const DEFAULT_AUTH_ERROR_MESSAGE = 'Login failed. Please try again.';
+
+export function LoginRouteComponent() {
+  const app = useApp();
+  const { showToast } = app;
+  const { authError } = useSearch({ from: '/' });
+  const navigate = useNavigate({ from: '/' });
+
+  useEffect(() => {
+    if (!authError) return;
+    showToast(AUTH_ERROR_MESSAGES[authError] ?? DEFAULT_AUTH_ERROR_MESSAGE, 'error');
+    navigate({ to: '/', search: {}, replace: true });
+  }, [authError, showToast, navigate]);
+
+  return <LoginScreen theme={app.theme} setTheme={app.setTheme} onContinue={app.goToInventoryFromLogin} />;
+}
 
 export function LoginScreen({
   theme,

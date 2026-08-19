@@ -1,5 +1,7 @@
 import { ProviderBadge } from '../shared/ProviderBadge';
 import { CredentialFieldRow } from '../shared/CredentialField';
+import { ScreenLayout } from '../AppShell';
+import { useApp } from '../../state/AppContext';
 import type { CirrusApp } from '../../state/useCirrusApp';
 
 export function WizardHeader({ app }: { app: CirrusApp }) {
@@ -234,5 +236,14 @@ export function WizardScreen({ app }: { app: CirrusApp }) {
         </div>
       )}
     </div>
+  );
+}
+
+export function WizardPage() {
+  const app = useApp();
+  return (
+    <ScreenLayout header={<WizardHeader app={app} />}>
+      <WizardScreen app={app} />
+    </ScreenLayout>
   );
 }

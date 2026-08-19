@@ -6,7 +6,9 @@ import { VmTable, type VmRowView } from './VmTable';
 import { VmDetailDrawer } from './VmDetailDrawer';
 import { AlertTriangleIcon, EmptyState, SearchOffIcon } from '../shared/EmptyState';
 import { StatCard } from '../shared/StatCard';
-import { STATUS_META } from '../../theme/ThemeContext';
+import { STATUS_META } from '../../theme/themeUtils';
+import { ScreenLayout } from '../AppShell';
+import { useApp } from '../../state/AppContext';
 import type { CirrusApp } from '../../state/useCirrusApp';
 import type { ProviderId, Vm, VmSortColumn, VmStatus } from '../../types';
 
@@ -363,9 +365,6 @@ export function InventoryScreen({ app }: { app: CirrusApp }) {
             sortDirection={sortDirection}
             onSort={toggleSort}
             onRowClick={(id) => app.openDetail(id)}
-            columnWidthOverrides={app.columnWidthOverrides}
-            onResizeColumn={app.resizeColumn}
-            onResetColumnWidth={app.resetColumnWidth}
           />
         )}
       </div>
@@ -389,5 +388,14 @@ export function InventoryScreen({ app }: { app: CirrusApp }) {
         />
       )}
     </div>
+  );
+}
+
+export function InventoryPage() {
+  const app = useApp();
+  return (
+    <ScreenLayout header={<InventoryHeader app={app} />}>
+      <InventoryScreen app={app} />
+    </ScreenLayout>
   );
 }

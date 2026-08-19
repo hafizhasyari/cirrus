@@ -67,7 +67,10 @@ export function Sidebar({ app }: { app: CirrusApp }) {
           borderRight: '1px solid var(--border)',
           display: 'flex',
           flexDirection: 'column',
-          padding: '20px 16px',
+          paddingTop: 20,
+          paddingRight: 16,
+          paddingBottom: isCompact ? 'calc(20px + env(safe-area-inset-bottom))' : 20,
+          paddingLeft: 16,
           boxSizing: 'border-box',
           ...(isCompact
             ? {
@@ -75,7 +78,6 @@ export function Sidebar({ app }: { app: CirrusApp }) {
                 top: 0,
                 left: 0,
                 height: '100dvh',
-                paddingBottom: 'calc(20px + env(safe-area-inset-bottom))',
                 zIndex: 200,
                 transform: isOpen ? 'translateX(0)' : 'translateX(-100%)',
                 transition: 'transform 200ms ease',

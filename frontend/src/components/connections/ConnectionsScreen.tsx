@@ -5,7 +5,9 @@ import { ConnectionCardSkeleton } from './ConnectionCardSkeleton';
 import { EditConnectionDrawer } from './EditConnectionDrawer';
 import { AlertTriangleIcon, EmptyState, LinkOffIcon } from '../shared/EmptyState';
 import { StatCard } from '../shared/StatCard';
-import { CONN_STATUS_META, statusBgForTheme, useTheme } from '../../theme/ThemeContext';
+import { CONN_STATUS_META, statusBgForTheme, useTheme } from '../../theme/themeUtils';
+import { ScreenLayout } from '../AppShell';
+import { useApp } from '../../state/AppContext';
 import type { CirrusApp } from '../../state/useCirrusApp';
 
 export function ConnectionsHeader({ app }: { app: CirrusApp }) {
@@ -134,5 +136,14 @@ export function ConnectionsScreen({ app }: { app: CirrusApp }) {
 
       {app.editingConnectionId && <EditConnectionDrawer app={app} />}
     </div>
+  );
+}
+
+export function ConnectionsPage() {
+  const app = useApp();
+  return (
+    <ScreenLayout header={<ConnectionsHeader app={app} />}>
+      <ConnectionsScreen app={app} />
+    </ScreenLayout>
   );
 }

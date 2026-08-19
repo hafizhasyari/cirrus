@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { ProviderBadge } from '../shared/ProviderBadge';
 import { CredentialFieldRow } from '../shared/CredentialField';
 import { ConfirmDialog } from '../shared/ConfirmDialog';
-import { CONN_STATUS_META, statusBgForTheme, useTheme } from '../../theme/ThemeContext';
+import { CONN_STATUS_META, statusBgForTheme, useTheme } from '../../theme/themeUtils';
 import { formatRelativeTime } from '../../lib/relativeTime';
 import type { CirrusApp } from '../../state/useCirrusApp';
 

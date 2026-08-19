@@ -1,4 +1,3 @@
-import { useColumnResize } from '../../lib/columnResize';
 import { ProviderBadge } from '../shared/ProviderBadge';
 import { ServiceBadge } from '../shared/ServiceBadge';
 import { StaleBadge } from '../shared/StaleBadge';
@@ -15,22 +14,18 @@ export interface VmRowView extends Vm {
   privateIpDisplay: string;
 }
 
-const COLUMNS: { key: VmSortColumn; label: string }[] = [
-  { key: 'name', label: 'Name' },
-  { key: 'provider', label: 'Provider' },
-  { key: 'account', label: 'Account' },
-  { key: 'region', label: 'Region' },
-  { key: 'status', label: 'Status' },
-  { key: 'type', label: 'Type' },
-  { key: 'cpu', label: 'CPU' },
-  { key: 'memory', label: 'Memory' },
-  { key: 'disk', label: 'Disk' },
-  { key: 'ip', label: 'IP' },
+const COLUMNS: { key: VmSortColumn; label: string; width: number }[] = [
+  { key: 'name', label: 'Name', width: 220 },
+  { key: 'provider', label: 'Provider', width: 220 },
+  { key: 'account', label: 'Account', width: 245 },
+  { key: 'region', label: 'Region', width: 130 },
+  { key: 'status', label: 'Status', width: 120 },
+  { key: 'type', label: 'Type', width: 150 },
+  { key: 'cpu', label: 'CPU', width: 100 },
+  { key: 'memory', label: 'Memory', width: 115 },
+  { key: 'disk', label: 'Disk', width: 100 },
+  { key: 'ip', label: 'IP', width: 160 },
 ];
-
-export const COLUMN_KEYS: VmSortColumn[] = COLUMNS.map((c) => c.key);
-
-const FLUID_COLUMN_WIDTH = `${100 / COLUMNS.length}%`;
 
 export function VmTable({
   rows,
@@ -38,37 +33,32 @@ export function VmTable({
   sortDirection,
   onSort,
   onRowClick,
-  columnWidthOverrides,
-  onResizeColumn,
-  onResetColumnWidth,
 }: {
   rows: VmRowView[];
   sortColumn: VmSortColumn | null;
   sortDirection: 'asc' | 'desc';
   onSort: (column: VmSortColumn) => void;
   onRowClick: (id: string) => void;
-  columnWidthOverrides: Partial<Record<VmSortColumn, number>>;
-  onResizeColumn: (column: VmSortColumn, width: number) => void;
-  onResetColumnWidth: (column: VmSortColumn) => void;
 }) {
-  const startResize = useColumnResize(onResizeColumn);
-
   return (
     <div style={{ flex: 1, minHeight: 0, overflow: 'auto' }}>
       <table className="cirrus-table">
         <colgroup>
           {COLUMNS.map((col) => (
-            <col key={col.key} style={{ width: columnWidthOverrides[col.key] ?? FLUID_COLUMN_WIDTH }} />
+            <col key={col.key} style={{ width: col.width }} />
           ))}
           {/* Absorbs whatever width is left over once the 10 real columns
-              take their explicit widths, so the table fills its container
+              take their fixed widths, so the table fills its container
               instead of leaving a dead gap — see table-layout: fixed's
-              column-width algorithm. */}
+              column-width algorithm. On a viewport too narrow to fit the
+              sum of fixed widths, this same algorithm makes the table
+              render wider than its container instead of shrinking any
+              column, so the ancestor's overflow:auto scrolls horizontally. */}
           <col key="spacer" />
         </colgroup>
         <thead>
           <tr>
-            {COLUMNS.map((col, index) => (
+            {COLUMNS.map((col) => (
               <th
                 key={col.key}
                 className="th th-sortable"
@@ -82,17 +72,6 @@ export function VmTable({
                     <path d="M6 9l6 6 6-6" />
                   </svg>
                 </div>
-                {index < COLUMNS.length - 1 && (
-                  <span
-                    className="th-resize-handle"
-                    onMouseDown={(e) => startResize(e, col.key)}
-                    onClick={(e) => e.stopPropagation()}
-                    onDoubleClick={(e) => {
-                      e.stopPropagation();
-                      onResetColumnWidth(col.key);
-                    }}
-                  />
-                )}
               </th>
             ))}
             <th className="th" />
@@ -105,7 +84,7 @@ export function VmTable({
                 {vm.name}
                 <div className="font-mono" style={{ fontSize: 10.5, color: 'var(--text-muted)', marginTop: 2 }}>{vm.id}</div>
               </td>
-              <td className="td" style={{ whiteSpace: 'nowrap' }}>
+              <td className="td">
                 <ProviderBadge provider={vm.providerMeta} size={26} />
                 <span style={{ fontSize: 12, color: 'var(--text-secondary)', marginLeft: 6 }}>{vm.providerMeta.name}</span>
                 {vm.service && (
@@ -124,14 +103,14 @@ export function VmTable({
                 </div>
               </td>
               <td className="td font-mono">{vm.type}</td>
-              <td className="td font-mono" style={{ whiteSpace: 'nowrap' }}>{vm.cpuDisplay}</td>
+              <td className="td font-mono">{vm.cpuDisplay}</td>
               <td className="td font-mono">{vm.memoryDisplay}</td>
-              <td className="td font-mono" style={{ whiteSpace: 'nowrap' }}>
+              <td className="td font-mono">
                 {vm.disks.map((d, i) => (
                   <div key={i}>{d.sizeGB} GB</div>
                 ))}
               </td>
-              <td className="td font-mono" style={{ whiteSpace: 'nowrap' }}>
+              <td className="td font-mono">
                 {vm.privateIpDisplay}
                 <div style={{ color: 'var(--text-muted)' }}>{vm.publicIpDisplay}</div>
               </td>

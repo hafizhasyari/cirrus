@@ -1,10 +1,12 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 type ToastData = { message: string; variant?: 'success' | 'error' } | null;
 
 export function Toast({ toast }: { toast: ToastData }) {
   const [phase, setPhase] = useState<'entering' | 'exiting' | null>(null);
   const [content, setContent] = useState<{ message: string; variant: 'success' | 'error' } | null>(null);
+  const phaseRef = useRef(phase);
+  phaseRef.current = phase;
 
   useEffect(() => {
     if (toast) {
@@ -12,7 +14,7 @@ export function Toast({ toast }: { toast: ToastData }) {
       setPhase('entering');
       return;
     }
-    if (phase === null) return;
+    if (phaseRef.current === null) return;
     setPhase('exiting');
     const timer = setTimeout(() => setPhase(null), 200);
     return () => clearTimeout(timer);

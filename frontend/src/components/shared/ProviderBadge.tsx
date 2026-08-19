@@ -1,5 +1,5 @@
 import { ProviderIcon } from './ProviderIcon';
-import { providerBgForTheme, useTheme } from '../../theme/ThemeContext';
+import { providerBgForTheme, useTheme } from '../../theme/themeUtils';
 import type { Provider } from '../../types';
 
 export function ProviderBadge({

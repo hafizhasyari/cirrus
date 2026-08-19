@@ -3,20 +3,16 @@ import { UserDrawer } from './UserDrawer';
 import { UserRowSkeleton } from './UserRowSkeleton';
 import { StatCard } from '../shared/StatCard';
 import { AlertTriangleIcon, EmptyState, UsersOffIcon } from '../shared/EmptyState';
-import { useColumnResize } from '../../lib/columnResize';
 import { formatRelativeTime } from '../../lib/relativeTime';
+import { ScreenLayout } from '../AppShell';
+import { useApp } from '../../state/AppContext';
 import type { CirrusApp } from '../../state/useCirrusApp';
-import type { UserColumnKey } from '../../types';
 
-const USER_COLUMNS: { key: UserColumnKey; label: string }[] = [
-  { key: 'user', label: 'User' },
-  { key: 'role', label: 'Role' },
-  { key: 'lastLogin', label: 'Last login' },
-];
-
-export const USER_COLUMN_KEYS: UserColumnKey[] = USER_COLUMNS.map((c) => c.key);
-
-const FLUID_COLUMN_WIDTH = `${100 / USER_COLUMNS.length}%`;
+const USER_COLUMNS = [
+  { key: 'user', label: 'User', width: 260 },
+  { key: 'role', label: 'Role', width: 110 },
+  { key: 'lastLogin', label: 'Last login', width: 150 },
+] as const;
 
 export function UsersHeader({ app }: { app: CirrusApp }) {
   return (
@@ -61,8 +57,6 @@ export function UsersScreen({ app }: { app: CirrusApp }) {
   const showError = !showLoading && !!app.usersError && usersRows.length === 0;
   const showEmpty = !showLoading && !showError && usersRows.length === 0;
 
-  const startResize = useColumnResize(app.resizeUserColumn);
-
   return (
     <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', overflowX: 'hidden', display: 'flex', flexDirection: 'column', gap: 16 }}>
       <div className="stat-grid" style={{ flexShrink: 0 }}>
@@ -96,24 +90,17 @@ export function UsersScreen({ app }: { app: CirrusApp }) {
         <table className="cirrus-table">
           <colgroup>
             {USER_COLUMNS.map((col) => (
-              <col key={col.key} style={{ width: app.userColumnWidthOverrides[col.key] ?? FLUID_COLUMN_WIDTH }} />
+              <col key={col.key} style={{ width: col.width }} />
             ))}
             <col key="spacer" />
           </colgroup>
           <thead>
             <tr>
-              {USER_COLUMNS.map((col, index) => (
+              {USER_COLUMNS.map((col) => (
                 <th key={col.key} className="th">
                   <div className="th-inner">
                     <span className="th-label">{col.label}</span>
                   </div>
-                  {index < USER_COLUMNS.length - 1 && (
-                    <span
-                      className="th-resize-handle"
-                      onMouseDown={(e) => startResize(e, col.key)}
-                      onDoubleClick={() => app.resetUserColumnWidth(col.key)}
-                    />
-                  )}
                 </th>
               ))}
               <th className="th" />
@@ -196,5 +183,14 @@ export function UsersScreen({ app }: { app: CirrusApp }) {
 
       {app.userDrawerMode && <UserDrawer app={app} />}
     </div>
+  );
+}
+
+export function UsersPage() {
+  const app = useApp();
+  return (
+    <ScreenLayout header={<UsersHeader app={app} />}>
+      <UsersScreen app={app} />
+    </ScreenLayout>
   );
 }
