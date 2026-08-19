@@ -18,6 +18,8 @@ export type VmStatus = 'running' | 'stopped';
 
 export type VmSortColumn = 'name' | 'provider' | 'account' | 'region' | 'status' | 'type' | 'cpu' | 'memory' | 'disk' | 'ip';
 
+export type UserSortColumn = 'user' | 'role' | 'lastLogin';
+
 export interface Vm {
   id: string;
   name: string;

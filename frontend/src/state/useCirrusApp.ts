@@ -28,6 +28,7 @@ import type {
   Role,
   Theme,
   User,
+  UserSortColumn,
   Vm,
   VmFetchError,
   VmSortColumn,
@@ -135,6 +136,12 @@ export function useCirrusApp() {
   // refreshInventory/navigation exactly like search/filterProviders already do.
   const [sortColumn, setSortColumn] = useState<VmSortColumn | null>('name');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
+
+  // Users & Roles table sort — same view-preference treatment as the
+  // Inventory sort above, kept as a separate state pair since it's a
+  // different table with different columns.
+  const [userSortColumn, setUserSortColumn] = useState<UserSortColumn | null>('user');
+  const [userSortDirection, setUserSortDirection] = useState<'asc' | 'desc'>('asc');
 
   // Add-connection wizard
   const [wizardStep, setWizardStep] = useState<1 | 2>(1);
@@ -369,6 +376,17 @@ export function useCirrusApp() {
         return column;
       }
       setSortDirection((d) => (d === 'asc' ? 'desc' : 'asc'));
+      return column;
+    });
+  }, []);
+
+  const toggleUserSort = useCallback((column: UserSortColumn) => {
+    setUserSortColumn((prev) => {
+      if (prev !== column) {
+        setUserSortDirection('asc');
+        return column;
+      }
+      setUserSortDirection((d) => (d === 'asc' ? 'desc' : 'asc'));
       return column;
     });
   }, []);
@@ -720,6 +738,7 @@ export function useCirrusApp() {
     unselectAllProviders, unselectAllStatuses, unselectAllAccounts, unselectAllRegions, refreshInventory,
     filterOpen, toggleFilterOpen, closeFilterOpen,
     sortColumn, sortDirection, toggleSort,
+    userSortColumn, userSortDirection, toggleUserSort,
     // connections
     openEditConnection, closeEditConnection,
     editingConnectionId, editForm, editFieldValues, editTesting, editTested, editFormErrors,

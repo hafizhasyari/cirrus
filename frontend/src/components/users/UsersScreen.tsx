@@ -7,12 +7,34 @@ import { formatRelativeTime } from '../../lib/relativeTime';
 import { ScreenLayout } from '../AppShell';
 import { useApp } from '../../state/AppContext';
 import type { CirrusApp } from '../../state/useCirrusApp';
+import type { Role, User, UserSortColumn } from '../../types';
 
-const USER_COLUMNS = [
-  { key: 'user', label: 'User', width: 260 },
-  { key: 'role', label: 'Role', width: 110 },
-  { key: 'lastLogin', label: 'Last login', width: 150 },
-] as const;
+const USER_COLUMNS: { key: UserSortColumn; label: string; width: number }[] = [
+  { key: 'user', label: 'User', width: 340 },
+  { key: 'role', label: 'Role', width: 130 },
+  { key: 'lastLogin', label: 'Last login', width: 220 },
+];
+
+const USER_ROLE_SORT_RANK: Record<Role, number> = { admin: 0, viewer: 1 };
+
+/** Always returns "ascending" ordering — the caller flips sign for desc. */
+function compareUsers(a: User, b: User, column: UserSortColumn): number {
+  switch (column) {
+    case 'user':
+      return a.name.localeCompare(b.name);
+    case 'role':
+      return USER_ROLE_SORT_RANK[a.role] - USER_ROLE_SORT_RANK[b.role];
+    case 'lastLogin': {
+      const at = new Date(a.lastLogin).getTime();
+      const bt = new Date(b.lastLogin).getTime();
+      if (Number.isNaN(at)) return 1;
+      if (Number.isNaN(bt)) return -1;
+      return at - bt;
+    }
+    default:
+      return 0;
+  }
+}
 
 export function UsersHeader({ app }: { app: CirrusApp }) {
   return (
@@ -32,16 +54,22 @@ export function UsersHeader({ app }: { app: CirrusApp }) {
 }
 
 export function UsersScreen({ app }: { app: CirrusApp }) {
+  const sortedUsers = useMemo(() => {
+    if (!app.userSortColumn) return app.users;
+    const dir = app.userSortDirection === 'asc' ? 1 : -1;
+    return [...app.users].sort((a, b) => dir * compareUsers(a, b, app.userSortColumn!));
+  }, [app.users, app.userSortColumn, app.userSortDirection]);
+
   const usersRows = useMemo(
     () =>
-      app.users.map((u) => ({
+      sortedUsers.map((u) => ({
         user: u,
         initials: u.name.split(' ').map((n) => n[0]).slice(0, 2).join(''),
         roleLabel: u.role === 'admin' ? 'Admin' : 'Viewer',
         isAdminRole: u.role === 'admin',
         isPending: u.status === 'pending',
       })),
-    [app.users],
+    [sortedUsers],
   );
 
   const userStats = useMemo(
@@ -97,9 +125,18 @@ export function UsersScreen({ app }: { app: CirrusApp }) {
           <thead>
             <tr>
               {USER_COLUMNS.map((col) => (
-                <th key={col.key} className="th">
+                <th
+                  key={col.key}
+                  className="th th-sortable"
+                  data-sorted={app.userSortColumn === col.key}
+                  data-direction={app.userSortColumn === col.key ? app.userSortDirection : undefined}
+                  onClick={() => app.toggleUserSort(col.key)}
+                >
                   <div className="th-inner">
                     <span className="th-label">{col.label}</span>
+                    <svg className="th-sort-caret" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+                      <path d="M6 9l6 6 6-6" />
+                    </svg>
                   </div>
                 </th>
               ))}
