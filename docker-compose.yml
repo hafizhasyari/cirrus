@@ -57,6 +57,12 @@ services:
     volumes:
       - ./backup/postgres-entrypoint.sh:/backup/entrypoint.sh:ro
       - ./backups/postgres:/backups
+      # postgres:17-alpine bakes in `VOLUME /var/lib/postgresql/data`; this
+      # service only ever talks to postgres over the network (pg_dump -h
+      # postgres) and never touches a local data dir, so mount tmpfs here
+      # rather than let Compose silently create an unused anonymous volume.
+      - type: tmpfs
+        target: /var/lib/postgresql/data
     depends_on:
       postgres:
         condition: service_healthy
@@ -100,6 +106,14 @@ services:
           memory: 64M
     volumes:
       - vault-init:/vault/init
+      # hashicorp/vault also bakes in `VOLUME /vault/file` + `VOLUME
+      # /vault/logs`; this container's entrypoint never touches either path
+      # (it only chowns /vault/init), so mount tmpfs for both rather than
+      # let Compose silently create two unused anonymous volumes.
+      - type: tmpfs
+        target: /vault/file
+      - type: tmpfs
+        target: /vault/logs
 
   vault:
     image: hashicorp/vault:2.0.4
@@ -127,6 +141,12 @@ services:
       # record (unseal keys + root token) so it no longer lives in the same
       # volume as the encrypted secret data it can unlock — see entrypoint.sh.
       - vault-init:/vault/init
+      # hashicorp/vault also bakes in `VOLUME /vault/logs`; this deployment
+      # logs to stdout (captured by the json-file driver/logging caps above),
+      # never to a file, so mount tmpfs here rather than let Compose silently
+      # create an unused anonymous volume.
+      - type: tmpfs
+        target: /vault/logs
     depends_on:
       vault-init-permissions:
         condition: service_completed_successfully
