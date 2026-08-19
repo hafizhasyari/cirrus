@@ -240,6 +240,36 @@ body {
 .cirrus-table tbody tr:hover {
   background: var(--surface-hover);
 }
+/* Users & Roles has only 3 columns (vs. Inventory's 10), so fixed pixel
+   widths matching Inventory's own convention leave a large dead trailing
+   spacer on a wide desktop viewport. min-width can't fix this — confirmed
+   empirically that browsers ignore min-width on <col>/<td> under
+   table-layout: fixed, so it can't act as a floor here. Below the
+   breakpoint, columns keep the exact fixed px sizing already proven safe
+   (avoids the character-by-character text-wrap bug a plain percentage-width
+   attempt hit previously); at/above it there's comfortably more room than
+   the columns' combined 690px, so percentages stretch them to fill the
+   table with no code path shared with Inventory's own columns. */
+.cirrus-table--users colgroup col:nth-child(1) {
+  width: 340px;
+}
+.cirrus-table--users colgroup col:nth-child(2) {
+  width: 130px;
+}
+.cirrus-table--users colgroup col:nth-child(3) {
+  width: 220px;
+}
+@media (min-width: 1200px) {
+  .cirrus-table--users colgroup col:nth-child(1) {
+    width: 49%;
+  }
+  .cirrus-table--users colgroup col:nth-child(2) {
+    width: 19%;
+  }
+  .cirrus-table--users colgroup col:nth-child(3) {
+    width: 32%;
+  }
+}
 
 /* Inputs */
 .search-input,

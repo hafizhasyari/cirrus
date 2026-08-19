@@ -9,10 +9,10 @@ import { useApp } from '../../state/AppContext';
 import type { CirrusApp } from '../../state/useCirrusApp';
 import type { Role, User, UserSortColumn } from '../../types';
 
-const USER_COLUMNS: { key: UserSortColumn; label: string; width: number }[] = [
-  { key: 'user', label: 'User', width: 340 },
-  { key: 'role', label: 'Role', width: 130 },
-  { key: 'lastLogin', label: 'Last login', width: 220 },
+const USER_COLUMNS: { key: UserSortColumn; label: string }[] = [
+  { key: 'user', label: 'User' },
+  { key: 'role', label: 'Role' },
+  { key: 'lastLogin', label: 'Last login' },
 ];
 
 const USER_ROLE_SORT_RANK: Record<Role, number> = { admin: 0, viewer: 1 };
@@ -115,10 +115,10 @@ export function UsersScreen({ app }: { app: CirrusApp }) {
       )}
       {!showLoading && !showError && !showEmpty && (
       <div style={{ overflow: 'auto', flex: 1, minHeight: 0 }}>
-        <table className="cirrus-table">
+        <table className="cirrus-table cirrus-table--users">
           <colgroup>
             {USER_COLUMNS.map((col) => (
-              <col key={col.key} style={{ width: col.width }} />
+              <col key={col.key} />
             ))}
             <col key="spacer" />
           </colgroup>
