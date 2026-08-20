@@ -46,7 +46,7 @@ Found via a direct code audit against `PRD.md` §4–§6 and the frontend's own 
 
 ## P3 — CI/CD & testing
 
-- [ ] Add a CI pipeline (e.g. `.github/workflows/`) running, at minimum: frontend `tsc -b` + `oxlint` + `vite build`, backend `tsc -b` per npm workspace, and `go build ./...` across the collectors Go workspace. None exists today — there is no CI of any kind.
+- [ ] Add a CI pipeline (e.g. `.github/workflows/`) running, at minimum: frontend `tsc -b` + `oxlint` + `vite build`, backend `tsc -b` per npm workspace, and `go build ./...` across the collectors Go workspace. `.github/workflows/publish-images.yml` now exists and is this repo's first GitHub Actions workflow, but it's scoped narrowly to building/publishing release images to GHCR (see `CLAUDE.md`'s "Versioning" section) — it doesn't lint, type-check, or run any tests, so this item is still open.
 - [ ] Add at least smoke/integration test coverage for the highest-risk paths: the OIDC callback flow, connection CRUD + Postgres/Vault config split, and the `/api/vms` NDJSON streaming path. There are currently zero test files anywhere in the repo (frontend or backend), and no `test` script in any of the 7 `package.json` files.
 - [ ] Add a pre-commit hook (`lint-staged`/`husky`) so lint/build issues are caught before commit — no `.husky/` exists today.
 - [ ] Add a root `README.md` documenting the actual production deploy steps (env setup from `.env.example`, `docker compose up -d --build`, the external Traefik `proxy` network prerequisite, what to expect from Vault's bootstrap). No such document exists today — only `frontend/README.md`, which only covers local frontend dev.

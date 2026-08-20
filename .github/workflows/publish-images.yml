@@ -1,0 +1,102 @@
+name: Publish images to GHCR
+
+# Publishes all 10 first-party service images to GitHub Container Registry.
+# Triggered by pushing a release tag (matching the bump-version.sh -> commit
+# -> git tag -> push flow documented in CLAUDE.md's "Versioning" section), or
+# manually via workflow_dispatch (e.g. to re-publish an already-tagged
+# version without creating a new tag). Each matrix job derives the version
+# straight from the checked-out VERSION file rather than a separate
+# version-computing job, since the derivation is a cheap few-line check and
+# duplicating it 10 ways is simpler than wiring outputs between jobs.
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - service: rbac
+            context: ./backend
+            file: backend/rbac/Dockerfile
+            needs_version_arg: false
+          - service: auth
+            context: ./backend
+            file: backend/auth/Dockerfile
+            needs_version_arg: false
+          - service: bff
+            context: ./backend
+            file: backend/bff/Dockerfile
+            needs_version_arg: false
+          - service: aggregator
+            context: ./backend
+            file: backend/aggregator/Dockerfile
+            needs_version_arg: false
+          - service: frontend
+            context: ./frontend
+            file: frontend/Dockerfile
+            needs_version_arg: false
+          - service: collector-aws
+            context: ./backend/collectors
+            file: backend/collectors/aws/Dockerfile
+            needs_version_arg: true
+          - service: collector-gcp
+            context: ./backend/collectors
+            file: backend/collectors/gcp/Dockerfile
+            needs_version_arg: true
+          - service: collector-alibaba
+            context: ./backend/collectors
+            file: backend/collectors/alibaba/Dockerfile
+            needs_version_arg: true
+          - service: collector-oci
+            context: ./backend/collectors
+            file: backend/collectors/oci/Dockerfile
+            needs_version_arg: true
+          - service: collector-biznet
+            context: ./backend/collectors
+            file: backend/collectors/biznet/Dockerfile
+            needs_version_arg: true
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Derive version
+        id: version
+        run: |
+          VERSION=$(cat VERSION | tr -d '[:space:]')
+          if [ "${{ github.event_name }}" = "push" ]; then
+            TAG_VERSION="${GITHUB_REF_NAME#v}"
+            if [ "$VERSION" != "$TAG_VERSION" ]; then
+              echo "VERSION file ($VERSION) doesn't match pushed tag ($GITHUB_REF_NAME) — bump-version.sh wasn't run before tagging?" >&2
+              exit 1
+            fi
+          fi
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+      - uses: docker/setup-buildx-action@v4
+
+      - uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: docker/build-push-action@v7
+        with:
+          context: ${{ matrix.context }}
+          file: ${{ matrix.file }}
+          push: true
+          build-args: |
+            ${{ matrix.needs_version_arg && format('CIRRUS_VERSION={0}', steps.version.outputs.version) || '' }}
+          tags: |
+            ghcr.io/${{ github.repository }}/${{ matrix.service }}:${{ steps.version.outputs.version }}
+            ghcr.io/${{ github.repository }}/${{ matrix.service }}:latest
