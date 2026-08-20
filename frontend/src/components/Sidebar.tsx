@@ -211,6 +211,7 @@ export function Sidebar({ app }: { app: CirrusApp }) {
           <div style={{ fontSize: 11, color: 'var(--text-muted)', cursor: 'pointer' }} onClick={() => app.signOut()}>Sign out</div>
         </div>
       </div>
+      <div style={{ fontSize: 10, color: 'var(--text-muted)', textAlign: 'center', marginTop: 8 }}>v{__APP_VERSION__}</div>
       </div>
     </>
   );

@@ -196,6 +196,8 @@ export function LoginScreen({
             Single sign-on via your company Microsoft 365 account.
             <br />
             Need access? Contact InMotion Support Team.
+            <br />
+            Cirrus v{__APP_VERSION__}
           </div>
         </div>
       </div>

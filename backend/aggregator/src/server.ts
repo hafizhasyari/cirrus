@@ -6,6 +6,7 @@ import { httpRequestDurationSeconds, httpRequestsTotal, register } from './lib/m
 import { requestIdStorage } from './lib/requestContext.js';
 import { registerInternalAuth } from './plugins/internalAuth.js';
 import { registerVmRoutes } from './routes/vms.js';
+import { version } from './version.js';
 
 // Precautionary — Fastify's default request/response serializer never
 // includes headers/cookies/bodies, so nothing today actually logs these
@@ -46,7 +47,7 @@ app.setErrorHandler((err: FastifyError, req, reply) => {
   reply.status(status).send({ error: { code: err.code ?? 'BAD_REQUEST', message: err.message } });
 });
 
-app.get('/health', async () => ({ status: 'ok' }));
+app.get('/health', async () => ({ status: 'ok', version }));
 
 // Exempted in plugins/internalAuth.ts's PUBLIC_PATHS alongside /health so
 // Prometheus can scrape it without the internal shared secret. Never exposed

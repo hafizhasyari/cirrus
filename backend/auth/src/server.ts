@@ -9,6 +9,7 @@ import { registerOidcRoutes } from './oidc/callback.js';
 import { registerDevLoginRoutes } from './routes/devLogin.js';
 import { registerInternalAuth } from './plugins/internalAuth.js';
 import { registerWifRoutes } from './routes/wif.js';
+import { version } from './version.js';
 
 // Precautionary — Fastify's default request/response serializer never
 // includes headers/cookies/bodies, so nothing today actually logs these
@@ -46,7 +47,7 @@ app.setErrorHandler((err: FastifyError, req, reply) => {
   reply.status(status).send({ error: { code: err.code ?? 'BAD_REQUEST', message: err.message } });
 });
 
-app.get('/health', async () => ({ status: 'ok' }));
+app.get('/health', async () => ({ status: 'ok', version }));
 app.get('/.well-known/jwks.json', async () => getJwks());
 
 // Declared at the top level, outside the /internal-prefixed sub-plugin below

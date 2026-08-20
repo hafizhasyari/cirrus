@@ -183,6 +183,7 @@ services:
         condition: service_healthy
 
   rbac:
+    image: cirrus-rbac:${CIRRUS_VERSION:-dev}
     build:
       context: ./backend
       dockerfile: rbac/Dockerfile
@@ -232,6 +233,7 @@ services:
       start_period: 10s
 
   auth:
+    image: cirrus-auth:${CIRRUS_VERSION:-dev}
     build:
       context: ./backend
       dockerfile: auth/Dockerfile
@@ -274,9 +276,12 @@ services:
       start_period: 10s
 
   collector-aws:
+    image: cirrus-collector-aws:${CIRRUS_VERSION:-dev}
     build:
       context: ./backend/collectors
       dockerfile: aws/Dockerfile
+      args:
+        CIRRUS_VERSION: ${CIRRUS_VERSION:-dev}
     restart: unless-stopped
     logging: *default-logging
     deploy:
@@ -300,9 +305,12 @@ services:
       start_period: 5s
 
   collector-gcp:
+    image: cirrus-collector-gcp:${CIRRUS_VERSION:-dev}
     build:
       context: ./backend/collectors
       dockerfile: gcp/Dockerfile
+      args:
+        CIRRUS_VERSION: ${CIRRUS_VERSION:-dev}
     restart: unless-stopped
     logging: *default-logging
     deploy:
@@ -329,9 +337,12 @@ services:
       start_period: 5s
 
   collector-alibaba:
+    image: cirrus-collector-alibaba:${CIRRUS_VERSION:-dev}
     build:
       context: ./backend/collectors
       dockerfile: alibaba/Dockerfile
+      args:
+        CIRRUS_VERSION: ${CIRRUS_VERSION:-dev}
     restart: unless-stopped
     logging: *default-logging
     deploy:
@@ -355,9 +366,12 @@ services:
       start_period: 5s
 
   collector-oci:
+    image: cirrus-collector-oci:${CIRRUS_VERSION:-dev}
     build:
       context: ./backend/collectors
       dockerfile: oci/Dockerfile
+      args:
+        CIRRUS_VERSION: ${CIRRUS_VERSION:-dev}
     restart: unless-stopped
     logging: *default-logging
     deploy:
@@ -386,9 +400,12 @@ services:
       start_period: 5s
 
   collector-biznet:
+    image: cirrus-collector-biznet:${CIRRUS_VERSION:-dev}
     build:
       context: ./backend/collectors
       dockerfile: biznet/Dockerfile
+      args:
+        CIRRUS_VERSION: ${CIRRUS_VERSION:-dev}
     restart: unless-stopped
     logging: *default-logging
     deploy:
@@ -412,6 +429,7 @@ services:
       start_period: 5s
 
   aggregator:
+    image: cirrus-aggregator:${CIRRUS_VERSION:-dev}
     build:
       context: ./backend
       dockerfile: aggregator/Dockerfile
@@ -457,6 +475,7 @@ services:
       start_period: 10s
 
   bff:
+    image: cirrus-bff:${CIRRUS_VERSION:-dev}
     build:
       context: ./backend
       dockerfile: bff/Dockerfile
@@ -517,6 +536,7 @@ services:
       - "9090:9090"
 
   frontend:
+    image: cirrus-frontend:${CIRRUS_VERSION:-dev}
     build:
       context: ./frontend
       dockerfile: Dockerfile

@@ -15,6 +15,7 @@ import { registerGcpRoutes } from './routes/gcp.js';
 import { registerProviderRoutes } from './routes/providers.js';
 import { registerUserRoutes } from './routes/users.js';
 import { registerVmRoutes } from './routes/vms.js';
+import { version } from './version.js';
 
 // Precautionary — Fastify's default request/response serializer never
 // includes headers/cookies/bodies, so nothing today actually logs these
@@ -55,7 +56,7 @@ app.setErrorHandler((err: FastifyError, req, reply) => {
   reply.status(status).send({ error: { code: err.code ?? 'BAD_REQUEST', message: err.message } });
 });
 
-app.get('/health', { config: { rateLimit: false } }, async () => ({ status: 'ok' }));
+app.get('/health', { config: { rateLimit: false } }, async () => ({ status: 'ok', version }));
 
 // Never exposed externally — frontend/nginx.conf only proxies /api/,
 // /api/vms, /auth/, and /, never /metrics, and bff's host port is cleared

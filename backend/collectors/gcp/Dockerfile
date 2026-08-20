@@ -1,10 +1,11 @@
 # syntax=docker/dockerfile:1
 FROM golang:1.26-alpine3.23 AS build
+ARG CIRRUS_VERSION=dev
 WORKDIR /app
 COPY internal-kit internal-kit
 COPY gcp gcp
 WORKDIR /app/gcp
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags="-s -w" -o /out/collector ./cmd
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags="-s -w -X cirrus/collectorkit.Version=${CIRRUS_VERSION}" -o /out/collector ./cmd
 
 FROM gcr.io/distroless/static-debian12:nonroot AS run
 COPY --from=build /out/collector /collector
