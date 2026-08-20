@@ -3,7 +3,7 @@
 | | |
 |---|---|
 | **Status** | Approved |
-| **Owner** | Admin User |
+| **Owner** | Engineering Team |
 | **Last updated** | 2026-08-08 |
 
 ## 1. Latar Belakang & Masalah
