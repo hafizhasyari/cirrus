@@ -1,0 +1,74 @@
+name: CI
+
+# Build/lint/typecheck gate — runs on every push to main and every pull
+# request. Complementary to publish-images.yml (which only builds/pushes
+# release Docker images on a version tag and never lints or type-checks):
+# this is what actually catches a broken build before it lands. There is no
+# test tooling anywhere in the repo yet, so this covers build/lint/typecheck
+# only.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Lint
+        working-directory: frontend
+        run: npm run lint
+
+      - name: Typecheck and build
+        working-directory: frontend
+        run: npm run build
+
+  backend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Install dependencies
+        working-directory: backend
+        run: npm ci
+
+      - name: Typecheck and build all workspaces
+        working-directory: backend
+        run: npm run build
+
+  collectors:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.26'
+          cache-dependency-path: backend/collectors/**/go.sum
+
+      - name: Build all collectors
+        working-directory: backend/collectors
+        run: go build all
