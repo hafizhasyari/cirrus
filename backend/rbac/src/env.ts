@@ -29,7 +29,7 @@ export const env = {
   // dashboard (DNS records) first, or sends fail with a 403 — a manual,
   // one-time operational step outside code's reach.
   resendApiKey: process.env.RESEND_API_KEY,
-  resendFromEmail: process.env.RESEND_FROM_EMAIL ?? 'Cirrus <notification@cirrus.example.com>',
+  resendFromEmail: process.env.RESEND_FROM_EMAIL ?? 'Cirrus <notification@example.com>',
   // Public URL of the frontend SPA, used only to build the invite email's
   // "Sign in to Cirrus" link. rbac has no existing copy of this (CORS_ORIGIN/
   // POST_LOGIN_REDIRECT live in bff/auth respectively) — same per-service

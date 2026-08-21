@@ -1,6 +1,6 @@
 # Cirrus — Production Readiness TODO
 
-Checklist to take Cirrus from "works in local Docker Compose" to "safe to run in production." Target deployment is the **existing Docker Compose + Traefik setup** (see `docker-compose.yml` — already has a real domain, `cirrus.example.com`, with Let's Encrypt TLS at the edge). This is a deliberate choice: `PRD.md` §8 names Kubernetes as the long-term target, but Compose+Traefik is what's actually wired up today, so it's the near-term production path — Kubernetes stays on the list below as roadmap, not a blocker.
+Checklist to take Cirrus from "works in local Docker Compose" to "safe to run in production." Target deployment is the **existing Docker Compose + Traefik setup** (see `docker-compose.yml` — already has a real domain configured via `TRAEFIK_HOSTNAME`/`TRAEFIK_CERT_DOMAIN`, with Let's Encrypt TLS at the edge). This is a deliberate choice: `PRD.md` §8 names Kubernetes as the long-term target, but Compose+Traefik is what's actually wired up today, so it's the near-term production path — Kubernetes stays on the list below as roadmap, not a blocker.
 
 See [ARCHITECTURE.md](ARCHITECTURE.md) for how the pieces fit together and [CLAUDE.md](CLAUDE.md) for the full incident/decision history behind the feature gaps in P4.
 

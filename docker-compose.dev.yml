@@ -10,9 +10,9 @@
 # `auth`'s NODE_ENV actually gates anything security-sensitive — env.ts's
 # `devLoginEnabled` requires NODE_ENV !== 'production' (see backend/auth/src
 # /env.ts), and `.env` already has DEV_LOGIN_ENABLED=true. So while this
-# overlay is active, POST https://cirrus.example.com/auth/dev-login
-# ?email=<any already-invited user's email> logs in as that user with no
-# password/MFA at all — reachable by anyone on the public internet who knows
+# overlay is active, the /dev-login route accepts any already-invited
+# user's email and logs that user in with no password/MFA at all —
+# reachable by anyone on the public internet who knows
 # or guesses an invited email, for as long as the site stays in this mode.
 # Switch back to docker-compose.prod.yml as soon as you're done testing.
 # rbac/aggregator/bff's NODE_ENV don't gate anything as security-sensitive

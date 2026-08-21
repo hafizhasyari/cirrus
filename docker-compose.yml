@@ -209,7 +209,7 @@ services:
       # RESEND_API_KEY is set. See .env.example for the domain-verification
       # requirement on RESEND_FROM_EMAIL.
       RESEND_API_KEY: ${RESEND_API_KEY:-}
-      RESEND_FROM_EMAIL: ${RESEND_FROM_EMAIL:-Cirrus <notification@cirrus.example.com>}
+      RESEND_FROM_EMAIL: ${RESEND_FROM_EMAIL:-Cirrus <notification@example.com>}
       APP_URL: ${APP_URL:-http://localhost:5173}
       VAULT_ADDR: http://vault:8200
       VAULT_TOKEN: ${VAULT_TOKEN:?VAULT_TOKEN is required}
@@ -568,12 +568,12 @@ services:
     labels:
       - "traefik.enable=true"
       - "traefik.docker.network=proxy"
-      - "traefik.http.routers.cirrus.rule=Host(`cirrus.example.com`)"
+      - "traefik.http.routers.cirrus.rule=Host(`${TRAEFIK_HOSTNAME:-cirrus.localhost}`)"
       - "traefik.http.routers.cirrus.entrypoints=websecure"
       - "traefik.http.routers.cirrus.tls=true"
       - "traefik.http.routers.cirrus.tls.certresolver=letsencrypt"
-      - "traefik.http.routers.cirrus.tls.domains[0].main=example.com"
-      - "traefik.http.routers.cirrus.tls.domains[0].sans=*.example.com"
+      - "traefik.http.routers.cirrus.tls.domains[0].main=${TRAEFIK_CERT_DOMAIN:-localhost}"
+      - "traefik.http.routers.cirrus.tls.domains[0].sans=*.${TRAEFIK_CERT_DOMAIN:-localhost}"
       - "traefik.http.services.cirrus.loadbalancer.server.port=80"
 
 volumes:
