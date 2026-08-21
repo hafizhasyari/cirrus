@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "tsx watch src/server.ts",
     "start": "tsx src/server.ts",
-    "build": "tsc -b"
+    "build": "tsc -b",
+    "test": "vitest run"
   },
   "dependencies": {
     "@azure/msal-node": "^5.5.0",

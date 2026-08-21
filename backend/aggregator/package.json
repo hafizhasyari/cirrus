@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "tsx watch src/server.ts",
     "start": "tsx src/server.ts",
-    "build": "tsc -b"
+    "build": "tsc -b",
+    "test": "vitest run"
   },
   "dependencies": {
     "@cirrus/shared-types": "*",
@@ -16,6 +17,7 @@
     "redis": "^6.2.0"
   },
   "devDependencies": {
+    "testcontainers": "^12.1.0",
     "tsx": "^4.23.8"
   }
 }

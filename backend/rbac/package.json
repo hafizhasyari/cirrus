@@ -11,7 +11,8 @@
     "db:migrate": "tsx src/db/migrate.ts",
     "db:seed": "tsx src/db/seed.ts",
     "db:migrate:prod": "node dist/db/migrate.js",
-    "db:seed:prod": "node dist/db/seed.js"
+    "db:seed:prod": "node dist/db/seed.js",
+    "test": "vitest run"
   },
   "dependencies": {
     "@cirrus/shared-types": "*",
@@ -23,8 +24,10 @@
     "zod": "^4.4.3"
   },
   "devDependencies": {
+    "@testcontainers/postgresql": "^12.1.0",
     "@types/pg": "^8.15.6",
     "drizzle-kit": "^0.31.10",
+    "testcontainers": "^12.1.0",
     "tsx": "^4.23.8"
   }
 }

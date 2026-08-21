@@ -59,6 +59,10 @@ jobs:
         working-directory: backend
         run: npm run build
 
+      - name: Test (auth, rbac, aggregator, bff)
+        working-directory: backend
+        run: npm test
+
   collectors:
     runs-on: ubuntu-latest
     steps:

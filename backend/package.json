@@ -12,6 +12,7 @@
   ],
   "scripts": {
     "build": "tsc -b",
+    "test": "npm run test -w auth -w rbac -w aggregator -w bff",
     "dev:bff": "npm run dev -w bff",
     "dev:auth": "npm run dev -w auth",
     "dev:rbac": "npm run dev -w rbac",
@@ -19,6 +20,7 @@
   },
   "devDependencies": {
     "@types/node": "^24.13.3",
-    "typescript": "~6.0.2"
+    "typescript": "~6.0.2",
+    "vitest": "^4.1.11"
   }
 }

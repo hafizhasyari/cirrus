@@ -10,7 +10,7 @@ import { requireAuth } from '../middleware/requireRole.js';
 // The Aggregator's `connection` frames actually carry `connectionId` on each
 // VM (VmWithConnection, structurally assignable to the wire type's `Vm[]`)
 // so it can be stripped here, same as the pre-streaming route used to.
-function scopeFrame(frame: VmStreamFrame, req: FastifyRequest): VmStreamFrame {
+export function scopeFrame(frame: VmStreamFrame, req: FastifyRequest): VmStreamFrame {
   if (frame.type !== 'connection') return frame;
   const vms = frame.vms as (Vm & { connectionId: string })[];
   const visible = req.user!.role === 'admin' || req.user!.connectionIds.includes(frame.connectionId);
