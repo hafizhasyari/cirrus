@@ -39,46 +39,48 @@ export const FIELD_DEFS: Record<ProviderId, FieldDef[]> = {
   ],
 };
 
-export const SETUP_GUIDE: Record<ProviderId, string[]> = {
-  aws: [
-    'In IAM → Users → Create user, add a new user for Cirrus (e.g. cirrus-readonly) — skip console access, this only needs programmatic access',
-    'Attach the AmazonEC2ReadOnlyAccess policy directly to the user',
-    'If this account also runs VMs on AWS Lightsail (not just EC2): AWS has no dedicated Lightsail-read-only managed policy, so in IAM → Policies → Create policy → JSON tab, paste the policy JSON from the card on the right, then name it (e.g. CirrusLightsailReadOnly) and create it',
-    'Attach that new policy to the same Cirrus user too (open the user → Permissions tab → Add permissions → Attach policies directly) — without it, Lightsail instances simply won\'t appear in inventory, but EC2 will keep working either way',
-    'Open the user → Security credentials tab → Create access key, and choose "Third-party service" as the use case',
-    'Copy the Access Key ID and Secret Access Key below now — the secret is only ever shown once',
-  ],
-  gcp: [
-    'In IAM & Admin → Workload Identity Federation, click Create Pool (e.g. name it cirrus-inventory-pool)',
-    'Add a provider to the pool and choose OpenID Connect (OIDC) — not AWS, Azure AD, or SAML',
-    'Set the Issuer (URL) to https://auth.cirrus.internal — it does not need to be a publicly reachable address',
-    'Since the issuer isn\'t public, choose "Upload JWKS manually" and paste in the JSON from the "Download cirrus-jwks.json" button below',
-    'Leave Audiences on "Default audience" — do not add a custom one',
-    'Under Attribute Mapping, set google.subject = assertion.sub (required)',
-    'Create or choose a Service Account, open it, go to "Principals with access" (not "Permissions") → Grant Access, and for "New principals" use the identifier shown below, then assign it the Workload Identity User role — this must be granted on the Service Account itself, not on the project',
-    'Separately, on the IAM page, grant that same Service Account a read-only role on the project, e.g. Compute Viewer',
-    'Copy the Project Number (numeric, from the project Dashboard — not the Project ID string), Pool ID, Provider ID, and Service Account email into the fields below',
-  ],
-  alibaba: [
-    'In RAM → Users → Create User, add a new user for Cirrus (e.g. cirrus-readonly) — skip console access, this only needs programmatic access',
-    'Attach the AliyunECSReadOnlyAccess policy directly to the user',
-    'Open the user → User Details → AccessKey pairs → Create AccessKey',
-    'Copy the AccessKey ID and AccessKey Secret below now — the secret is only ever shown once',
-    'No need to pick a region — Cirrus automatically discovers and fetches instances from every region this AccessKey can access',
-  ],
-  oci: [
-    'In Identity → Users → your user → API Keys, generate a new API signing key pair',
-    'Download the private key — it is only shown once',
-    'Copy the tenancy OCID, user OCID, fingerprint, and region from the generated config preview',
-    'The region is still required as a starting point, but any valid region works — Cirrus automatically discovers and fetches instances from every region this tenancy is subscribed to',
-  ],
-  biznet: [
-    'Log in to the Biznet Gio customer portal (portal.biznetgio.com)',
-    'Open the Generate API Key menu',
-    'Choose the privilege for the key — pick Read Only (Cirrus never needs Read & Write)',
-    'Click Generate and copy the resulting token as the x-token value below',
-  ],
-};
+export function buildSetupGuide(jwtIssuer: string): Record<ProviderId, string[]> {
+  return {
+    aws: [
+      'In IAM → Users → Create user, add a new user for Cirrus (e.g. cirrus-readonly) — skip console access, this only needs programmatic access',
+      'Attach the AmazonEC2ReadOnlyAccess policy directly to the user',
+      'If this account also runs VMs on AWS Lightsail (not just EC2): AWS has no dedicated Lightsail-read-only managed policy, so in IAM → Policies → Create policy → JSON tab, paste the policy JSON from the card on the right, then name it (e.g. CirrusLightsailReadOnly) and create it',
+      'Attach that new policy to the same Cirrus user too (open the user → Permissions tab → Add permissions → Attach policies directly) — without it, Lightsail instances simply won\'t appear in inventory, but EC2 will keep working either way',
+      'Open the user → Security credentials tab → Create access key, and choose "Third-party service" as the use case',
+      'Copy the Access Key ID and Secret Access Key below now — the secret is only ever shown once',
+    ],
+    gcp: [
+      'In IAM & Admin → Workload Identity Federation, click Create Pool (e.g. name it cirrus-inventory-pool)',
+      'Add a provider to the pool and choose OpenID Connect (OIDC) — not AWS, Azure AD, or SAML',
+      `Set the Issuer (URL) to ${jwtIssuer} — it does not need to be a publicly reachable address`,
+      'Since the issuer isn\'t public, choose "Upload JWKS manually" and paste in the JSON from the "Download cirrus-jwks.json" button below',
+      'Leave Audiences on "Default audience" — do not add a custom one',
+      'Under Attribute Mapping, set google.subject = assertion.sub (required)',
+      'Create or choose a Service Account, open it, go to "Principals with access" (not "Permissions") → Grant Access, and for "New principals" use the identifier shown below, then assign it the Workload Identity User role — this must be granted on the Service Account itself, not on the project',
+      'Separately, on the IAM page, grant that same Service Account a read-only role on the project, e.g. Compute Viewer',
+      'Copy the Project Number (numeric, from the project Dashboard — not the Project ID string), Pool ID, Provider ID, and Service Account email into the fields below',
+    ],
+    alibaba: [
+      'In RAM → Users → Create User, add a new user for Cirrus (e.g. cirrus-readonly) — skip console access, this only needs programmatic access',
+      'Attach the AliyunECSReadOnlyAccess policy directly to the user',
+      'Open the user → User Details → AccessKey pairs → Create AccessKey',
+      'Copy the AccessKey ID and AccessKey Secret below now — the secret is only ever shown once',
+      'No need to pick a region — Cirrus automatically discovers and fetches instances from every region this AccessKey can access',
+    ],
+    oci: [
+      'In Identity → Users → your user → API Keys, generate a new API signing key pair',
+      'Download the private key — it is only shown once',
+      'Copy the tenancy OCID, user OCID, fingerprint, and region from the generated config preview',
+      'The region is still required as a starting point, but any valid region works — Cirrus automatically discovers and fetches instances from every region this tenancy is subscribed to',
+    ],
+    biznet: [
+      'Log in to the Biznet Gio customer portal (portal.biznetgio.com)',
+      'Open the Generate API Key menu',
+      'Choose the privilege for the key — pick Read Only (Cirrus never needs Read & Write)',
+      'Click Generate and copy the resulting token as the x-token value below',
+    ],
+  };
+}
 
 export const FAILURE_MSG: Record<ProviderId, string> = {
   aws: 'Authentication failed — the Access Key ID/Secret Access Key is invalid, or the IAM user lacks read permissions on EC2.',

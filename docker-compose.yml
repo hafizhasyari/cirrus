@@ -211,6 +211,7 @@ services:
       RESEND_API_KEY: ${RESEND_API_KEY:-}
       RESEND_FROM_EMAIL: ${RESEND_FROM_EMAIL:-Cirrus <notification@example.com>}
       APP_URL: ${APP_URL:-http://localhost:5173}
+      JWT_ISSUER: ${JWT_ISSUER:-https://auth.cirrus.internal}
       VAULT_ADDR: http://vault:8200
       VAULT_TOKEN: ${VAULT_TOKEN:?VAULT_TOKEN is required}
       AWS_COLLECTOR_URL: http://collector-aws:8080

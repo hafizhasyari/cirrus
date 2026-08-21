@@ -35,6 +35,10 @@ export const env = {
   // POST_LOGIN_REDIRECT live in bff/auth respectively) — same per-service
   // duplication precedent those two already follow.
   appUrl: process.env.APP_URL ?? 'http://localhost:5173',
+  // Same var/default auth and bff each read independently — rbac needs it
+  // to render the GCP Add Connection wizard's setup guide with the actual
+  // configured issuer instead of a hardcoded literal (see data/providers.ts).
+  jwtIssuer: process.env.JWT_ISSUER ?? 'https://auth.cirrus.internal',
 };
 
 export const COLLECTOR_URLS: Record<ProviderId, string> = {
