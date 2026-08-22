@@ -198,16 +198,23 @@ export function useCirrusApp() {
 
   // Consumes an NDJSON VM stream (initial load or refresh), updating
   // vmsByConnection/vmErrorsByConnection/vmProgress frame by frame. The
-  // `start` frame's connectionIds list is also used to prune any connection
-  // that no longer exists (deleted since the last load) from state, so a
-  // stale row doesn't linger forever once its connection is gone.
+  // `start` frame's connectionIds list (already role-scoped by the BFF, so a
+  // Viewer's list is just their own assigned connections) is also used to
+  // prune any connection that no longer exists (deleted since the last load)
+  // from state, so a stale row doesn't linger forever once its connection is
+  // gone. `tracked` holds that same scoped id set for the lifetime of this
+  // stream so `done` only counts connections this user's progress total
+  // actually includes — `connection` frames for out-of-scope connections
+  // still arrive (so the OutageBanner keeps seeing their `error`), and
+  // without this guard `done` would overshoot a Viewer's smaller `total`.
   const consumeVmStream = useCallback((streamFn: (onFrame: (f: VmStreamFrame) => void) => Promise<void>) => {
     setVmProgress({ done: 0, total: 0 });
+    let tracked = new Set<string>();
     return streamFn((frame) => {
       if (frame.type === 'start') {
-        const known = new Set(frame.connectionIds);
-        setVmsByConnection((prev) => new Map([...prev].filter(([id]) => known.has(id))));
-        setVmErrorsByConnection((prev) => new Map([...prev].filter(([id]) => known.has(id))));
+        tracked = new Set(frame.connectionIds);
+        setVmsByConnection((prev) => new Map([...prev].filter(([id]) => tracked.has(id))));
+        setVmErrorsByConnection((prev) => new Map([...prev].filter(([id]) => tracked.has(id))));
         setVmProgress({ done: 0, total: frame.connectionIds.length });
       } else if (frame.type === 'connection') {
         setVmsByConnection((prev) => new Map(prev).set(frame.connectionId, frame.vms));
@@ -217,7 +224,9 @@ export function useCirrusApp() {
           else next.delete(frame.connectionId);
           return next;
         });
-        setVmProgress((prev) => (prev ? { done: prev.done + 1, total: prev.total } : prev));
+        if (tracked.has(frame.connectionId)) {
+          setVmProgress((prev) => (prev ? { done: prev.done + 1, total: prev.total } : prev));
+        }
       } else if (frame.type === 'done') {
         setVmProgress(null);
       } else if (frame.type === 'ping') {
@@ -284,8 +293,8 @@ export function useCirrusApp() {
       })
       .finally(() => setIsLoadingVms(false));
 
+    loadConnections();
     if (currentUser.role === 'admin') {
-      loadConnections();
       loadUsers();
     }
 

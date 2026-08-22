@@ -7,20 +7,30 @@ function fakeRequest(user: { role: 'admin' | 'viewer'; connectionIds: string[] }
 }
 
 describe('scopeFrame', () => {
-  it('leaves non-connection frames untouched regardless of role', () => {
-    const startFrame = { type: 'start' as const, connectionIds: ['a', 'b'] };
-    expect(scopeFrame(startFrame, fakeRequest({ role: 'viewer', connectionIds: [] }))).toBe(startFrame);
-
+  it('leaves done/ping frames untouched regardless of role', () => {
     const doneFrame = { type: 'done' as const, refreshedAt: '2026-01-01T00:00:00.000Z' };
     expect(scopeFrame(doneFrame, fakeRequest({ role: 'admin', connectionIds: [] }))).toBe(doneFrame);
+    expect(scopeFrame(doneFrame, fakeRequest({ role: 'viewer', connectionIds: [] }))).toBe(doneFrame);
   });
 
-  it('shows an admin every VM in a connection frame, with connectionId stripped', () => {
+  it('shows an admin every connectionId in a start frame', () => {
+    const startFrame = { type: 'start' as const, connectionIds: ['a', 'b'] };
+    expect(scopeFrame(startFrame, fakeRequest({ role: 'admin', connectionIds: [] }))).toBe(startFrame);
+  });
+
+  it('filters a start frame down to a viewer’s assigned connections', () => {
+    const startFrame = { type: 'start' as const, connectionIds: ['a', 'b', 'c'] };
+    const scoped = scopeFrame(startFrame, fakeRequest({ role: 'viewer', connectionIds: ['b'] }));
+    expect(scoped).toEqual({ type: 'start', connectionIds: ['b'] });
+  });
+
+  it('shows an admin every VM and error in a connection frame, with connectionId stripped', () => {
     const frame = {
       type: 'connection' as const,
       provider: 'aws' as const,
       connectionId: 'conn-1',
       vms: [{ id: 'vm-1', connectionId: 'conn-1' }] as never[],
+      error: { provider: 'aws' as const, connectionId: 'conn-1', code: 'TIMEOUT', message: 'timed out' },
     };
     const scoped = scopeFrame(frame, fakeRequest({ role: 'admin', connectionIds: [] }));
     expect(scoped).toEqual({ ...frame, vms: [{ id: 'vm-1' }] });
@@ -37,14 +47,15 @@ describe('scopeFrame', () => {
     expect(scoped).toEqual({ ...frame, vms: [{ id: 'vm-1' }] });
   });
 
-  it('hides VMs from a viewer not assigned to that connection', () => {
+  it('hides VMs and errors from a viewer not assigned to that connection', () => {
     const frame = {
       type: 'connection' as const,
       provider: 'aws' as const,
       connectionId: 'conn-1',
       vms: [{ id: 'vm-1', connectionId: 'conn-1' }] as never[],
+      error: { provider: 'aws' as const, connectionId: 'conn-1', code: 'TIMEOUT', message: 'timed out' },
     };
     const scoped = scopeFrame(frame, fakeRequest({ role: 'viewer', connectionIds: ['conn-2'] }));
-    expect(scoped).toEqual({ ...frame, vms: [] });
+    expect(scoped).toEqual({ ...frame, vms: [], error: undefined });
   });
 });

@@ -3,18 +3,25 @@ import type { Vm, VmStreamFrame } from '@cirrus/shared-types';
 import { streamAggregatorVms } from '../clients/aggregatorClient.js';
 import { requireAuth } from '../middleware/requireRole.js';
 
-// Mirrors the pre-streaming route's scoping exactly: `vms` is filtered to the
-// requester's assigned connections (admins see everything), while a frame's
-// mere existence — like the old `errors` array — is never scoped, so every
-// user still sees the same refresh progress/outage visibility as an admin.
-// The Aggregator's `connection` frames actually carry `connectionId` on each
-// VM (VmWithConnection, structurally assignable to the wire type's `Vm[]`)
-// so it can be stripped here, same as the pre-streaming route used to.
+// `vms` and `error` on a `connection` frame, and `connectionIds` on the
+// `start` frame, are all filtered to the requester's assigned connections
+// (admins see everything) — a Viewer gets zero signal, not even an outage
+// notice, about a connection outside their own assignment, the same as they
+// get zero signal about its VMs. Only a `connection` frame's bare existence
+// stays unscoped (one frame per system connection still arrives regardless
+// of role) so the stream shape/heartbeat behavior is unaffected. The
+// Aggregator's `connection` frames actually carry `connectionId` on each VM
+// (VmWithConnection, structurally assignable to the wire type's `Vm[]`) so it
+// can be stripped here, same as the pre-streaming route used to.
 export function scopeFrame(frame: VmStreamFrame, req: FastifyRequest): VmStreamFrame {
+  if (frame.type === 'start') {
+    if (req.user!.role === 'admin') return frame;
+    return { ...frame, connectionIds: frame.connectionIds.filter((id) => req.user!.connectionIds.includes(id)) };
+  }
   if (frame.type !== 'connection') return frame;
   const vms = frame.vms as (Vm & { connectionId: string })[];
   const visible = req.user!.role === 'admin' || req.user!.connectionIds.includes(frame.connectionId);
-  return { ...frame, vms: visible ? vms.map(({ connectionId, ...vm }) => vm) : [] };
+  return { ...frame, vms: visible ? vms.map(({ connectionId, ...vm }) => vm) : [], error: visible ? frame.error : undefined };
 }
 
 async function relay(req: FastifyRequest, reply: FastifyReply, path: '/vms' | '/vms/refresh') {
