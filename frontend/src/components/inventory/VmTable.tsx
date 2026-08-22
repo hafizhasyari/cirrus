@@ -96,9 +96,11 @@ export function VmTable({
               <td className="td">{vm.account}</td>
               <td className="td font-mono">{vm.region}</td>
               <td className="td">
-                <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--text-secondary)' }}>
-                  <StatusDot color={vm.statusColor} />
-                  {vm.statusLabel}
+                <div className="status-cell">
+                  <div className="status-cell-row">
+                    <StatusDot color={vm.statusColor} />
+                    {vm.statusLabel}
+                  </div>
                   {vm.stale && <StaleBadge />}
                 </div>
               </td>
