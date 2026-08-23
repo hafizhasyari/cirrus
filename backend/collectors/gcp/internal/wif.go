@@ -24,7 +24,7 @@ func (s *subjectTokenSupplier) SubjectToken(ctx context.Context, opts externalac
 
 var (
 	tokenSourceCacheMu sync.Mutex
-	tokenSourceCache    = map[string]oauth2.TokenSource{}
+	tokenSourceCache   = map[string]oauth2.TokenSource{}
 )
 
 // buildTokenSource builds (or reuses, per-connection) an oauth2.TokenSource

@@ -121,6 +121,6 @@ type wrappedErr struct {
 	cause    error
 }
 
-func (e *wrappedErr) Error() string { return e.sentinel.Error() + ": " + e.cause.Error() }
+func (e *wrappedErr) Error() string        { return e.sentinel.Error() + ": " + e.cause.Error() }
 func (e *wrappedErr) Is(target error) bool { return target == e.sentinel }
-func (e *wrappedErr) Unwrap() error { return e.cause }
+func (e *wrappedErr) Unwrap() error        { return e.cause }

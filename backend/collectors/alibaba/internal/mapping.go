@@ -3,9 +3,9 @@ package internal
 import (
 	"fmt"
 
+	"cirrus/collectorkit"
 	ecs20140526 "github.com/alibabacloud-go/ecs-20140526/v7/client"
 	"github.com/alibabacloud-go/tea/tea"
-	"cirrus/collectorkit"
 )
 
 // mapStatus maps Alibaba ECS's status vocabulary onto our 3-bucket one.

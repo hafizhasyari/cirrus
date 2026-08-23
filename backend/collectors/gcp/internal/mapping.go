@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"strings"
 
-	computepb "cloud.google.com/go/compute/apiv1/computepb"
 	"cirrus/collectorkit"
+	computepb "cloud.google.com/go/compute/apiv1/computepb"
 )
 
 // mapStatus maps GCP's instance-status vocabulary onto our 3-bucket one.

@@ -6,9 +6,9 @@ import (
 	"fmt"
 	"net/http"
 
+	"cirrus/collectorkit"
 	compute "cloud.google.com/go/compute/apiv1"
 	computepb "cloud.google.com/go/compute/apiv1/computepb"
-	"cirrus/collectorkit"
 	"golang.org/x/oauth2"
 	"google.golang.org/api/googleapi"
 	"google.golang.org/api/iterator"
