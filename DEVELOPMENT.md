@@ -40,6 +40,9 @@ backend/
 vault/                     Vault entrypoint/config/healthcheck scripts
 backup/                    Postgres/Vault backup sidecar scripts
 backups/                   Backup output (gitignored, created at runtime)
+package.json               Root-level, tooling-only — husky + lint-staged (pre-commit hook)
+.husky/                     Git hook scripts (created by `npm install` at root)
+scripts/                    Repo-wide scripts (version bump, pre-commit Go checks)
 docker-compose.yml         Base stack (local dev)
 docker-compose.prod.yml    Production overlay
 docker-compose.dev.yml     Toggles the prod stack back to dev mode for testing
@@ -127,3 +130,4 @@ There is no automated test suite in this repo yet (no `test` script anywhere, no
 - Commit messages follow [Conventional Commits](https://www.conventionalcommits.org/): `type(scope): description`, imperative, lowercase, no trailing period. Types: `feat`, `fix`, `docs`, `refactor`, `chore` (also `perf`/`build`/`test`/`ci` if needed).
 - Do not add a `Co-Authored-By: Claude` trailer to commits in this repo.
 - If a change affects anything described in `PRD.md` or `CLAUDE.md` (scope, architecture, provider/auth model, what's built vs. deferred), update the relevant section(s) in the same commit so these docs stay in sync with the code.
+- **Pre-commit hook**: run `npm install` once at the repo root (a separate, tooling-only npm project from `frontend/`/`backend/` — git hooks are root-scoped) to install `husky`+`lint-staged` and wire up `.husky/pre-commit`. It then runs automatically on every commit: `oxlint`+typecheck on staged frontend files, `tsc -b` on staged backend files, `gofmt`+`go vet` on staged collector Go files (the Go checks skip silently if you don't have a local Go toolchain — collectors are normally built via Docker). CI still runs the full, unconditional checks regardless.

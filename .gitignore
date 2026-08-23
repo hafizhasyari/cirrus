@@ -2,3 +2,4 @@
 .env
 /backups/
 .playwright-mcp/
+node_modules/
