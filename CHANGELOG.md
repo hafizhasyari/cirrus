@@ -4,9 +4,6 @@ All notable changes to Cirrus are documented here. Format loosely follows
 [Keep a Changelog](https://keepachangelog.com/en/1.0.0/); versioning follows
 the lockstep scheme described in `CLAUDE.md`'s "Versioning" section.
 
-History before 1.0.2 predates this file — see `git log` and the `v1.0.0`/
-`v1.0.1` tags for that period.
-
 ## [1.0.2] - 2026-08-22
 
 ### Fixed
@@ -17,3 +14,53 @@ History before 1.0.2 predates this file — see `git log` and the `v1.0.0`/
   assigned connections instead of always showing 0.
 - A Viewer no longer sees outage banners (e.g. "X not responding") for cloud
   providers they have no connection to.
+
+## [1.0.1] - 2026-08-21
+
+### Added
+- GitHub Actions workflow (`publish-images.yml`) that builds and publishes
+  all 10 first-party service images to GHCR on a `vX.Y.Z` tag push or
+  manual dispatch.
+
+### Changed
+- Traefik's routing hostname and the Let's Encrypt wildcard cert domain are
+  now driven by env vars (`TRAEFIK_HOSTNAME`/`TRAEFIK_CERT_DOMAIN`) instead
+  of a hardcoded real domain.
+- Resend's sender-email fallback is now a generic example address instead
+  of a hardcoded real one.
+
+### Security
+- Redacted sensitive detail ahead of making the repository public: a real
+  production IP address, a literal exploit-shaped dev-login URL example,
+  and the maintainer's personal email.
+- Republished the 1.0.0 service images — two of the redacted strings
+  (Resend/seed-admin defaults, an invite-email placeholder) had already
+  been baked into their compiled output.
+
+## [1.0.0] - 2026-08-20
+
+Initial release — the full MVP per `PRD.md`.
+
+### Added
+- Core microservices architecture on Docker Compose: API Gateway/BFF, Auth
+  Service, RBAC Service, Inventory Aggregator, and 5 independent Go
+  Provider Collectors, backed by PostgreSQL, Redis, and HashiCorp Vault
+  (KV v2, production mode).
+- Real Microsoft Entra ID OIDC login (single-tenant), with Admin/Viewer
+  RBAC and per-Viewer assignment of specific cloud connections.
+- Real provider integrations for all 5 clouds: AWS (EC2 + Lightsail), GCP
+  (Compute Engine via Workload Identity Federation), Alibaba Cloud (ECS),
+  OCI (Core Compute with multi-region/multi-compartment auto-discovery),
+  and Biznet Gio Cloud (NEO Lite/NEO Lite Pro).
+- React + TypeScript + Vite frontend with real URL routing, streaming
+  (NDJSON) Inventory load/refresh, account/region/provider filters, column
+  sorting, a responsive layout, and light/dark theme.
+- Manual ("Test Connection") and scheduled (every 6h) connection
+  health-checks, per-provider setup guides, Resend-based user-invite
+  emails, and admin safeguards against self-removal or removing/demoting
+  the last remaining admin.
+- Production hardening: CORS policy, rate limiting, security headers
+  (helmet + nginx CSP), log redaction, cross-service request tracing,
+  per-service resource limits, log rotation, Postgres/Vault backup jobs,
+  Prometheus metrics, and Telegram outage alerting.
+- Lockstep semantic versioning across all 10 first-party services.
