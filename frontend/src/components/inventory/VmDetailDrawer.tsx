@@ -40,7 +40,7 @@ export function VmDetailDrawer({
 
         <div>
           <div className="font-display" style={{ fontSize: 20, fontWeight: 700 }}>{vm.name}</div>
-          <div className="font-mono" style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 4 }}>{vm.id}</div>
+          <div className="font-mono" style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 4, overflowWrap: 'anywhere' }}>{vm.id}</div>
           <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12.5, color: 'var(--text-secondary)', marginTop: 10 }}>
             <StatusDot color={statusColor} />
             {statusLabel}
