@@ -4,6 +4,19 @@ All notable changes to Cirrus are documented here. Format loosely follows
 [Keep a Changelog](https://keepachangelog.com/en/1.0.0/); versioning follows
 the lockstep scheme described in `CLAUDE.md`'s "Versioning" section.
 
+## [1.0.3] - 2026-09-01
+
+### Added
+- `aggregator` load-test tool (`npm run loadtest -w aggregator`) validating
+  PRD §9's performance targets against a synthetic 500-VM/5-provider fleet
+  using disposable testcontainers + fake collectors — no live stack needed.
+- Pre-commit hook (husky + lint-staged) running oxlint and a typecheck
+  against staged frontend files before every commit.
+
+### Fixed
+- VM Detail drawer's id (e.g. a long OCI OCID) no longer gets clipped —
+  it now wraps across multiple lines like the Inventory table already does.
+
 ## [1.0.2] - 2026-08-22
 
 ### Fixed
