@@ -32,17 +32,28 @@ var ErrConnectionNotFound = errors.New("collectorkit: connection not found")
 // RBACClient fetches a connection's config from RBAC's internal API — the
 // only path a collector has to provider-specific credentials/config; the
 // Aggregator never sees or forwards this material.
+//
+// Provider/CollectorSecret authenticate this specific call as "the aws
+// collector", not just "some trusted internal service" — GetConnectionConfig
+// returns a connection's config with its Vault secret merged in, plaintext,
+// so RBAC additionally checks the caller is the one collector allowed to
+// read connections of that provider (routes/internal.ts). Distinct from
+// Secret (the general INTERNAL_SHARED_SECRET every internal service shares).
 type RBACClient struct {
-	BaseURL string
-	Secret  string
-	HTTP    *http.Client
+	BaseURL         string
+	Secret          string
+	Provider        string
+	CollectorSecret string
+	HTTP            *http.Client
 }
 
-func NewRBACClient(baseURL, secret string) *RBACClient {
+func NewRBACClient(baseURL, secret, provider, collectorSecret string) *RBACClient {
 	return &RBACClient{
-		BaseURL: baseURL,
-		Secret:  secret,
-		HTTP:    &http.Client{Timeout: 10 * time.Second},
+		BaseURL:         baseURL,
+		Secret:          secret,
+		Provider:        provider,
+		CollectorSecret: collectorSecret,
+		HTTP:            &http.Client{Timeout: 10 * time.Second},
 	}
 }
 
@@ -61,6 +72,8 @@ func (c *RBACClient) GetConnectionConfig(ctx context.Context, connectionID strin
 		return nil, fmt.Errorf("collectorkit: building rbac request: %w", err)
 	}
 	req.Header.Set("X-Internal-Secret", c.Secret)
+	req.Header.Set("X-Collector-Provider", c.Provider)
+	req.Header.Set("X-Collector-Secret", c.CollectorSecret)
 	if id := requestIDFromContext(ctx); id != "" {
 		req.Header.Set("X-Request-Id", id)
 	}

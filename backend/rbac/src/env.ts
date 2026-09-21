@@ -48,3 +48,15 @@ export const COLLECTOR_URLS: Record<ProviderId, string> = {
   oci: required('OCI_COLLECTOR_URL'),
   biznet: required('BIZNET_COLLECTOR_URL'),
 };
+
+// Per-collector secrets, distinct from env.internalSharedSecret — lets
+// GET /internal/connections/:id (routes/internal.ts) verify not just "is
+// this caller some trusted internal service" but "is this caller the
+// specific collector allowed to read this connection's own provider".
+export const COLLECTOR_SECRETS: Record<ProviderId, string> = {
+  aws: required('COLLECTOR_SECRET_AWS'),
+  gcp: required('COLLECTOR_SECRET_GCP'),
+  alibaba: required('COLLECTOR_SECRET_ALIBABA'),
+  oci: required('COLLECTOR_SECRET_OCI'),
+  biznet: required('COLLECTOR_SECRET_BIZNET'),
+};

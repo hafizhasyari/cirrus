@@ -219,6 +219,15 @@ services:
       ALIBABA_COLLECTOR_URL: http://collector-alibaba:8080
       OCI_COLLECTOR_URL: http://collector-oci:8080
       BIZNET_COLLECTOR_URL: http://collector-biznet:8080
+      # Per-collector secrets (distinct from INTERNAL_SHARED_SECRET) — lets
+      # GET /internal/connections/:id verify not just "is this caller some
+      # trusted internal service" but "is this caller the specific collector
+      # allowed to read this connection's own provider".
+      COLLECTOR_SECRET_AWS: ${COLLECTOR_SECRET_AWS:?COLLECTOR_SECRET_AWS is required}
+      COLLECTOR_SECRET_GCP: ${COLLECTOR_SECRET_GCP:?COLLECTOR_SECRET_GCP is required}
+      COLLECTOR_SECRET_ALIBABA: ${COLLECTOR_SECRET_ALIBABA:?COLLECTOR_SECRET_ALIBABA is required}
+      COLLECTOR_SECRET_OCI: ${COLLECTOR_SECRET_OCI:?COLLECTOR_SECRET_OCI is required}
+      COLLECTOR_SECRET_BIZNET: ${COLLECTOR_SECRET_BIZNET:?COLLECTOR_SECRET_BIZNET is required}
       LOG_LEVEL: ${LOG_LEVEL:-info}
     ports:
       - "4001:4001"
@@ -294,6 +303,7 @@ services:
       PORT: 8080
       RBAC_URL: http://rbac:4001
       INTERNAL_SHARED_SECRET: ${INTERNAL_SHARED_SECRET:?INTERNAL_SHARED_SECRET is required}
+      COLLECTOR_SECRET: ${COLLECTOR_SECRET_AWS:?COLLECTOR_SECRET_AWS is required}
     ports:
       - "5001:8080"
     depends_on:
@@ -324,6 +334,7 @@ services:
       AUTH_URL: http://auth:4000
       RBAC_URL: http://rbac:4001
       INTERNAL_SHARED_SECRET: ${INTERNAL_SHARED_SECRET:?INTERNAL_SHARED_SECRET is required}
+      COLLECTOR_SECRET: ${COLLECTOR_SECRET_GCP:?COLLECTOR_SECRET_GCP is required}
     ports:
       - "5002:8080"
     depends_on:
@@ -355,6 +366,7 @@ services:
       PORT: 8080
       RBAC_URL: http://rbac:4001
       INTERNAL_SHARED_SECRET: ${INTERNAL_SHARED_SECRET:?INTERNAL_SHARED_SECRET is required}
+      COLLECTOR_SECRET: ${COLLECTOR_SECRET_ALIBABA:?COLLECTOR_SECRET_ALIBABA is required}
     ports:
       - "5003:8080"
     depends_on:
@@ -389,6 +401,7 @@ services:
       PORT: 8080
       RBAC_URL: http://rbac:4001
       INTERNAL_SHARED_SECRET: ${INTERNAL_SHARED_SECRET:?INTERNAL_SHARED_SECRET is required}
+      COLLECTOR_SECRET: ${COLLECTOR_SECRET_OCI:?COLLECTOR_SECRET_OCI is required}
     ports:
       - "5004:8080"
     depends_on:
@@ -418,6 +431,7 @@ services:
       PORT: 8080
       RBAC_URL: http://rbac:4001
       INTERNAL_SHARED_SECRET: ${INTERNAL_SHARED_SECRET:?INTERNAL_SHARED_SECRET is required}
+      COLLECTOR_SECRET: ${COLLECTOR_SECRET_BIZNET:?COLLECTOR_SECRET_BIZNET is required}
     ports:
       - "5005:8080"
     depends_on:

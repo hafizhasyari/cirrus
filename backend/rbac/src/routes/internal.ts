@@ -9,6 +9,7 @@ import { writeAudit } from '../lib/audit.js';
 import { readSecret } from '../lib/vault.js';
 import { getTestOverride } from '../lib/testOverrides.js';
 import { FIELD_DEFS } from '../data/providers.js';
+import { COLLECTOR_SECRETS } from '../env.js';
 
 // Must match frontend/src/lib/formValidation.ts's MASKED_PLACEHOLDER — the
 // sentinel the edit-connection drawer prefills an untouched secret field
@@ -112,10 +113,35 @@ export async function registerInternalRoutes(app: FastifyInstance) {
   // saEmail, ...) — the collector resolves this itself, the Aggregator
   // never sees or forwards credential material.
   app.get<{ Params: { id: string }; Querystring: { testToken?: string } }>('/internal/connections/:id', async (req, reply) => {
+    // Second, narrower authentication layer on top of the global
+    // X-Internal-Secret hook (plugins/internalAuth.ts): this is the one
+    // endpoint that returns a connection's config with its Vault secret
+    // merged in, plaintext, so "is this caller some trusted internal
+    // service" isn't enough — it also has to be the specific collector
+    // allowed to read this connection's own provider. A pentest against
+    // this deployment confirmed any caller holding just the shared secret
+    // could otherwise read any provider's connection through this route.
+    const declaredProvider = req.headers['x-collector-provider'];
+    const collectorSecret = req.headers['x-collector-secret'];
+    if (
+      typeof declaredProvider !== 'string' ||
+      typeof collectorSecret !== 'string' ||
+      !(declaredProvider in COLLECTOR_SECRETS) ||
+      COLLECTOR_SECRETS[declaredProvider as keyof typeof COLLECTOR_SECRETS] !== collectorSecret
+    ) {
+      reply.code(401);
+      return { error: { code: 'UNAUTHORIZED', message: 'missing or invalid collector credentials' } };
+    }
+
     const [row] = await db.select().from(cloudConnections).where(eq(cloudConnections.id, req.params.id));
     if (!row) {
       reply.code(404);
       return { error: { code: 'NOT_FOUND', message: 'connection not found' } };
+    }
+
+    if (row.provider !== declaredProvider) {
+      reply.code(403);
+      return { error: { code: 'PROVIDER_MISMATCH', message: 'this collector is not authorized for connections of this provider' } };
     }
 
     // Merge the Vault-backed secret fields (if any) back into config,

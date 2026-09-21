@@ -17,7 +17,7 @@ var rbacClient *collectorkit.RBACClient
 
 func main() {
 	internalSecret := requireEnv("INTERNAL_SHARED_SECRET")
-	rbacClient = collectorkit.NewRBACClient(requireEnv("RBAC_URL"), internalSecret)
+	rbacClient = collectorkit.NewRBACClient(requireEnv("RBAC_URL"), internalSecret, providerName, requireEnv("COLLECTOR_SECRET"))
 	requireEnv("AUTH_URL") // read directly by internal.mintWifToken via os.Getenv
 	metrics := collectorkit.NewMetrics(providerName)
 
