@@ -16,15 +16,16 @@ const providerName = "biznet"
 var rbacClient *collectorkit.RBACClient
 
 func main() {
-	rbacClient = collectorkit.NewRBACClient(requireEnv("RBAC_URL"), requireEnv("INTERNAL_SHARED_SECRET"))
+	internalSecret := requireEnv("INTERNAL_SHARED_SECRET")
+	rbacClient = collectorkit.NewRBACClient(requireEnv("RBAC_URL"), internalSecret)
 	metrics := collectorkit.NewMetrics(providerName)
 
 	mux := http.NewServeMux()
 	// Two product-line list calls (parallel) plus a bounded fan-out of
 	// per-VM vm-details calls doesn't fit in the old 5s stub-era budget.
-	mux.Handle("GET /instances", metrics.Wrap(collectorkit.WithTimeout(http.HandlerFunc(handleInstances), 15*time.Second), "instances"))
+	mux.Handle("GET /instances", metrics.Wrap(collectorkit.RequireInternalSecret(internalSecret, collectorkit.WithTimeout(http.HandlerFunc(handleInstances), 15*time.Second)), "instances"))
 	// The lightweight connection test is a single unauthenticated-shape GET.
-	mux.Handle("GET /test", metrics.Wrap(collectorkit.WithTimeout(http.HandlerFunc(handleTest), 10*time.Second), "test"))
+	mux.Handle("GET /test", metrics.Wrap(collectorkit.RequireInternalSecret(internalSecret, collectorkit.WithTimeout(http.HandlerFunc(handleTest), 10*time.Second)), "test"))
 	mux.Handle("GET /metrics", metrics.Handler())
 	mux.HandleFunc("GET /healthz", collectorkit.HealthHandler)
 

@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import type { ActiveConnection, CollectorInstance, CollectorInstancesResponse } from '@cirrus/shared-types';
-import { COLLECTOR_URLS } from '../env.js';
+import { COLLECTOR_URLS, env } from '../env.js';
 import { requestIdStorage } from '../lib/requestContext.js';
 import { redis } from './redisClient.js';
 
@@ -61,7 +61,10 @@ async function fetchFromCollector(conn: ActiveConnection): Promise<CollectorInst
     const reqId = requestIdStorage.getStore();
     const res = await fetch(`${baseUrl}/instances?connectionId=${encodeURIComponent(conn.connectionId)}`, {
       signal: controller.signal,
-      headers: reqId ? { 'x-request-id': reqId } : undefined,
+      headers: {
+        ...(reqId ? { 'x-request-id': reqId } : {}),
+        'x-internal-secret': env.internalSharedSecret,
+      },
     });
     if (!res.ok) {
       const body = (await res.json().catch(() => null)) as { error?: { code?: string; message?: string } } | null;

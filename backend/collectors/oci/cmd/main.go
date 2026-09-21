@@ -16,15 +16,16 @@ const providerName = "oci"
 var rbacClient *collectorkit.RBACClient
 
 func main() {
-	rbacClient = collectorkit.NewRBACClient(requireEnv("RBAC_URL"), requireEnv("INTERNAL_SHARED_SECRET"))
+	internalSecret := requireEnv("INTERNAL_SHARED_SECRET")
+	rbacClient = collectorkit.NewRBACClient(requireEnv("RBAC_URL"), internalSecret)
 	metrics := collectorkit.NewMetrics(providerName)
 
 	mux := http.NewServeMux()
 	// Real compartment recursion + per-compartment instance/disk/VNIC calls
 	// + per-instance GetVnic doesn't fit in the old 5s stub-era budget.
-	mux.Handle("GET /instances", metrics.Wrap(collectorkit.WithTimeout(http.HandlerFunc(handleInstances), 20*time.Second), "instances"))
+	mux.Handle("GET /instances", metrics.Wrap(collectorkit.RequireInternalSecret(internalSecret, collectorkit.WithTimeout(http.HandlerFunc(handleInstances), 20*time.Second)), "instances"))
 	// The lightweight connection test skips compartment recursion entirely.
-	mux.Handle("GET /test", metrics.Wrap(collectorkit.WithTimeout(http.HandlerFunc(handleTest), 10*time.Second), "test"))
+	mux.Handle("GET /test", metrics.Wrap(collectorkit.RequireInternalSecret(internalSecret, collectorkit.WithTimeout(http.HandlerFunc(handleTest), 10*time.Second)), "test"))
 	mux.Handle("GET /metrics", metrics.Handler())
 	mux.HandleFunc("GET /healthz", collectorkit.HealthHandler)
 

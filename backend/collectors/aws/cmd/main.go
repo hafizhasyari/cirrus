@@ -24,16 +24,17 @@ const instancesTimeout = 45 * time.Second
 var rbacClient *collectorkit.RBACClient
 
 func main() {
-	rbacClient = collectorkit.NewRBACClient(requireEnv("RBAC_URL"), requireEnv("INTERNAL_SHARED_SECRET"))
+	internalSecret := requireEnv("INTERNAL_SHARED_SECRET")
+	rbacClient = collectorkit.NewRBACClient(requireEnv("RBAC_URL"), internalSecret)
 	metrics := collectorkit.NewMetrics(providerName)
 
 	mux := http.NewServeMux()
 	// Real multi-region DescribeInstances/DescribeVolumes/DescribeInstanceTypes
 	// doesn't fit in the old 5s stub-era budget.
-	mux.Handle("GET /instances", metrics.Wrap(collectorkit.WithTimeout(http.HandlerFunc(handleInstances), instancesTimeout), "instances"))
+	mux.Handle("GET /instances", metrics.Wrap(collectorkit.RequireInternalSecret(internalSecret, collectorkit.WithTimeout(http.HandlerFunc(handleInstances), instancesTimeout)), "instances"))
 	// The lightweight connection test is just two single-call APIs, no region
 	// fan-out — a much smaller budget than the full fetch.
-	mux.Handle("GET /test", metrics.Wrap(collectorkit.WithTimeout(http.HandlerFunc(handleTest), 10*time.Second), "test"))
+	mux.Handle("GET /test", metrics.Wrap(collectorkit.RequireInternalSecret(internalSecret, collectorkit.WithTimeout(http.HandlerFunc(handleTest), 10*time.Second)), "test"))
 	mux.Handle("GET /metrics", metrics.Handler())
 	mux.HandleFunc("GET /healthz", collectorkit.HealthHandler)
 

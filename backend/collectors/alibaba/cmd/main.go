@@ -16,7 +16,8 @@ const providerName = "alibaba"
 var rbacClient *collectorkit.RBACClient
 
 func main() {
-	rbacClient = collectorkit.NewRBACClient(requireEnv("RBAC_URL"), requireEnv("INTERNAL_SHARED_SECRET"))
+	internalSecret := requireEnv("INTERNAL_SHARED_SECRET")
+	rbacClient = collectorkit.NewRBACClient(requireEnv("RBAC_URL"), internalSecret)
 	metrics := collectorkit.NewMetrics(providerName)
 
 	mux := http.NewServeMux()
@@ -31,9 +32,9 @@ func main() {
 	// a Go context at all — unlike AWS, deriving a cancellable context here
 	// wouldn't actually stop an in-flight call, so this handler doesn't
 	// bother.
-	mux.Handle("GET /instances", metrics.Wrap(collectorkit.WithTimeout(http.HandlerFunc(handleInstances), 45*time.Second), "instances"))
+	mux.Handle("GET /instances", metrics.Wrap(collectorkit.RequireInternalSecret(internalSecret, collectorkit.WithTimeout(http.HandlerFunc(handleInstances), 45*time.Second)), "instances"))
 	// The lightweight connection test is AssumeRole + one identity call only.
-	mux.Handle("GET /test", metrics.Wrap(collectorkit.WithTimeout(http.HandlerFunc(handleTest), 10*time.Second), "test"))
+	mux.Handle("GET /test", metrics.Wrap(collectorkit.RequireInternalSecret(internalSecret, collectorkit.WithTimeout(http.HandlerFunc(handleTest), 10*time.Second)), "test"))
 	mux.Handle("GET /metrics", metrics.Handler())
 	mux.HandleFunc("GET /healthz", collectorkit.HealthHandler)
 

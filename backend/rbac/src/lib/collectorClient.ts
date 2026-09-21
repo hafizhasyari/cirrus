@@ -1,5 +1,5 @@
 import type { ProviderId } from '@cirrus/shared-types';
-import { COLLECTOR_URLS } from '../env.js';
+import { COLLECTOR_URLS, env } from '../env.js';
 import { requestIdStorage } from './requestContext.js';
 
 // Plain fetch against a collector's lightweight GET /test — no client
@@ -41,7 +41,10 @@ export async function testConnectionViaCollector(
     const url = `${baseUrl}/test?connectionId=${encodeURIComponent(connectionId)}${testToken ? `&testToken=${encodeURIComponent(testToken)}` : ''}`;
     const res = await fetch(url, {
       signal: controller.signal,
-      headers: reqId ? { 'x-request-id': reqId } : undefined,
+      headers: {
+        ...(reqId ? { 'x-request-id': reqId } : {}),
+        'x-internal-secret': env.internalSharedSecret,
+      },
     });
 
     if (res.ok) {
