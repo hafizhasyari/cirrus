@@ -4,6 +4,33 @@ All notable changes to Cirrus are documented here. Format loosely follows
 [Keep a Changelog](https://keepachangelog.com/en/1.0.0/); versioning follows
 the lockstep scheme described in `CLAUDE.md`'s "Versioning" section.
 
+## [1.0.4] - 2026-09-21
+
+### Security
+- Provider Collectors (all 5) now require the shared internal secret on
+  every request. Previously, any caller reachable on the internal Docker
+  network could fetch a connection's full VM inventory with no credentials
+  at all, bypassing the BFF's session check and RBAC's per-user connection
+  scoping entirely — found via a full internal penetration test of this
+  deployment.
+- RBAC's internal connection-config endpoint (the one that returns a
+  connection's Vault-backed secret to its collector) now also verifies the
+  calling collector's own identity, not just the shared secret — a
+  compromised collector can no longer read another provider's credentials
+  through it.
+- Added a double-submit CSRF cookie on top of the existing SameSite cookie
+  + CORS origin allowlist.
+- Added rate limiting to RBAC, the Aggregator, and all 5 Go collectors —
+  previously only the BFF and Auth Service had any.
+
+### Fixed
+- RBAC and the Auth Service now return a proper `400` with a clear
+  per-field message for invalid input, instead of a generic `500`.
+
+### Changed
+- Pinned the frontend's `phantom-ui` dependency to an exact version and
+  patched an unrelated `nanoid` advisory.
+
 ## [1.0.3] - 2026-09-01
 
 ### Added
