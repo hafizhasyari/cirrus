@@ -1,6 +1,6 @@
 module cirrus/collector-alibaba
 
-go 1.25.0
+go 1.26.0
 
 require (
 	cirrus/collectorkit v0.0.0
@@ -10,6 +10,7 @@ require (
 	github.com/alibabacloud-go/tea v1.5.3
 	github.com/aliyun/credentials-go v1.4.12
 	golang.org/x/sync v0.21.0
+	golang.org/x/time v0.16.0
 )
 
 require (

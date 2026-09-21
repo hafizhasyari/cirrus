@@ -1,4 +1,5 @@
 import helmet from '@fastify/helmet';
+import rateLimit from '@fastify/rate-limit';
 import Fastify, { type FastifyError, type FastifyInstance } from 'fastify';
 import { connectRedis } from './cache/redisClient.js';
 import { env } from './env.js';
@@ -48,7 +49,7 @@ export async function buildApp(): Promise<FastifyInstance> {
     reply.status(status).send({ error: { code: err.code ?? 'BAD_REQUEST', message: err.message } });
   });
 
-  app.get('/health', async () => ({ status: 'ok', version }));
+  app.get('/health', { config: { rateLimit: false } }, async () => ({ status: 'ok', version }));
 
   // Exempted in plugins/internalAuth.ts's PUBLIC_PATHS alongside /health so
   // Prometheus can scrape it without the internal shared secret. Never exposed
@@ -59,7 +60,7 @@ export async function buildApp(): Promise<FastifyInstance> {
     httpRequestsTotal.inc({ method: req.method, route, status_code: String(reply.statusCode) });
     httpRequestDurationSeconds.observe({ method: req.method, route }, reply.elapsedTime / 1000);
   });
-  app.get('/metrics', async (_req, reply) => {
+  app.get('/metrics', { config: { rateLimit: false } }, async (_req, reply) => {
     reply.header('Content-Type', register.contentType);
     return register.metrics();
   });
@@ -68,6 +69,10 @@ export async function buildApp(): Promise<FastifyInstance> {
   // browser renders as a page, so a CSP header on its responses is close to
   // meaningless. The real CSP that matters lives in frontend/nginx.conf.
   await app.register(helmet, { contentSecurityPolicy: false });
+  // Defense-in-depth (aggregator is never browser-facing — see env.ts) — no
+  // trustProxy needed, unlike bff/auth: aggregator is only ever called
+  // container-to-container over the internal Docker network.
+  await app.register(rateLimit, { max: env.rateLimitInternalMax, timeWindow: env.rateLimitInternalWindowMs });
 
   registerInternalAuth(app);
   await registerVmRoutes(app);

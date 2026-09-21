@@ -9,11 +9,16 @@ import (
 
 	"cirrus/collector-alibaba/internal"
 	"cirrus/collectorkit"
+
+	"golang.org/x/time/rate"
 )
 
 const providerName = "alibaba"
 
 var rbacClient *collectorkit.RBACClient
+
+// Shared across /instances and /test — see collectorkit.RateLimit.
+var limiter = rate.NewLimiter(rate.Limit(20), 40)
 
 func main() {
 	internalSecret := requireEnv("INTERNAL_SHARED_SECRET")
@@ -32,9 +37,9 @@ func main() {
 	// a Go context at all — unlike AWS, deriving a cancellable context here
 	// wouldn't actually stop an in-flight call, so this handler doesn't
 	// bother.
-	mux.Handle("GET /instances", metrics.Wrap(collectorkit.RequireInternalSecret(internalSecret, collectorkit.WithTimeout(http.HandlerFunc(handleInstances), 45*time.Second)), "instances"))
+	mux.Handle("GET /instances", metrics.Wrap(collectorkit.RequireInternalSecret(internalSecret, collectorkit.RateLimit(limiter, collectorkit.WithTimeout(http.HandlerFunc(handleInstances), 45*time.Second))), "instances"))
 	// The lightweight connection test is AssumeRole + one identity call only.
-	mux.Handle("GET /test", metrics.Wrap(collectorkit.RequireInternalSecret(internalSecret, collectorkit.WithTimeout(http.HandlerFunc(handleTest), 10*time.Second)), "test"))
+	mux.Handle("GET /test", metrics.Wrap(collectorkit.RequireInternalSecret(internalSecret, collectorkit.RateLimit(limiter, collectorkit.WithTimeout(http.HandlerFunc(handleTest), 10*time.Second))), "test"))
 	mux.Handle("GET /metrics", metrics.Handler())
 	mux.HandleFunc("GET /healthz", collectorkit.HealthHandler)
 

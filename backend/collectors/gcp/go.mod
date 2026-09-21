@@ -1,11 +1,12 @@
 module cirrus/collector-gcp
 
-go 1.25.0
+go 1.26.0
 
 require (
 	cirrus/collectorkit v0.0.0
 	cloud.google.com/go/compute v1.65.0
 	golang.org/x/oauth2 v0.36.0
+	golang.org/x/time v0.16.0
 	google.golang.org/api v0.292.0
 )
 

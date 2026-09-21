@@ -1,6 +1,6 @@
 module cirrus/collector-aws
 
-go 1.25.0
+go 1.26.0
 
 require (
 	cirrus/collectorkit v0.0.0
@@ -12,6 +12,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/sts v1.45.4
 	github.com/aws/smithy-go v1.27.7
 	golang.org/x/sync v0.21.0
+	golang.org/x/time v0.16.0
 )
 
 require (

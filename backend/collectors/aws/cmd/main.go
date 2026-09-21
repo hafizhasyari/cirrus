@@ -10,6 +10,8 @@ import (
 
 	"cirrus/collector-aws/internal"
 	"cirrus/collectorkit"
+
+	"golang.org/x/time/rate"
 )
 
 const providerName = "aws"
@@ -23,6 +25,12 @@ const instancesTimeout = 45 * time.Second
 
 var rbacClient *collectorkit.RBACClient
 
+// Shared across /instances and /test — see collectorkit.RateLimit. 20 req/s
+// sustained with a burst of 40 comfortably covers a real refresh firing
+// several concurrent /instances calls (one per connection using this
+// provider) while still bounding a genuinely runaway/abusive caller.
+var limiter = rate.NewLimiter(rate.Limit(20), 40)
+
 func main() {
 	internalSecret := requireEnv("INTERNAL_SHARED_SECRET")
 	rbacClient = collectorkit.NewRBACClient(requireEnv("RBAC_URL"), internalSecret, providerName, requireEnv("COLLECTOR_SECRET"))
@@ -31,10 +39,10 @@ func main() {
 	mux := http.NewServeMux()
 	// Real multi-region DescribeInstances/DescribeVolumes/DescribeInstanceTypes
 	// doesn't fit in the old 5s stub-era budget.
-	mux.Handle("GET /instances", metrics.Wrap(collectorkit.RequireInternalSecret(internalSecret, collectorkit.WithTimeout(http.HandlerFunc(handleInstances), instancesTimeout)), "instances"))
+	mux.Handle("GET /instances", metrics.Wrap(collectorkit.RequireInternalSecret(internalSecret, collectorkit.RateLimit(limiter, collectorkit.WithTimeout(http.HandlerFunc(handleInstances), instancesTimeout))), "instances"))
 	// The lightweight connection test is just two single-call APIs, no region
 	// fan-out — a much smaller budget than the full fetch.
-	mux.Handle("GET /test", metrics.Wrap(collectorkit.RequireInternalSecret(internalSecret, collectorkit.WithTimeout(http.HandlerFunc(handleTest), 10*time.Second)), "test"))
+	mux.Handle("GET /test", metrics.Wrap(collectorkit.RequireInternalSecret(internalSecret, collectorkit.RateLimit(limiter, collectorkit.WithTimeout(http.HandlerFunc(handleTest), 10*time.Second))), "test"))
 	mux.Handle("GET /metrics", metrics.Handler())
 	mux.HandleFunc("GET /healthz", collectorkit.HealthHandler)
 

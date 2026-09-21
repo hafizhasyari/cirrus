@@ -9,11 +9,16 @@ import (
 
 	"cirrus/collector-gcp/internal"
 	"cirrus/collectorkit"
+
+	"golang.org/x/time/rate"
 )
 
 const providerName = "gcp"
 
 var rbacClient *collectorkit.RBACClient
+
+// Shared across /instances and /test — see collectorkit.RateLimit.
+var limiter = rate.NewLimiter(rate.Limit(20), 40)
 
 func main() {
 	internalSecret := requireEnv("INTERNAL_SHARED_SECRET")
@@ -24,10 +29,10 @@ func main() {
 	mux := http.NewServeMux()
 	// Real WIF exchange (mint -> STS -> impersonate) + AggregatedList +
 	// a few machineTypes.get lookups doesn't fit in the old 5s stub-era budget.
-	mux.Handle("GET /instances", metrics.Wrap(collectorkit.RequireInternalSecret(internalSecret, collectorkit.WithTimeout(http.HandlerFunc(handleInstances), 15*time.Second)), "instances"))
+	mux.Handle("GET /instances", metrics.Wrap(collectorkit.RequireInternalSecret(internalSecret, collectorkit.RateLimit(limiter, collectorkit.WithTimeout(http.HandlerFunc(handleInstances), 15*time.Second))), "instances"))
 	// The lightweight connection test is the same WIF chain (4 sequential
 	// hops) plus one testIamPermissions call, no instance listing.
-	mux.Handle("GET /test", metrics.Wrap(collectorkit.RequireInternalSecret(internalSecret, collectorkit.WithTimeout(http.HandlerFunc(handleTest), 10*time.Second)), "test"))
+	mux.Handle("GET /test", metrics.Wrap(collectorkit.RequireInternalSecret(internalSecret, collectorkit.RateLimit(limiter, collectorkit.WithTimeout(http.HandlerFunc(handleTest), 10*time.Second))), "test"))
 	mux.Handle("GET /metrics", metrics.Handler())
 	mux.HandleFunc("GET /healthz", collectorkit.HealthHandler)
 

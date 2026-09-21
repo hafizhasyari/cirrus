@@ -18,6 +18,13 @@ export const env = {
   // (scheduler.ts) re-validates every stored connection. Stored in seconds
   // in the env var (matches SESSION_TTL_SECONDS's house style). 0 disables it.
   healthCheckIntervalMs: Number(process.env.HEALTH_CHECK_INTERVAL_SECONDS ?? 21_600) * 1000,
+  // Defense-in-depth — rbac is never browser-facing (only reachable from
+  // bff/collectors/its own scheduler, all already gated by X-Internal-Secret
+  // and, for /internal/connections/:id, the per-collector secret too), so
+  // this is sized generously to never trip on real internal traffic
+  // patterns, only a genuinely runaway/abusive caller.
+  rateLimitInternalMax: Number(process.env.RATE_LIMIT_INTERNAL_MAX ?? 500),
+  rateLimitInternalWindowMs: Number(process.env.RATE_LIMIT_INTERNAL_WINDOW_SECONDS ?? 60) * 1000,
   logLevel: process.env.LOG_LEVEL ?? 'info',
   // Optional — outage alerting (lib/telegramAlert.ts) silently no-ops unless
   // both are set, same "works without it" precedent as ENTRA_*.

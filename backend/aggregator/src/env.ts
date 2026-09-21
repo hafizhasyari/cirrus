@@ -11,6 +11,12 @@ export const env = {
   redisUrl: required('REDIS_URL'),
   rbacUrl: required('RBAC_URL'),
   internalSharedSecret: required('INTERNAL_SHARED_SECRET'),
+  // Defense-in-depth — aggregator is never browser-facing (only reachable
+  // from bff, already gated by X-Internal-Secret), so this is sized
+  // generously to never trip on real internal traffic, only a genuinely
+  // runaway/abusive caller.
+  rateLimitInternalMax: Number(process.env.RATE_LIMIT_INTERNAL_MAX ?? 500),
+  rateLimitInternalWindowMs: Number(process.env.RATE_LIMIT_INTERNAL_WINDOW_SECONDS ?? 60) * 1000,
   logLevel: process.env.LOG_LEVEL ?? 'info',
 };
 

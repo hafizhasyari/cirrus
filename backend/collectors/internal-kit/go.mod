@@ -1,8 +1,11 @@
 module cirrus/collectorkit
 
-go 1.25.0
+go 1.26.0
 
-require github.com/prometheus/client_golang v1.24.1
+require (
+	github.com/prometheus/client_golang v1.24.1
+	golang.org/x/time v0.16.0
+)
 
 require (
 	github.com/beorn7/perks v1.0.1 // indirect

@@ -1,11 +1,12 @@
 module cirrus/collector-oci
 
-go 1.25.0
+go 1.26.0
 
 require (
 	cirrus/collectorkit v0.0.0
 	github.com/oracle/oci-go-sdk/v65 v65.123.0
 	golang.org/x/sync v0.22.0
+	golang.org/x/time v0.16.0
 )
 
 require (
