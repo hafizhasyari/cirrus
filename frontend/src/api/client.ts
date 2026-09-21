@@ -20,6 +20,14 @@ export class ApiError extends Error {
   }
 }
 
+// Double-submit CSRF cookie set alongside the session cookie by auth's
+// setSessionCookies() — deliberately not httpOnly so this can read it and
+// echo it back as X-CSRF-Token; bff's plugins/csrf.ts checks the two match.
+function getCsrfToken(): string | null {
+  const match = document.cookie.match(/(?:^|; )cirrus_csrf=([^;]*)/);
+  return match ? decodeURIComponent(match[1]) : null;
+}
+
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   // Only set content-type when there's an actual body — Fastify's JSON body
   // parser 400s on an empty body when this header is present (affects the
@@ -27,6 +35,11 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const headers: Record<string, string> = { ...(init?.headers as Record<string, string> | undefined) };
   if (init?.body !== undefined && headers['content-type'] === undefined) {
     headers['content-type'] = 'application/json';
+  }
+  const method = (init?.method ?? 'GET').toUpperCase();
+  if (method !== 'GET' && method !== 'HEAD') {
+    const csrfToken = getCsrfToken();
+    if (csrfToken) headers['x-csrf-token'] = csrfToken;
   }
 
   const res = await fetch(path, { ...init, credentials: 'same-origin', headers });
@@ -52,7 +65,14 @@ async function streamVms(
   onFrame: (frame: VmStreamFrame) => void,
   signal?: AbortSignal,
 ): Promise<void> {
-  const res = await fetch(path, { method: path.endsWith('/refresh') ? 'POST' : 'GET', credentials: 'same-origin', signal });
+  const isRefresh = path.endsWith('/refresh');
+  const csrfToken = isRefresh ? getCsrfToken() : null;
+  const res = await fetch(path, {
+    method: isRefresh ? 'POST' : 'GET',
+    credentials: 'same-origin',
+    headers: csrfToken ? { 'x-csrf-token': csrfToken } : undefined,
+    signal,
+  });
   if (!res.ok || !res.body) {
     const body = await res.json().catch(() => null);
     throw new ApiError(res.status, body?.error?.code ?? 'UNKNOWN', body?.error?.message ?? res.statusText);

@@ -1,6 +1,7 @@
 import type { FastifyInstance } from 'fastify';
 import { env } from '../env.js';
 import { signSession } from '../jwt.js';
+import { setSessionCookies } from '../lib/sessionCookies.js';
 import { redirectWithError } from '../oidc/errorRedirect.js';
 
 // TEMPORARY dev-only bypass for exercising the app before a real Entra ID
@@ -38,13 +39,7 @@ export async function registerDevLoginRoutes(app: FastifyInstance) {
 
     const sessionJwt = await signSession({ oid, tid, name: email, preferredUsername: email });
 
-    reply.setCookie(env.cookieName, sessionJwt, {
-      httpOnly: true,
-      secure: env.cookieSecure,
-      sameSite: 'lax',
-      path: '/',
-      maxAge: env.sessionTtlSeconds,
-    });
+    setSessionCookies(reply, sessionJwt);
 
     reply.redirect(env.postLoginRedirect);
   });

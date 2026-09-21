@@ -2,6 +2,7 @@ import type { FastifyInstance } from 'fastify';
 import { AuthError, ClientAuthErrorCodes, type AuthorizationCodeRequest } from '@azure/msal-node';
 import { env } from '../env.js';
 import { signSession } from '../jwt.js';
+import { clearSessionCookies, setSessionCookies } from '../lib/sessionCookies.js';
 import { cryptoProvider, msalClient, SCOPES } from './msalClient.js';
 import { redirectWithError } from './errorRedirect.js';
 
@@ -124,20 +125,14 @@ export async function registerOidcRoutes(app: FastifyInstance) {
 
       const sessionJwt = await signSession({ oid, tid, name, preferredUsername });
 
-      reply.setCookie(env.cookieName, sessionJwt, {
-        httpOnly: true,
-        secure: env.cookieSecure,
-        sameSite: 'lax',
-        path: '/',
-        maxAge: env.sessionTtlSeconds,
-      });
+      setSessionCookies(reply, sessionJwt);
 
       reply.redirect(env.postLoginRedirect);
     },
   );
 
   app.post('/logout', async (req, reply) => {
-    reply.clearCookie(env.cookieName, { path: '/' });
+    clearSessionCookies(reply);
     return { ok: true };
   });
 }

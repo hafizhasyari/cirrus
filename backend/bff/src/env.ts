@@ -11,6 +11,8 @@ export const env = {
   aggregatorUrl: required('AGGREGATOR_URL'),
   internalSharedSecret: required('INTERNAL_SHARED_SECRET'),
   cookieName: process.env.SESSION_COOKIE_NAME ?? 'cirrus_session',
+  // Must match auth/src/env.ts's csrfCookieName — see plugins/csrf.ts.
+  csrfCookieName: process.env.CSRF_COOKIE_NAME ?? 'cirrus_csrf',
   corsOrigin: process.env.CORS_ORIGIN ?? 'http://localhost:5173',
   rateLimitApiMax: Number(process.env.RATE_LIMIT_API_MAX ?? 300),
   rateLimitApiWindowMs: Number(process.env.RATE_LIMIT_API_WINDOW_SECONDS ?? 60) * 1000,

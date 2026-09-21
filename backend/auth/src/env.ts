@@ -16,6 +16,10 @@ export const env = {
   jwtIssuer: process.env.JWT_ISSUER ?? 'https://auth.cirrus.internal',
   jwtAudience: process.env.JWT_AUDIENCE ?? 'cirrus-bff',
   cookieName: process.env.SESSION_COOKIE_NAME ?? 'cirrus_session',
+  // Double-submit CSRF cookie (lib/sessionCookies.ts) — deliberately NOT
+  // httpOnly, read by the frontend and echoed back as X-CSRF-Token on every
+  // mutating /api/* request; bff's csrf plugin checks the two match.
+  csrfCookieName: process.env.CSRF_COOKIE_NAME ?? 'cirrus_csrf',
   cookieSecure: (process.env.COOKIE_SECURE ?? 'false') === 'true',
   cookieSecret: required('COOKIE_SECRET'), // for signed flow-state cookies (PKCE verifier/nonce/state)
   sessionTtlSeconds: Number(process.env.SESSION_TTL_SECONDS ?? 12 * 60 * 60),

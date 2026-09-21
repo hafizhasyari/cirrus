@@ -7,6 +7,7 @@ import Fastify, { type FastifyError } from 'fastify';
 import { env } from './env.js';
 import { httpRequestDurationSeconds, httpRequestsTotal, register } from './lib/metrics.js';
 import { requestIdStorage } from './lib/requestContext.js';
+import { registerCsrfProtection } from './plugins/csrf.js';
 import { registerSessionMiddleware } from './plugins/session.js';
 import { registerAuthRoutes } from './routes/auth.js';
 import { registerConfigRoutes } from './routes/config.js';
@@ -97,6 +98,7 @@ await app.register(httpProxy, {
 await app.register(httpProxy, { upstream: env.authUrl, prefix: '/auth/dev-login', rewritePrefix: '/dev-login' });
 
 registerSessionMiddleware(app);
+registerCsrfProtection(app);
 
 await registerAuthRoutes(app);
 await registerVmRoutes(app);
