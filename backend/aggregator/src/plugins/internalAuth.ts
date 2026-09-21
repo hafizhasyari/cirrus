@@ -8,6 +8,7 @@ export function registerInternalAuth(app: FastifyInstance) {
     if (PUBLIC_PATHS.has(req.url)) return;
     if (req.headers['x-internal-secret'] !== env.internalSharedSecret) {
       reply.code(401).send({ error: { code: 'UNAUTHORIZED', message: 'missing or invalid X-Internal-Secret' } });
+      return;
     }
   });
 }

@@ -10,6 +10,7 @@ export function registerInternalAuth(app: FastifyInstance) {
   app.addHook('onRequest', async (req, reply) => {
     if (req.headers['x-internal-secret'] !== env.internalSharedSecret) {
       reply.code(401).send({ error: { code: 'UNAUTHORIZED', message: 'missing or invalid X-Internal-Secret' } });
+      return;
     }
   });
 }
