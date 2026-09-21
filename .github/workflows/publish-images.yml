@@ -67,7 +67,7 @@ jobs:
             file: backend/collectors/biznet/Dockerfile
             needs_version_arg: true
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Derive version
         id: version
