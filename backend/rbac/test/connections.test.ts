@@ -8,6 +8,10 @@ let readSecret: (path: string) => Promise<Record<string, unknown> | null>;
 let pool: { end: () => Promise<void> };
 
 const HEADERS = { 'x-internal-secret': TEST_INTERNAL_SHARED_SECRET };
+// GET /internal/connections/:id additionally requires the calling
+// collector's own identity since the F2 pentest fix (routes/internal.ts) —
+// matches setup.ts's dummy COLLECTOR_SECRET_AWS.
+const AWS_COLLECTOR_HEADERS = { ...HEADERS, 'x-collector-provider': 'aws', 'x-collector-secret': 'test-collector-secret-aws' };
 
 beforeAll(async () => {
   infra = await startInfra();
@@ -52,9 +56,24 @@ describe('connection CRUD + Postgres/Vault config split', () => {
     // The collector-facing internal endpoint transparently merges Vault's
     // secret back into config — this is the one place the full credential
     // set is ever reassembled.
-    const internalRes = await app.inject({ method: 'GET', url: `/internal/connections/${created.id}`, headers: HEADERS });
+    const internalRes = await app.inject({ method: 'GET', url: `/internal/connections/${created.id}`, headers: AWS_COLLECTOR_HEADERS });
     expect(internalRes.statusCode).toBe(200);
     expect(internalRes.json().config).toEqual({ accessKeyId: 'AKIAFAKEEXAMPLE', secretAccessKey: 'shh-its-a-secret' });
+
+    // F2 pentest fix: a different provider's collector — even with a valid
+    // X-Internal-Secret — can't read this (aws) connection's config.
+    const wrongProviderRes = await app.inject({
+      method: 'GET',
+      url: `/internal/connections/${created.id}`,
+      headers: { ...HEADERS, 'x-collector-provider': 'gcp', 'x-collector-secret': 'test-collector-secret-gcp' },
+    });
+    expect(wrongProviderRes.statusCode).toBe(403);
+    expect(wrongProviderRes.json().error.code).toBe('PROVIDER_MISMATCH');
+
+    // A valid X-Internal-Secret alone, with no collector identity at all,
+    // is no longer sufficient for this specific route.
+    const noCollectorHeadersRes = await app.inject({ method: 'GET', url: `/internal/connections/${created.id}`, headers: HEADERS });
+    expect(noCollectorHeadersRes.statusCode).toBe(401);
 
     // The plain (non-internal) list/get response never leaks the secret.
     const listRes = await app.inject({ method: 'GET', url: '/connections', headers: HEADERS });
@@ -77,7 +96,7 @@ describe('connection CRUD + Postgres/Vault config split', () => {
     expect(deleteRes.statusCode).toBe(204);
     expect(await readSecret(`cirrus/connections/${created.id}`)).toBeNull();
 
-    const afterDeleteInternalRes = await app.inject({ method: 'GET', url: `/internal/connections/${created.id}`, headers: HEADERS });
+    const afterDeleteInternalRes = await app.inject({ method: 'GET', url: `/internal/connections/${created.id}`, headers: AWS_COLLECTOR_HEADERS });
     expect(afterDeleteInternalRes.statusCode).toBe(404);
   });
 

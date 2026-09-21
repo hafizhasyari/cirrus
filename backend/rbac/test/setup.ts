@@ -59,6 +59,13 @@ export async function startInfra(): Promise<Infra> {
   process.env.ALIBABA_COLLECTOR_URL ??= 'http://collector-alibaba.test.invalid';
   process.env.OCI_COLLECTOR_URL ??= 'http://collector-oci.test.invalid';
   process.env.BIZNET_COLLECTOR_URL ??= 'http://collector-biznet.test.invalid';
+  // Dummy — same reasoning as the COLLECTOR_URLs above, just required() by
+  // env.ts's COLLECTOR_SECRETS map since the F2 pentest fix.
+  process.env.COLLECTOR_SECRET_AWS ??= 'test-collector-secret-aws';
+  process.env.COLLECTOR_SECRET_GCP ??= 'test-collector-secret-gcp';
+  process.env.COLLECTOR_SECRET_ALIBABA ??= 'test-collector-secret-alibaba';
+  process.env.COLLECTOR_SECRET_OCI ??= 'test-collector-secret-oci';
+  process.env.COLLECTOR_SECRET_BIZNET ??= 'test-collector-secret-biznet';
 
   // Run in a separate process (not a dynamic import of migrate.ts in this
   // one) — migrate.ts calls `pool.end()` on the db/client.ts singleton pool

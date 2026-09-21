@@ -1,11 +1,11 @@
 name: CI
 
-# Build/lint/typecheck gate — runs on every push to main and every pull
+# Build/lint/typecheck/test gate — runs on every push to main and every pull
 # request. Complementary to publish-images.yml (which only builds/pushes
-# release Docker images on a version tag and never lints or type-checks):
-# this is what actually catches a broken build before it lands. There is no
-# test tooling anywhere in the repo yet, so this covers build/lint/typecheck
-# only.
+# release Docker images on a version tag and never lints, type-checks, or
+# tests): this is what actually catches a broken build (or a broken test)
+# before it lands. The Go collectors still have no test suite, only
+# `go build`.
 
 on:
   push:
