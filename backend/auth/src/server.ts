@@ -2,6 +2,7 @@ import cookie from '@fastify/cookie';
 import helmet from '@fastify/helmet';
 import rateLimit from '@fastify/rate-limit';
 import Fastify, { type FastifyError, type FastifyInstance } from 'fastify';
+import { ZodError } from 'zod';
 import { env } from './env.js';
 import { getJwks, initSigningKey } from './jwt.js';
 import { httpRequestDurationSeconds, httpRequestsTotal, register } from './lib/metrics.js';
@@ -39,6 +40,15 @@ export async function buildApp(): Promise<FastifyInstance> {
   });
 
   app.setErrorHandler((err: FastifyError, req, reply) => {
+    // A ZodError from a route's schema.parse() has no err.statusCode at
+    // all, so without this check it falls into the >=500 branch below —
+    // a pure client input error misreported as a server error, and one
+    // that can never be told apart from a real bug in ops/monitoring.
+    if (err instanceof ZodError) {
+      const message = err.issues.map((i) => `${i.path.join('.') || '(root)'}: ${i.message}`).join('; ');
+      reply.status(400).send({ error: { code: 'VALIDATION_ERROR', message } });
+      return;
+    }
     const status = err.statusCode ?? 500;
     if (status >= 500) {
       req.log.error({ err }, 'unhandled request error');
