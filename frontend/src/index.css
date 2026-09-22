@@ -601,6 +601,24 @@ phantom-ui {
   font-size: 12px;
   color: var(--text-secondary);
 }
+.copy-btn {
+  display: inline-flex;
+  align-items: center;
+  color: var(--text-muted);
+  opacity: 0.5;
+  cursor: pointer;
+  vertical-align: middle;
+}
+.copy-line {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  white-space: nowrap;
+}
+.copy-btn:hover {
+  opacity: 1;
+  color: var(--text-primary);
+}
 .status-cell-row {
   display: flex;
   align-items: center;

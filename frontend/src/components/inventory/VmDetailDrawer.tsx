@@ -1,3 +1,4 @@
+import { CopyButton } from '../shared/CopyButton';
 import { ProviderBadge } from '../shared/ProviderBadge';
 import { ServiceBadge } from '../shared/ServiceBadge';
 import { StatusDot } from '../shared/StatusDot';
@@ -74,8 +75,8 @@ export function VmDetailDrawer({
         <div>
           <div className="section-label" style={{ marginBottom: 10 }}>Network</div>
           <div className="drawer-grid-2col">
-            <Field label="Private IP" value={privateIpDisplay} mono />
-            <Field label="Public IP" value={publicIpDisplay} mono />
+            <Field label="Private IP" value={privateIpDisplay} mono copyable={privateIpDisplay !== '—'} />
+            <Field label="Public IP" value={publicIpDisplay} mono copyable={publicIpDisplay !== '—'} />
           </div>
         </div>
 
@@ -87,11 +88,14 @@ export function VmDetailDrawer({
   );
 }
 
-function Field({ label, value, mono }: { label: string; value: string; mono?: boolean }) {
+function Field({ label, value, mono, copyable }: { label: string; value: string; mono?: boolean; copyable?: boolean }) {
   return (
     <div>
       <div style={{ fontSize: 10.5, color: 'var(--text-muted)', marginBottom: 3 }}>{label}</div>
-      <div className={mono ? 'font-mono' : undefined} style={{ fontSize: 12.5, color: 'var(--text-primary)' }}>{value}</div>
+      <div className={mono ? 'font-mono copy-line' : 'copy-line'} style={{ fontSize: 12.5, color: 'var(--text-primary)' }}>
+        {value}
+        {copyable && <CopyButton value={value} />}
+      </div>
     </div>
   );
 }

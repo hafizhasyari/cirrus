@@ -1,3 +1,4 @@
+import { CopyButton } from '../shared/CopyButton';
 import { ProviderBadge } from '../shared/ProviderBadge';
 import { ServiceBadge } from '../shared/ServiceBadge';
 import { StaleBadge } from '../shared/StaleBadge';
@@ -24,7 +25,7 @@ const COLUMNS: { key: VmSortColumn; label: string; width: number }[] = [
   { key: 'cpu', label: 'CPU', width: 100 },
   { key: 'memory', label: 'Memory', width: 115 },
   { key: 'disk', label: 'Disk', width: 100 },
-  { key: 'ip', label: 'IP', width: 160 },
+  { key: 'ip', label: 'IP', width: 180 },
 ];
 
 export function VmTable({
@@ -113,8 +114,14 @@ export function VmTable({
                 ))}
               </td>
               <td className="td font-mono">
-                {vm.privateIpDisplay}
-                <div style={{ color: 'var(--text-muted)' }}>{vm.publicIpDisplay}</div>
+                <div className="copy-line">
+                  {vm.privateIpDisplay}
+                  {vm.privateIpDisplay !== '—' && <CopyButton value={vm.privateIpDisplay} />}
+                </div>
+                <div className="copy-line" style={{ color: 'var(--text-muted)' }}>
+                  {vm.publicIpDisplay}
+                  {vm.publicIpDisplay !== '—' && <CopyButton value={vm.publicIpDisplay} />}
+                </div>
               </td>
               <td className="td" />
             </tr>
