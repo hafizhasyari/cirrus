@@ -71,7 +71,7 @@ export function InventoryHeader({ app }: { app: CirrusApp }) {
             className="search-input"
             value={app.search}
             onChange={(e) => app.setSearch(e.target.value)}
-            placeholder="Search name or ID"
+            placeholder="Search name, ID, or IP"
           />
         </div>
         {app.vmProgress && (
@@ -201,7 +201,11 @@ export function InventoryScreen({ app }: { app: CirrusApp }) {
         filterStatuses.includes(v.status) &&
         (filterAccounts === null || filterAccounts.includes(v.account)) &&
         (filterRegions === null || filterRegions.includes(v.region)) &&
-        (searchLower === '' || v.name.toLowerCase().includes(searchLower) || v.id.toLowerCase().includes(searchLower)),
+        (searchLower === '' ||
+          v.name.toLowerCase().includes(searchLower) ||
+          v.id.toLowerCase().includes(searchLower) ||
+          v.privateIp.toLowerCase().includes(searchLower) ||
+          (v.publicIp?.toLowerCase().includes(searchLower) ?? false)),
     );
   }, [vms, filterProviders, filterStatuses, filterAccounts, filterRegions, search]);
 
