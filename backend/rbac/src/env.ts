@@ -6,6 +6,17 @@ function required(name: string): string {
   return value;
 }
 
+// Fails fast at boot on a typo'd zone instead of surfacing later as a
+// cryptic RangeError the first time the scheduler computes a tick.
+function validTimeZone(name: string, value: string): string {
+  try {
+    new Intl.DateTimeFormat('en-US', { timeZone: value });
+    return value;
+  } catch {
+    throw new Error(`Invalid ${name}: "${value}" is not a recognized IANA timezone`);
+  }
+}
+
 export const env = {
   port: Number(process.env.PORT ?? 4001),
   databaseUrl: required('DATABASE_URL'),
@@ -18,6 +29,13 @@ export const env = {
   // (scheduler.ts) re-validates every stored connection. Stored in seconds
   // in the env var (matches SESSION_TTL_SECONDS's house style). 0 disables it.
   healthCheckIntervalMs: Number(process.env.HEALTH_CHECK_INTERVAL_SECONDS ?? 21_600) * 1000,
+  // IANA zone the scheduler aligns its daily tick boundaries to (see
+  // lib/scheduleAlignment.ts) — e.g. the 6h default lands at
+  // 00:00/06:00/12:00/18:00 in this zone rather than drifting from whenever
+  // rbac happened to boot. No prior TZ convention existed anywhere in this
+  // repo; defaults to Asia/Jakarta (WIB) since that's this deployment's own
+  // timezone.
+  healthCheckTz: validTimeZone('HEALTH_CHECK_TZ', process.env.HEALTH_CHECK_TZ ?? 'Asia/Jakarta'),
   // Defense-in-depth — rbac is never browser-facing (only reachable from
   // bff/collectors/its own scheduler, all already gated by X-Internal-Secret
   // and, for /internal/connections/:id, the per-collector secret too), so

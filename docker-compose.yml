@@ -201,6 +201,7 @@ services:
       SEED_ADMIN_EMAIL: ${SEED_ADMIN_EMAIL:-admin@example.com}
       SEED_ADMIN_NAME: ${SEED_ADMIN_NAME:-Administrator}
       HEALTH_CHECK_INTERVAL_SECONDS: ${HEALTH_CHECK_INTERVAL_SECONDS:-21600}
+      HEALTH_CHECK_TZ: ${HEALTH_CHECK_TZ:-Asia/Jakarta}
       # Optional — outage alerting (lib/telegramAlert.ts) silently no-ops
       # unless both are set. See .env.example for how to get a bot token/chat id.
       TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-}
